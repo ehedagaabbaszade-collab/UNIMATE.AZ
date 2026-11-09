@@ -339,7 +339,7 @@ describe("nits", () => {
     expect(await affected(db, "authenticated", SUPER, "update public.profiles set display_name = 'superadmin' where id = $1", [SUPER])).toBe(1);
   });
   it("bucket upsert also resets file_size_limit and allowed_mime_types", async () => {
-    const sql = readFileSync(path.join(supabaseDir, "migrations/20260101001100_storage.sql"), "utf8");
+    const sql = readFileSync(path.join(supabaseDir, "migrations/20260101001600_product_gaps.sql"), "utf8");
     const upsert = sql.slice(sql.indexOf("insert into storage.buckets"), sql.indexOf(";", sql.indexOf("on conflict")) + 1);
     const before = (await raw("select file_size_limit, allowed_mime_types from storage.buckets where id = 'documents'"))[0];
     await db.query("update storage.buckets set file_size_limit = 1, allowed_mime_types = array['text/html'], public = true where id = 'documents'");

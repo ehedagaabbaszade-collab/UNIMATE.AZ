@@ -18,6 +18,12 @@ Repo: 545 vitest tests passing (46 files); `npm run typecheck` clean in all work
 | Payments | N | by design: entitlements + admin grant only, no checkout |
 | E2E/Playwright, load tests, CI/CD | N | |
 
+## Queued next (one agent at a time, in order)
+1. Finish backend gaps (account deletion, export, server-side XP, admin ops) -> verify -> commit.
+2. AI cost architecture: DB-backed model routing per task (extraction, summarize, rag, chat, quiz, flashcards, exam_simulation) and per plan (free/plus/pro); pricing in admin-only server-side config (validated, audited, reversible); ai_usage gains provider, task, cached tokens, estimated cost; HARD spend ceilings per user, per plan, and global, enforced atomically (reserve-then-settle, idempotent per request id so retries/failures never double-bill); reject with a clear error at the limit, never silently switch to a pricier model; fallback only to pre-approved same-or-cheaper models; per-user rate limits; admin cost dashboard views; provider-extension guide. Tests: concurrency, exhaustion, provider failure, retry idempotency, fallback cost limits, users cannot change plan/usage.
+3. Combined security review (backend + AI cost) -> fix -> commit.
+4. Expo mobile app (real backend, all implemented modules), then admin app, E2E/prod builds, deployment/EAS docs.
+
 ## Known external blockers
 AI provider key; Supabase project (not created - needs approval); Deno for edge functions; Android/EAS account; Apple toolchain (macOS).
 

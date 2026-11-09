@@ -1,15 +1,20 @@
 {
   "name": "unimate",
   "private": true,
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "test": "vitest run",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
-    "build": "npm run build --workspaces --if-present"
+    "build": "npm run build --workspaces --if-present",
+    "brand:build": "node scripts/build-brand-assets.mjs"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
+    "sharp": "^0.35.5",
     "typescript": "^7.0.2",
     "vitest": "^5.1.0"
   }

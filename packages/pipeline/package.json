@@ -1,0 +1,24 @@
+{
+  "name": "@unimate/pipeline",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "@unimate/core": "*",
+    "fflate": "^0.8.3",
+    "tesseract.js": "^7.0.0",
+    "unpdf": "^2.1.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.16",
+    "@electric-sql/pglite-pgvector": "^0.0.17",
+    "jszip": "^3.10.2",
+    "pdf-lib": "^1.17.1"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "name": "@unimate/mobile",
+  "version": "0.0.0",
+  "private": true,
+  "main": "index.ts",
+  "scripts": {
+    "start": "expo start",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "expo": "^58.0.23",
+    "react": "^19.3.1",
+    "react-native": "^0.88.1"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0"
+  }
+}

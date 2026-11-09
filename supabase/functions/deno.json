@@ -1,0 +1,10 @@
+{
+  "imports": {
+    "@unimate/pipeline": "../../packages/pipeline/src/index.ts",
+    "@unimate/core": "../../packages/core/src/index.ts",
+    "zod": "npm:zod@^4.6.7",
+    "fflate": "npm:fflate@^0.8.3",
+    "unpdf": "npm:unpdf@^2.1.0",
+    "tesseract.js": "npm:tesseract.js@^7.0.0"
+  }
+}

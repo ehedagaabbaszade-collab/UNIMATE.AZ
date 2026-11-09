@@ -88,6 +88,8 @@ export const en = {
     faculty: "Faculty",
     universityHint: "From the list of universities in the database. You can change this later.",
     noUniversities: "No universities are available yet.",
+    universityGroup: "Universities and academies",
+    collegeGroup: "Colleges",
     noFaculties: "No faculties are listed for this university yet.",
     noMajors: "No majors are listed for this faculty yet.",
     forgot: "Forgot password?",

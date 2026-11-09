@@ -1,5 +1,5 @@
 /** Row shapes for the tables the web app reads/writes (see supabase/migrations). No generated types exist yet. */
-export interface University { id: string; name: string; short_name: string | null; city: string | null }
+export interface University { id: string; name: string; short_name: string | null; city: string | null; institution_type: "university" | "college"; affiliated_with: string | null }
 export interface Faculty { id: string; university_id: string; name: string }
 export interface Major { id: string; faculty_id: string; name: string; degree_level: string }
 

@@ -10,9 +10,9 @@ import { aiConfig, authenticate, corsHeaders, errorResponse, json, ocrLangPath, 
 declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void } | undefined;
 
 const makeRunner = () => {
-  const { provider, models } = aiConfig();
+  const { provider, guard } = aiConfig();
   return documentJobRunner(
-    { repo: repository(), storage: storageReader(), provider, models, ocr: new TesseractOcrEngine({ ...(ocrLangPath() ? { langPath: ocrLangPath()! } : {}) }) },
+    { repo: repository(), storage: storageReader(), provider, guard, ocr: new TesseractOcrEngine({ ...(ocrLangPath() ? { langPath: ocrLangPath()! } : {}) }) },
     `edge-${crypto.randomUUID()}`,
   );
 };

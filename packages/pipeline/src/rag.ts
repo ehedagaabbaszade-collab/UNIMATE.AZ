@@ -1,4 +1,6 @@
+import { randomUUID } from "node:crypto";
 import { validateCitations, wrapUntrusted, type AiProvider } from "@unimate/core";
+import { subRequestId, type GuardedProvider } from "./ai-guard";
 import { modelFor, recordUsage, embedAll, type ModelMap } from "./ai";
 import { PipelineError, isBillable } from "./errors";
 import { consumeQuota } from "./quota";
@@ -11,7 +13,10 @@ export const MAX_QUESTION_CHARS = 2000;
 export interface AskDeps {
   repo: Repository;
   provider: AiProvider;
-  models: ModelMap;
+  /** Legacy tier -> model-name map. Ignored when `guard` is set. Production leaves it out. */
+  models?: ModelMap;
+  /** DB-routed, budget-guarded provider (embed + rag tasks). Without it the legacy ModelMap path is used (tests). */
+  guard?: GuardedProvider;
   now?: () => Date;
   topK?: number;
 }
@@ -75,9 +80,10 @@ const formatContext = (chunks: MatchedChunk[]) =>
  */
 export async function askDocument(
   deps: AskDeps,
-  input: { userId: string; documentId: string; question: string; conversationId?: string },
+  input: { userId: string; documentId: string; question: string; conversationId?: string; requestId?: string },
 ): Promise<AskResult> {
-  const { repo, provider, models } = deps;
+  const { repo, provider, models, guard } = deps;
+  const requestBase = input.requestId ?? randomUUID();
   const now = (deps.now ?? (() => new Date()))();
   const question = input.question.trim();
   if (!question || question.length > MAX_QUESTION_CHARS)
@@ -107,7 +113,14 @@ export async function askDocument(
   const reservation = await consumeQuota(repo, input.userId, plan, { type: "ai_message" }, now);
   let spent = false;
   try {
-    const [qVec] = await embedAll({ repo, provider, models }, input.userId, [question]);
+    const [qVec] = await embedAll(
+      { repo, provider, ...(models ? { models } : {}) },
+      input.userId,
+      [question],
+      64,
+      undefined,
+      guard ? { guard, plan, requestBase } : undefined,
+    );
     spent = true; // the embedding call is paid: nothing after this point refunds (including zero retrieval)
     const retrieved = await repo.matchChunks(input.userId, qVec!, input.documentId, deps.topK ?? 6);
 
@@ -117,15 +130,23 @@ export async function askDocument(
     await repo.insertMessage({ conversationId, role: "user", content: question });
 
     const fenced = wrapUntrusted(formatContext(retrieved));
-    const { tier, model } = modelFor(models, plan, "chat");
-    const gen = await provider.generate({
-      task: "chat",
-      model,
-      system: `${SYSTEM_RULES}\n${fenced.notice}`,
-      prompt: `${fenced.fenced}\n\nQuestion: ${question}`,
-    });
-    spent = true; // the paid call returned: nothing after this point refunds
-    await recordUsage(repo, input.userId, "chat", tier, gen.model, gen.usage);
+    const system = `${SYSTEM_RULES}
+${fenced.notice}`;
+    const prompt = `${fenced.fenced}
+
+Question: ${question}`;
+    let gen: { text: string; model: string; usage: { inputTokens: number; outputTokens: number } };
+    if (guard) {
+      // Document Q&A is routed as the `rag` task (separate model/price/limits from free-form `chat`).
+      gen = await guard.generate({ userId: input.userId, plan, requestId: subRequestId(requestBase, "answer") }, "rag", { system, prompt });
+      spent = true;
+    } else {
+      if (!models) throw new PipelineError("ai_not_configured", "No model map or guard configured", false);
+      const { tier, model } = modelFor(models, plan, "chat");
+      gen = await provider.generate({ task: "chat", model, system, prompt });
+      spent = true; // the paid call returned: nothing after this point refunds
+      await recordUsage(repo, input.userId, "chat", tier, gen.model, gen.usage);
+    }
 
     const byId = new Map(retrieved.map((c) => [c.id.toLowerCase(), c]));
     const pre = stripForeignUuids(gen.text, new Set(byId.keys()));

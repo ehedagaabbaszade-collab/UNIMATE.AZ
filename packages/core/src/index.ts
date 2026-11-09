@@ -1,6 +1,7 @@
 export * from "./text/locale";
 export * from "./text/chunk";
 export * from "./ai/provider";
+export * from "./ai/config";
 export * from "./ai/citations";
 export * from "./ai/fence";
 export * from "./billing/entitlements";

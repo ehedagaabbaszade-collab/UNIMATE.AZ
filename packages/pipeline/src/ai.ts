@@ -1,4 +1,5 @@
 import { computeCost, routeModel, type AiProvider, type AiTask, type ModelTier, type PlanId, type TokenUsage } from "@unimate/core";
+import { subRequestId, type GuardedProvider } from "./ai-guard";
 import { PipelineError } from "./errors";
 import type { Repository } from "./repository";
 
@@ -31,27 +32,48 @@ export async function recordUsage(
   await repo.recordAiUsage({ userId, feature, model, inputTokens: usage.inputTokens, outputTokens: usage.outputTokens, costMicroUsd: usdMicro });
 }
 
-/** Embeds `inputs` in batches, verifies count and dimensions, records usage per batch. */
+/** Opt-in guarded path: route/budget/rate-limit/fallback/settle all happen inside the GuardedProvider. */
+export interface GuardedEmbed {
+  guard: GuardedProvider;
+  plan: PlanId;
+  /** Each batch is a separate billable call: ids are `${requestBase}:embed:${batch}`. */
+  requestBase: string;
+}
+
+/**
+ * Embeds `inputs` in batches, verifies count and dimensions, records usage per batch.
+ * With `guarded` usage is recorded by the ledger (settle) and `deps.models` is not used; without it the legacy
+ * ModelMap path runs (tests / unconfigured deployments).
+ */
 export async function embedAll(
-  deps: { repo: Repository; provider: AiProvider; models: ModelMap },
+  deps: { repo: Repository; provider: AiProvider; models?: ModelMap },
   userId: string,
   inputs: string[],
   batchSize = 64,
   /** Called before each batch (e.g. a job heartbeat). */
   beforeBatch?: () => Promise<void>,
+  guarded?: GuardedEmbed,
 ): Promise<number[][]> {
   const out: number[][] = [];
   for (let i = 0; i < inputs.length; i += batchSize) {
     await beforeBatch?.();
     const batch = inputs.slice(i, i + batchSize);
-    const r = await deps.provider.embed({ model: deps.models.embed, inputs: batch });
+    let r: { vectors: number[][]; usage: TokenUsage };
+    if (guarded) {
+      const requestId = subRequestId(guarded.requestBase, `embed:${i / batchSize}`);
+      // One rate-limit slot per embedAll operation (the first batch); the budget is still reserved per batch.
+      r = await guarded.guard.embed({ userId, plan: guarded.plan, requestId, skipRateLimit: i > 0 }, batch);
+    } else {
+      if (!deps.models) throw new PipelineError("ai_not_configured", "No model map or guard configured", false);
+      r = await deps.provider.embed({ model: deps.models.embed, inputs: batch });
+    }
     if (r.vectors.length !== batch.length)
       throw new PipelineError("embed_mismatch", `Embedding count ${r.vectors.length} != inputs ${batch.length}`, true, true);
     for (const v of r.vectors)
       if (v.length !== EMBEDDING_DIMS || !v.every(Number.isFinite))
         throw new PipelineError("embed_dims", `Embedding must have ${EMBEDDING_DIMS} finite dimensions (got ${v.length})`, false, true);
     out.push(...r.vectors);
-    await recordUsage(deps.repo, userId, "embed", "small", deps.models.embed, r.usage);
+    if (!guarded) await recordUsage(deps.repo, userId, "embed", "small", deps.models!.embed, r.usage);
   }
   return out;
 }

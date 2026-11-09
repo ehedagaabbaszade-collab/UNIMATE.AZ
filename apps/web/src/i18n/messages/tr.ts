@@ -89,6 +89,8 @@ export const tr = {
     faculty: "Fakülte",
     universityHint: "Veritabanındaki üniversite listesinden. Sonra değiştirebilirsin.",
     noUniversities: "Henüz üniversite yok.",
+    universityGroup: "Üniversiteler ve akademiler",
+    collegeGroup: "Kolejler",
     noFaculties: "Bu üniversite için henüz fakülte eklenmemiş.",
     noMajors: "Bu fakülte için henüz bölüm eklenmemiş.",
     forgot: "Parolanı mı unuttun?",

@@ -15,8 +15,8 @@ Deno.serve(async (req) => {
     const q = parseGenerateRequest(await readBody(req));
     const common = { userId, documentId: q.documentId, ...(q.language ? { language: q.language } : {}), ...(q.count ? { count: q.count } : {}) };
 
-    const { provider, models } = aiConfig();
-    const deps = { repo: repository(), provider, models };
+    const { provider, guard } = aiConfig();
+    const deps = { repo: repository(), provider, guard };
 
     switch (q.type) {
       case "summary":

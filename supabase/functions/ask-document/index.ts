@@ -17,9 +17,9 @@ Deno.serve(async (req) => {
     const question = typeof body.question === "string" ? body.question : "";
     const conversationId = body.conversationId === undefined ? undefined : uuidField(body, "conversationId");
 
-    const { provider, models } = aiConfig();
+    const { provider, guard } = aiConfig();
     const result = await askDocument(
-      { repo: repository(), provider, models },
+      { repo: repository(), provider, guard },
       { userId, documentId, question, ...(conversationId ? { conversationId } : {}) },
     );
     return json(200, result);

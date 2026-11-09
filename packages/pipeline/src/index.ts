@@ -5,6 +5,7 @@ export * from "./quota-periods";
 export * from "./quota";
 export * from "./jobs";
 export * from "./ai";
+export * from "./ai-guard";
 export * from "./ocr";
 export * from "./extract/zip";
 export * from "./extract/office";

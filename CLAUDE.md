@@ -12,6 +12,7 @@ Extends the global routing rules in ~/.claude/CLAUDE.md (reuse them; do not dupl
 - Commit a baseline so reviews can use `git diff` (ask the user first).
 
 ## Project facts
+- LANGUAGES: az (default), tr, en, ru (user decision: Russian stays) across web, admin, mobile, emails, notifications, AI output. All UI strings via translation keys in packages/i18n (once created); no hardcoded user-facing strings; Campus content is never auto-translated.
 - Stack: npm workspaces; Next 16 (web/admin), Expo (mobile), Supabase (Postgres 15 target, pgvector), vitest, TS strict, zod.
 - DB tests run on PGlite (Postgres 18, superuser migrations): they do NOT prove PG15 compatibility or hosted-role behaviour.
 - AI providers unconfigured: production path must throw ProviderNotConfiguredError; fakes are test-only (`@unimate/core/testing`).

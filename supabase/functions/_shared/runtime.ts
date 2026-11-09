@@ -13,7 +13,10 @@ import {
   SqlRepository,
   assertStoragePath,
   createProviderFromEnv,
-  modelsFromEnv,
+  GuardedProvider,
+  BudgetExceededError,
+  RateLimitedError,
+  SqlAiLedger,
   parseAllowedOrigin,
   publicError,
   tesseractLangPathFromEnv,
@@ -121,8 +124,13 @@ export function storageReader(): StorageReader {
 /** Pinned OCR traineddata host (https) from TESSERACT_LANG_PATH; undefined = tesseract.js default. */
 export const ocrLangPath = (): string | undefined => tesseractLangPathFromEnv(Deno.env.toObject());
 
+/**
+ * Provider from env (keys only) + a GuardedProvider. Model names, prices, routes, budgets and rate limits come from the
+ * DB (admin-managed ai_* tables); there is NO env model default, so an unconfigured deployment fails with ai_not_configured.
+ */
 export function aiConfig() {
-  return { provider: createProviderFromEnv(Deno.env.toObject()), models: modelsFromEnv(Deno.env.toObject()) };
+  const provider = createProviderFromEnv(Deno.env.toObject());
+  return { provider, guard: new GuardedProvider({ ledger: new SqlAiLedger(executor), provider }) };
 }
 
 /** Maps pipeline errors to HTTP. Internal details are never returned. */
@@ -131,7 +139,10 @@ export function errorResponse(e: unknown): Response {
   if (e instanceof PipelineError) {
     const status =
       e.code === "not_found" ? 404 :
-      e.code === "quota_exceeded" ? 429 :
+      e.code === "quota_exceeded" || e.code === "budget_exceeded" || e.code === "rate_limited" ? 429 :
+      e.code === "ai_not_configured" ? 503 :
+      e.code === "duplicate_request" ? 409 :
+      e.code === "provider_error" || e.code === "ai_ledger_error" ? 502 :
       e.code === "not_ready" || e.code === "not_uploaded" ? 409 :
       e.code === "invalid_question" || e.code === "bad_request" ? 400 :
       e.code === "provider_http" || e.code === "provider_network" || e.code === "provider_timeout" ? 502 :
@@ -139,7 +150,7 @@ export function errorResponse(e: unknown): Response {
     // Client gets a fixed message for provider/enqueue/storage failures; the redacted detail goes to server logs only.
     console.error("pipeline error", sanitizeError(e));
     const pub = publicError(e);
-    return json(status, { error: pub.code, message: pub.message });
+    return json(status, { error: pub.code, message: pub.message, ...(e instanceof RateLimitedError ? { retryAfterSeconds: e.retryAfterSeconds } : {}), ...(e instanceof BudgetExceededError ? { scope: e.scope, period: e.period } : {}) });
   }
   console.error("unhandled", e instanceof Error ? e.name : "unknown"); // name only: no message/stack with possible secrets
   return json(500, { error: "internal_error" });

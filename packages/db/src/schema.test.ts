@@ -31,7 +31,7 @@ describe("schema shape", () => {
        where n.nspname = 'public' and c.relkind in ('r', 'p') order by 1`,
     );
     console.info(`public tables: ${tables.length}`);
-    expect(tables.length).toBe(47);
+    expect(tables.length).toBe(55); // +8 AI cost tables (20260101001900)
     expect(tables.filter((t) => !t.relrowsecurity).map((t) => t.relname)).toEqual([]);
     expect(tables.filter((t) => t.policies === 0).map((t) => t.relname)).toEqual([]);
   });

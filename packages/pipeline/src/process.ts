@@ -1,4 +1,6 @@
+import { randomUUID } from "node:crypto";
 import { checkQuota, chunkPages, cleanText, validateUpload, type AiProvider, type FileKind, type PlanId } from "@unimate/core";
+import type { GuardedProvider } from "./ai-guard";
 import { EMBEDDING_DIMS, embedAll, type ModelMap } from "./ai";
 import { PipelineError, sanitizeError } from "./errors";
 import { extractDocx, extractPptx, type ExtractedPage } from "./extract/office";
@@ -23,7 +25,10 @@ export interface ProcessDeps {
   repo: Repository;
   storage: StorageReader;
   provider: AiProvider;
-  models: ModelMap;
+  /** Legacy tier -> model-name map. Ignored when `guard` is set. Production leaves it out. */
+  models?: ModelMap;
+  /** DB-routed, budget-guarded provider for the `embed` task. Without it the legacy ModelMap path is used. */
+  guard?: GuardedProvider;
   ocr?: OcrEngine;
   rasterizePdfPage?: PdfPageRasterizer;
   now?: () => Date;
@@ -70,7 +75,7 @@ export async function processDocument(
   deps: ProcessDeps,
   documentId: string,
   /** When set, the final write is fenced on this job still being 'running' and locked by this worker. */
-  fence?: { jobId: string; workerId: string },
+  fence?: { jobId: string; workerId: string; /** job attempt number: a retry is new spend, so it gets new request ids */ attempt?: number },
 ): Promise<ProcessResult> {
   const { repo, storage } = deps;
   const now = (deps.now ?? (() => new Date()))();
@@ -143,11 +148,14 @@ export async function processDocument(
 
   // 6. embed (transient provider failures are retryable via the job runner)
   const vectors = await embedAll(
-    { repo, provider: deps.provider, models: deps.models },
+    { repo, provider: deps.provider, ...(deps.models ? { models: deps.models } : {}) },
     doc.userId,
     chunks.map((c) => c.text),
     deps.embedBatchSize,
     beat,
+    deps.guard
+      ? { guard: deps.guard, plan, requestBase: fence ? `job:${fence.jobId}:${fence.attempt ?? 0}` : `doc:${documentId}:${randomUUID()}` }
+      : undefined,
   );
   if (vectors.some((x) => x.length !== EMBEDDING_DIMS)) throw new PipelineError("embed_dims", "Bad embedding dimensions", false);
 
@@ -173,7 +181,7 @@ export async function processDocument(
 /** Handlers + terminal-failure hook that wire processDocument into the JobRunner. */
 export function documentJobRunner(deps: ProcessDeps, workerId: string, opts: { staleLockMs?: number } = {}): JobRunner {
   const handler: JobHandler = async (job) => {
-    await processDocument(deps, job.documentId, { jobId: job.id, workerId });
+    await processDocument(deps, job.documentId, { jobId: job.id, workerId, attempt: job.attempts });
   };
   return new JobRunner({
     repo: deps.repo,

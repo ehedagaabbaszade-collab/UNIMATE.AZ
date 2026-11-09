@@ -5,6 +5,7 @@ import { useAsync, unwrap } from "@/lib/use-async";
 import { getBrowserClient } from "@/lib/supabase/browser";
 import type { Faculty, Major, University } from "@/lib/db";
 import { useT } from "@/i18n/provider";
+import { groupInstitutions, institutionLabel } from "./institutions";
 
 export interface AcademicValue {
   universityId: string;
@@ -25,7 +26,8 @@ export function AcademicPicker({
   showMajor?: boolean;
 }) {
   const t = useT();
-  const unis = useAsync<University[]>(async () => unwrap(await getBrowserClient().from("universities").select("id,name,short_name,city").order("name")), []);
+  const unis = useAsync<University[]>(async () => unwrap(await getBrowserClient().from("universities").select("id,name,short_name,city,institution_type,affiliated_with").order("name")), []);
+  const groups = groupInstitutions(unis.data ?? []);
   const faculties = useAsync<Faculty[]>(
     async () => unwrap(await getBrowserClient().from("faculties").select("id,university_id,name").eq("university_id", value.universityId).order("name")),
     [value.universityId],
@@ -48,11 +50,24 @@ export function AcademicPicker({
         onChange={(e) => onChange({ universityId: e.target.value, facultyId: "", majorId: "" })}
       >
         <option value="">{t("common.select")}</option>
-        {unis.data?.map((u) => (
-          <option key={u.id} value={u.id}>
-            {u.name}
-          </option>
-        ))}
+        {groups.universities.length > 0 ? (
+          <optgroup label={t("auth.universityGroup")}>
+            {groups.universities.map((u) => (
+              <option key={u.id} value={u.id}>
+                {institutionLabel(u)}
+              </option>
+            ))}
+          </optgroup>
+        ) : null}
+        {groups.colleges.length > 0 ? (
+          <optgroup label={t("auth.collegeGroup")}>
+            {groups.colleges.map((u) => (
+              <option key={u.id} value={u.id}>
+                {institutionLabel(u)}
+              </option>
+            ))}
+          </optgroup>
+        ) : null}
       </Select>
       {showMajor && value.universityId ? (
         <>

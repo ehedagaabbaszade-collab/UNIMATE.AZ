@@ -89,6 +89,8 @@ export const az = {
     faculty: "Fakültə",
     universityHint: "Verilənlər bazasındakı universitetlər siyahısından. Sonra dəyişə bilərsiniz.",
     noUniversities: "Hələ universitet yoxdur.",
+    universityGroup: "Universitetlər və akademiyalar",
+    collegeGroup: "Kolleclər",
     noFaculties: "Bu universitet üçün hələ fakültə əlavə olunmayıb.",
     noMajors: "Bu fakültə üçün hələ ixtisas əlavə olunmayıb.",
     forgot: "Parolu unutmusan?",

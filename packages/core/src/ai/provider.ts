@@ -3,6 +3,8 @@ import type { PlanId } from "../billing/entitlements";
 export interface TokenUsage {
   inputTokens: number;
   outputTokens: number;
+  /** Prompt tokens served from the provider's cache (billed at the cached price). Adapters leave it unset when unknown. */
+  cachedInputTokens?: number;
 }
 export type AiTask = "chat" | "summarize" | "quiz" | "flashcards" | "ocr_cleanup" | "embed";
 export type ModelTier = "small" | "standard" | "premium";
@@ -43,7 +45,11 @@ export class ProviderNotConfiguredError extends Error {
   }
 }
 
-/** Task -> tier per plan. Assumption: paid plans get stronger tiers on reasoning-heavy tasks. */
+/**
+ * LEGACY test/default fixture (tier only, no model names or prices). Production routing and pricing come from the
+ * DB-backed AiConfig (see ./config.ts: resolveRoute); nothing in production should read this table.
+ * Assumption: paid plans get stronger tiers on reasoning-heavy tasks.
+ */
 export const MODEL_ROUTING: Record<PlanId, Record<AiTask, ModelTier>> = {
   FREE: { chat: "small", summarize: "small", quiz: "small", flashcards: "small", ocr_cleanup: "small", embed: "small" },
   PLUS: { chat: "standard", summarize: "standard", quiz: "standard", flashcards: "small", ocr_cleanup: "small", embed: "small" },

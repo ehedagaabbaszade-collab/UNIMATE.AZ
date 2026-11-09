@@ -1,8 +1,10 @@
 import { randomUUID } from "node:crypto";
+import { z } from "zod";
 import { validateCitations, wrapUntrusted, type AiProvider } from "@unimate/core";
 import { subRequestId, type GuardedProvider } from "./ai-guard";
 import { modelFor, recordUsage, embedAll, type ModelMap } from "./ai";
 import { PipelineError, isBillable } from "./errors";
+import { LANGUAGE_NAMES, LanguageSchema, type StudyLanguage } from "./languages";
 import { consumeQuota } from "./quota";
 import type { MatchedChunk, Repository } from "./repository";
 
@@ -65,6 +67,24 @@ export function stripForeignUuids(text: string, retrievedIds: ReadonlySet<string
   return { text: out, rejected };
 }
 
+// ---------------------------------------------------------------- request schema (used by the edge function)
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const AskRequestSchema = z.object({
+  documentId: z.string().regex(UUID).transform((s) => s.toLowerCase()),
+  question: z.string().max(MAX_QUESTION_CHARS * 4),
+  conversationId: z.string().regex(UUID).transform((s) => s.toLowerCase()).optional(),
+  /** Language the answer is written in (az/tr/en/ru). Omitted: the answer follows the language of the question. */
+  outputLanguage: LanguageSchema.optional(),
+  /** Language of the document (optional; stored on a new conversation). Independent of outputLanguage. */
+  sourceLanguage: LanguageSchema.optional(),
+});
+export type AskRequest = z.infer<typeof AskRequestSchema>;
+export function parseAskRequest(body: unknown): AskRequest {
+  const r = AskRequestSchema.safeParse(body);
+  if (!r.success) throw new PipelineError("bad_request", `Invalid request: ${r.error.issues[0]?.path.join(".") || "body"}`, false);
+  return r.data;
+}
+
 const SYSTEM_RULES =
   "You answer questions about one document using ONLY the excerpts provided. " +
   "Cite every claim with the exact excerpt id in square brackets, e.g. [<id>]. " +
@@ -80,8 +100,24 @@ const formatContext = (chunks: MatchedChunk[]) =>
  */
 export async function askDocument(
   deps: AskDeps,
-  input: { userId: string; documentId: string; question: string; conversationId?: string; requestId?: string },
+  input: {
+    userId: string;
+    documentId: string;
+    question: string;
+    conversationId?: string;
+    requestId?: string;
+    outputLanguage?: StudyLanguage;
+    sourceLanguage?: StudyLanguage;
+  },
 ): Promise<AskResult> {
+  // Allowlist (interpolated into the prompt): checked before any quota or model use.
+  for (const [k, v] of [["outputLanguage", input.outputLanguage], ["sourceLanguage", input.sourceLanguage]] as const)
+    if (v !== undefined && !LanguageSchema.safeParse(v).success)
+      throw new PipelineError("bad_request", `${k} must be one of az, tr, en, ru`, false);
+  const langOpts = {
+    ...(input.outputLanguage ? { outputLanguage: input.outputLanguage } : {}),
+    ...(input.sourceLanguage ? { sourceLanguage: input.sourceLanguage } : {}),
+  };
   const { repo, provider, models, guard } = deps;
   const requestBase = input.requestId ?? randomUUID();
   const now = (deps.now ?? (() => new Date()))();
@@ -102,7 +138,7 @@ export async function askDocument(
 
   // A document without chunks cannot be answered: do not consume quota or pay for an embedding.
   const noContext = async (): Promise<AskResult> => {
-    conversationId ??= await repo.createConversation(input.userId, input.documentId, question.slice(0, 80));
+    conversationId ??= await repo.createConversation(input.userId, input.documentId, question.slice(0, 80), langOpts);
     await repo.insertMessage({ conversationId, role: "user", content: question });
     const messageId = await repo.insertMessage({ conversationId, role: "assistant", content: NOT_GROUNDED_LABEL + NO_CONTEXT_ANSWER });
     return { answer: NOT_GROUNDED_LABEL + NO_CONTEXT_ANSWER, grounded: false, citations: [], rejectedCitationIds: [], suspicious: false, conversationId, messageId };
@@ -126,11 +162,11 @@ export async function askDocument(
 
     if (retrieved.length === 0) return await noContext();
 
-    conversationId ??= await repo.createConversation(input.userId, input.documentId, question.slice(0, 80));
+    conversationId ??= await repo.createConversation(input.userId, input.documentId, question.slice(0, 80), langOpts);
     await repo.insertMessage({ conversationId, role: "user", content: question });
 
     const fenced = wrapUntrusted(formatContext(retrieved));
-    const system = `${SYSTEM_RULES}
+    const system = `${SYSTEM_RULES}${input.outputLanguage ? ` Write the answer in ${LANGUAGE_NAMES[input.outputLanguage]}.` : ""}
 ${fenced.notice}`;
     const prompt = `${fenced.fenced}
 

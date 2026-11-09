@@ -139,10 +139,11 @@ describe("admin_grant_plan", () => {
     expect((await select(db, "authenticated", u1, "select plan, source from public.subscriptions")).length).toBe(1);
   });
   it("re-grant replaces the live manual grant (one live row); free revokes; super_admin may grant", async () => {
-    await grant(SUPER, u1, "plus", null);
+    await grant(SUPER, u1, "plus"); // until is mandatory since 20260101003400 (was: null = unlimited)
     const l = await live(u1);
     expect(l.length).toBe(1);
-    expect(l[0]).toMatchObject({ plan: "plus", current_period_end: null });
+    expect(l[0]).toMatchObject({ plan: "plus" });
+    expect(l[0]!.current_period_end).not.toBeNull();
     await grant(ADMIN, u1, "free");
     expect(await live(u1)).toEqual([]);
   });

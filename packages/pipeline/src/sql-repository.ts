@@ -1,3 +1,4 @@
+import { parseLanguage, type StudyLanguage } from "./languages";
 import type { PlanId, PlanUsage } from "@unimate/core";
 import type {
   AiUsageInput,
@@ -307,14 +308,15 @@ export class SqlRepository implements Repository {
   // ------------------------------------------------------------ plan and quota
   async getPlan(userId: string, now: Date): Promise<PlanId> {
     const { rows } = await this.exec.service((q) =>
-      q.query<Row>(
-        `select plan from public.subscriptions
-          where user_id = $1 and status in ('active', 'trialing')
-            and (current_period_end is null or current_period_end > $2::timestamptz) limit 1`,
-        [userId, iso(now)],
-      ),
+      // One rule for every reader of plans: SQL effective_plan (live status, expiry honoured). `now` is the injectable clock.
+      q.query<Row>("select public.effective_plan($1, $2::timestamptz) as plan", [userId, iso(now)]),
     );
     return SUB_PLAN[rows[0]?.plan as string] ?? "FREE";
+  }
+
+  async getLocale(userId: string): Promise<StudyLanguage> {
+    const { rows } = await this.exec.service((q) => q.query<Row>("select locale from public.profiles where id = $1", [userId]));
+    return parseLanguage(rows[0]?.locale) ?? "az";
   }
 
   async bumpUsage(userId: string, kind: UsageKind, periodStart: string, limit: number): Promise<number | null> {
@@ -355,13 +357,18 @@ export class SqlRepository implements Repository {
   }
 
   // ------------------------------------------------------------ chat / study material
-  async createConversation(userId: string, documentId: string, title?: string): Promise<string> {
+  async createConversation(
+    userId: string,
+    documentId: string,
+    title?: string,
+    language: { outputLanguage?: StudyLanguage; sourceLanguage?: StudyLanguage } = {},
+  ): Promise<string> {
     const { rows } = await this.exec.service((q) =>
-      q.query<Row>("insert into public.conversations (user_id, document_id, title) values ($1, $2, $3) returning id", [
-        userId,
-        documentId,
-        title ?? null,
-      ]),
+      // output_language NULL -> the BEFORE INSERT trigger fills it from profiles.locale
+      q.query<Row>(
+        "insert into public.conversations (user_id, document_id, title, output_language, source_language) values ($1, $2, $3, $4, $5) returning id",
+        [userId, documentId, title ?? null, language.outputLanguage ?? null, language.sourceLanguage ?? null],
+      ),
     );
     return rows[0]!.id;
   }
@@ -444,13 +451,54 @@ export class SqlRepository implements Repository {
     content: string;
     model: string;
     promptVersionId: string;
+    outputLanguage?: string;
+    sourceLanguage?: string | null;
   }): Promise<string> {
     const { rows } = await this.exec.service((q) =>
       q.query<Row>(
-        "insert into public.summaries (user_id, document_id, kind, content, model, prompt_version_id) values ($1, $2, $3, $4, $5, $6) returning id",
-        [i.userId, i.documentId, i.kind, i.content, i.model, i.promptVersionId],
+        `insert into public.summaries (user_id, document_id, kind, content, model, prompt_version_id, output_language, source_language)
+         values ($1, $2, $3, $4, $5, $6, $7, $8) returning id`,
+        [i.userId, i.documentId, i.kind, i.content, i.model, i.promptVersionId, i.outputLanguage ?? null, i.sourceLanguage ?? null],
       ),
     );
     return rows[0]!.id;
+  }
+
+  async ensureQuiz(i: {
+    userId: string;
+    documentId: string;
+    hash: string;
+    title: string;
+    outputLanguage: StudyLanguage;
+    sourceLanguage: StudyLanguage | null;
+    questions: { prompt: string; options: string[]; answer: string; explanation: string }[];
+  }): Promise<{ quizId: string; questions: { id: string; prompt: string; options: string[] }[] }> {
+    return this.exec.service(async (q) => {
+      // Serialise concurrent identical requests; the unique index (user, document, generation_hash) is the backstop.
+      await q.query("select pg_advisory_xact_lock(hashtextextended($1, 0))", [`quiz:${i.userId}:${i.documentId}:${i.hash}`]);
+      const existing = await q.query<Row>(
+        "select id from public.quizzes where user_id = $1 and document_id = $2 and generation_hash = $3 and server_generated",
+        [i.userId, i.documentId, i.hash],
+      );
+      let quizId = existing.rows[0]?.id as string | undefined;
+      if (!quizId) {
+        quizId = (
+          await q.query<Row>(
+            `insert into public.quizzes (user_id, document_id, title, server_generated, generation_hash, output_language, source_language)
+             values ($1, $2, $3, true, $4, $5, $6) returning id`,
+            [i.userId, i.documentId, i.title, i.hash, i.outputLanguage, i.sourceLanguage],
+          )
+        ).rows[0]!.id as string;
+        for (const [pos, qu] of i.questions.entries())
+          // answer/explanation are moved into question_keys by the questions_move_key trigger and blanked on the row.
+          await q.query(
+            `insert into public.questions (quiz_id, position, kind, prompt, options, answer, explanation)
+             values ($1, $2, 'mcq', $3, $4::jsonb, $5, $6)`,
+            [quizId, pos, qu.prompt, JSON.stringify(qu.options), qu.answer, qu.explanation],
+          );
+      }
+      const { rows } = await q.query<Row>("select id, prompt, options from public.questions where quiz_id = $1 order by position", [quizId]);
+      return { quizId, questions: rows.map((r) => ({ id: r.id as string, prompt: r.prompt as string, options: r.options as string[] })) };
+    });
   }
 }

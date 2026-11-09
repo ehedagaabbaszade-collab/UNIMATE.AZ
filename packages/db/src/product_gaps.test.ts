@@ -301,8 +301,11 @@ describe("award_xp", () => {
     const f = (await raw("insert into public.flashcards (user_id, front, back) values ($1, 'f', 'b') returning id", [u]))[0]!.id;
     return { q: q as string, f: f as string };
   };
-  const award = async (u: string, kind: string, ref: string | null, hint: number | null = null) =>
-    (await run(u, "select public.award_xp($1, $2, $3) as r", [kind, ref, hint])).rows[0]!.r as { awarded: number; reason?: string; streak?: number; earned_today?: number };
+  // CHANGED in 20260101003500: award_xp is no longer client-callable (clients could attest any correctness). The XP maths
+  // now lives in the internal award_xp_internal(uid, kind, ref); these tests call it directly as the migration owner so
+  // the comparison against core awardXp stays intact. Client-facing paths are covered in quiz_server.test.ts.
+  const award = async (u: string, kind: string, ref: string | null, _hint: number | null = null) =>
+    (await raw("select public.award_xp_internal($1, $2, $3) as r", [u, kind, ref]))[0]!.r as { awarded: number; reason?: string; streak?: number; earned_today?: number };
   const seedState = async (u: string, earned: number, streak: number) => {
     if (earned > 0) await db.query("insert into public.xp_events (user_id, kind, points) values ($1, 'seed', $2)", [u, earned]);
     if (streak > 0) await db.query("insert into public.streaks (user_id, current_streak, longest_streak, last_active_date) values ($1, $2, $2, $3)", [u, streak, today()]);
@@ -372,7 +375,8 @@ describe("award_xp", () => {
     await expect(award(u, "quiz_correct", mine.f)).rejects.toThrow(/reference not found/);
     expect((await award(u, "quiz_correct", mine.q)).awarded).toBe(10);
     await expect(asAnon(db, (tx) => tx.query("select public.award_xp('idle', null, null)"))).rejects.toThrow(/permission denied/);
-    await expect(asUser(db, null, (tx) => tx.query("select public.award_xp('idle', null, null)"))).rejects.toThrow(/not authenticated/);
+    await expect(asUser(db, u, (tx) => tx.query("select public.award_xp('idle', null, null)"))).rejects.toThrow(/permission denied/);
+    await expect(asUser(db, u, (tx) => tx.query("select public.award_xp_internal($1, 'idle', null)", [u]))).rejects.toThrow(/permission denied/);
   });
   it("streak: starts at 1, same day unchanged, consecutive day +1, gap resets, longest kept", async () => {
     const u = await newUser();

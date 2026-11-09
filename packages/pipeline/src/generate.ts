@@ -4,6 +4,7 @@ import { z } from "zod";
 import { subRequestId, type GuardedProvider } from "./ai-guard";
 import { modelFor, recordUsage, type ModelMap } from "./ai";
 import { PipelineError, isBillable } from "./errors";
+import { LANGUAGE_NAMES, LANGUAGES, LanguageSchema, type StudyLanguage } from "./languages";
 import { consumeQuota } from "./quota";
 import type { Repository, SummaryKind } from "./repository";
 
@@ -24,7 +25,10 @@ export const QuizSchema = z.object({
     .array(
       z.object({
         prompt: z.string().min(1).max(1000),
-        options: z.array(z.string().min(1).max(500)).length(4),
+        options: z
+          .array(z.string().min(1).max(500))
+          .length(4)
+          .refine((o) => new Set(o.map((x) => x.trim().toLowerCase())).size === 4, "options must be distinct"),
         answer_index: z.number().int().min(0).max(3),
         explanation: z.string().max(1500).default(""),
       }),
@@ -111,12 +115,18 @@ interface Spec<S extends z.ZodType> {
   params: Record<string, string | number>;
 }
 
-async function run<S extends z.ZodType>(
+/** Runs on fresh output AND on cache hits; turns the raw model output into what the caller may see (e.g. persists the quiz and strips the answer key). */
+type Finalize<S extends z.ZodType, R> = (output: z.infer<S>, ctx: { model: string; promptVersionId: string; hash: string }) => Promise<R>;
+
+async function run<S extends z.ZodType, R = z.infer<S>>(
   deps: GenerateDeps,
   input: { userId: string; documentId: string; requestId?: string },
   spec: Spec<S>,
   afterGenerate?: (output: z.infer<S>, ctx: { model: string; promptVersionId: string }) => Promise<void>,
-): Promise<Generated<z.infer<S>>> {
+  finalize?: Finalize<S, R>,
+): Promise<Generated<R>> {
+  const present = async (value: z.infer<S>, ctx: { model: string; promptVersionId: string; hash: string }): Promise<R> =>
+    finalize ? finalize(value, ctx) : (value as unknown as R);
   const { repo, provider, models } = deps;
   const now = (deps.now ?? (() => new Date()))();
   const doc = await repo.getDocument(input.documentId);
@@ -150,7 +160,7 @@ async function run<S extends z.ZodType>(
   const hit = await repo.getCachedGeneration(input.documentId, pv.id, hash);
   if (hit !== null) {
     const parsed = spec.schema.safeParse(hit);
-    if (parsed.success) return { output: parsed.data, cached: true, promptVersion: pv.version, truncated };
+    if (parsed.success) return { output: await present(parsed.data, { model, promptVersionId: pv.id, hash }), cached: true, promptVersion: pv.version, truncated };
   }
 
   const reservation = await consumeQuota(repo, input.userId, plan, { type: "ai_message" }, now);
@@ -201,34 +211,55 @@ async function run<S extends z.ZodType>(
     // serve (and never persist) output the user has no record of.
     await afterGenerate?.(res.value, { model, promptVersionId: pv.id });
     await repo.putCachedGeneration({ userId: input.userId, documentId: input.documentId, promptVersionId: pv.id, paramsHash: hash, output: res.value, model });
-    return { output: res.value, cached: false, promptVersion: pv.version, truncated };
+    return { output: await present(res.value, { model, promptVersionId: pv.id, hash }), cached: false, promptVersion: pv.version, truncated };
   } catch (e) {
     if (!spent && !isBillable(e)) await reservation.release().catch(() => {});
     throw e;
   }
 }
 
-/** Allowlist: the value is interpolated into the prompt, so free text would be a prompt-injection channel. */
-export const LANGUAGES = ["az", "tr", "ru", "en"] as const;
-export type StudyLanguage = (typeof LANGUAGES)[number];
-export const LanguageSchema = z.enum(LANGUAGES);
-const LANGUAGE_NAMES: Record<StudyLanguage, string> = { az: "Azerbaijani", tr: "Turkish", ru: "Russian", en: "English" };
+export { LANGUAGES, LanguageSchema, type StudyLanguage };
 
-const language = (l?: string) => {
-  if (l === undefined) return "the same language as the document";
-  const p = LanguageSchema.safeParse(l);
-  if (!p.success) throw new PipelineError("bad_request", "language must be one of az, tr, ru, en", false);
-  return LANGUAGE_NAMES[p.data];
-};
+export interface LanguageInput {
+  /** Language the AI writes in. Default: the user's profiles.locale (then az). */
+  outputLanguage?: string;
+  /** Language of the source document (optional). Independent of the output language. */
+  sourceLanguage?: string;
+  /** DEPRECATED alias of outputLanguage (older clients). */
+  language?: string;
+}
+
+/** Validates both languages BEFORE any quota or model use and resolves the default output language from the profile. */
+async function resolveLanguages(repo: Repository, userId: string, input: LanguageInput): Promise<{ out: StudyLanguage; source?: StudyLanguage }> {
+  const check = (v: string | undefined, what: string): StudyLanguage | undefined => {
+    if (v === undefined) return undefined;
+    const p = LanguageSchema.safeParse(v);
+    if (!p.success) throw new PipelineError("bad_request", `${what} must be one of ${LANGUAGES.join(", ")}`, false);
+    return p.data;
+  };
+  const a = check(input.outputLanguage, "outputLanguage");
+  const b = check(input.language, "language");
+  if (a && b && a !== b) throw new PipelineError("bad_request", "outputLanguage and language disagree", false);
+  const source = check(input.sourceLanguage, "sourceLanguage");
+  const out = a ?? b ?? (await repo.getLocale(userId));
+  return { out, ...(source ? { source } : {}) };
+}
+/** Prompt params. outputLanguage/sourceLanguage are part of the cache key (params_hash); `language` feeds the template. */
+const languageParams = (l: { out: StudyLanguage; source?: StudyLanguage }) => ({
+  language: LANGUAGE_NAMES[l.out],
+  outputLanguage: l.out,
+  ...(l.source ? { sourceLanguage: l.source } : {}),
+});
 
 export async function generateSummary(
   deps: GenerateDeps,
-  input: { userId: string; documentId: string; kind: SummaryKind; language?: string; requestId?: string },
+  input: { userId: string; documentId: string; kind: SummaryKind; requestId?: string } & LanguageInput,
 ) {
+  const lang = await resolveLanguages(deps.repo, input.userId, input);
   return run(
     deps,
     input,
-    { name: `summary.${input.kind}`, schema: SummarySchema, task: "summarize", feature: "summarize", params: { language: language(input.language) } },
+    { name: `summary.${input.kind}`, schema: SummarySchema, task: "summarize", feature: "summarize", params: languageParams(lang) },
     async (out, ctx) => {
       await deps.repo.insertSummary({
         userId: input.userId,
@@ -237,32 +268,57 @@ export async function generateSummary(
         content: `${out.summary}\n\n${out.key_points.map((p) => `- ${p}`).join("\n")}`,
         model: ctx.model,
         promptVersionId: ctx.promptVersionId,
+        outputLanguage: lang.out,
+        sourceLanguage: lang.source ?? null,
       });
     },
   );
 }
 
-export async function generateQuiz(deps: GenerateDeps, input: { userId: string; documentId: string; count?: number; language?: string; requestId?: string }) {
-  const count = Math.min(20, Math.max(1, input.count ?? 10));
-  return run(deps, input, {
-    name: "quiz.mcq",
-    schema: QuizSchema,
-    task: "quiz",
-    feature: "quiz",
-    requiredFeature: "quiz",
-    params: { count, language: language(input.language) },
-  });
+/** What the client receives for a quiz: ids and prompts only. The answer key and explanations stay server-side (question_keys). */
+export interface PublicQuiz {
+  quizId: string;
+  outputLanguage: StudyLanguage;
+  questions: { id: string; prompt: string; options: string[] }[];
 }
 
-export async function generateFlashcards(deps: GenerateDeps, input: { userId: string; documentId: string; count?: number; language?: string; requestId?: string }) {
+export async function generateQuiz(
+  deps: GenerateDeps,
+  input: { userId: string; documentId: string; count?: number; requestId?: string } & LanguageInput,
+) {
+  const count = Math.min(20, Math.max(1, input.count ?? 10));
+  const lang = await resolveLanguages(deps.repo, input.userId, input);
+  return run<typeof QuizSchema, PublicQuiz>(
+    deps,
+    input,
+    { name: "quiz.mcq", schema: QuizSchema, task: "quiz", feature: "quiz", requiredFeature: "quiz", params: { count, ...languageParams(lang) } },
+    undefined,
+    // Persist (idempotent per user+document+hash) and strip the key, on fresh output and on cache hits alike.
+    async (quiz, ctx) => {
+      const saved = await deps.repo.ensureQuiz({
+        userId: input.userId,
+        documentId: input.documentId,
+        hash: ctx.hash,
+        title: `Quiz (${quiz.questions.length})`,
+        outputLanguage: lang.out,
+        sourceLanguage: lang.source ?? null,
+        questions: quiz.questions.map((q) => ({ prompt: q.prompt, options: q.options, answer: q.options[q.answer_index]!, explanation: q.explanation })),
+      });
+      return { quizId: saved.quizId, outputLanguage: lang.out, questions: saved.questions };
+    },
+  );
+}
+
+export async function generateFlashcards(deps: GenerateDeps, input: { userId: string; documentId: string; count?: number; requestId?: string } & LanguageInput) {
   const count = Math.min(50, Math.max(1, input.count ?? 15));
+  const lang = await resolveLanguages(deps.repo, input.userId, input);
   return run(deps, input, {
     name: "flashcards",
     schema: FlashcardsSchema,
     task: "flashcards",
     feature: "flashcards",
     requiredFeature: "flashcards",
-    params: { count, language: language(input.language) },
+    params: { count, ...languageParams(lang) },
   });
 }
 
@@ -273,6 +329,11 @@ export const GenerateRequestSchema = z.object({
   type: z.enum(["summary", "quiz", "flashcards"]),
   kind: z.enum(["short", "detailed", "exam"]).default("short"),
   count: z.number().int().min(1).max(50).optional(),
+  /** Language the AI writes in. Defaults to the user's profile locale. */
+  outputLanguage: LanguageSchema.optional(),
+  /** Language of the document (optional, independent of outputLanguage). */
+  sourceLanguage: LanguageSchema.optional(),
+  /** DEPRECATED alias of outputLanguage. */
   language: LanguageSchema.optional(),
 });
 export type GenerateRequest = z.infer<typeof GenerateRequestSchema>;
@@ -284,5 +345,7 @@ export function parseGenerateRequest(body: unknown): GenerateRequest {
     const where = r.error.issues[0]?.path.join(".") || "body";
     throw new PipelineError("bad_request", `Invalid request: ${where}`, false);
   }
-  return r.data;
+  const d = r.data;
+  if (d.outputLanguage && d.language && d.outputLanguage !== d.language) throw new PipelineError("bad_request", "Invalid request: outputLanguage", false);
+  return d;
 }

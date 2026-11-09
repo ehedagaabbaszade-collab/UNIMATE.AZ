@@ -1,3 +1,4 @@
+import type { StudyLanguage } from "./languages";
 import type { PlanId, PlanUsage } from "@unimate/core";
 
 export type JobState = "queued" | "running" | "succeeded" | "failed" | "dead";
@@ -148,14 +149,17 @@ export interface Repository {
   matchChunks(userId: string, embedding: number[], documentId: string, k: number): Promise<MatchedChunk[]>;
 
   // plans and quota
+  /** Effective plan at `now` (SQL public.effective_plan: live status and not past its expiry; free otherwise). */
   getPlan(userId: string, now: Date): Promise<PlanId>;
+  /** The user's profiles.locale (default output language of generated material); az when unknown. */
+  getLocale(userId: string): Promise<StudyLanguage>;
   /** Atomic conditional increment. Returns the new count, or null when n >= limit. */
   bumpUsage(userId: string, kind: UsageKind, periodStart: string, limit: number): Promise<number | null>;
   releaseUsage(userId: string, kind: UsageKind, periodStart: string): Promise<void>;
   getUsage(userId: string, now: Date): Promise<PlanUsage>;
 
   // chat and study material
-  createConversation(userId: string, documentId: string, title?: string): Promise<string>;
+  createConversation(userId: string, documentId: string, title?: string, language?: { outputLanguage?: StudyLanguage; sourceLanguage?: StudyLanguage }): Promise<string>;
   conversationOwner(conversationId: string): Promise<{ userId: string; documentId: string | null } | null>;
   insertMessage(m: MessageInput): Promise<string>;
   recordAiUsage(u: AiUsageInput): Promise<void>;
@@ -176,5 +180,21 @@ export interface Repository {
     content: string;
     model: string;
     promptVersionId: string;
+    outputLanguage?: string;
+    sourceLanguage?: string | null;
   }): Promise<string>;
+  /**
+   * Persists a generated quiz server-side (quizzes.server_generated = true; answer + explanation go to the private key
+   * table) and returns ONLY the public view (no answers). Idempotent per (user, document, hash): a repeat returns the
+   * existing quiz.
+   */
+  ensureQuiz(input: {
+    userId: string;
+    documentId: string;
+    hash: string;
+    title: string;
+    outputLanguage: StudyLanguage;
+    sourceLanguage: StudyLanguage | null;
+    questions: { prompt: string; options: string[]; answer: string; explanation: string }[];
+  }): Promise<{ quizId: string; questions: { id: string; prompt: string; options: string[] }[] }>;
 }

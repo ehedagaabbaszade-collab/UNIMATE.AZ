@@ -29,9 +29,10 @@ const fails = async (uid: string, sql: string, params: unknown[] = []) => {
 
 let fileN = 0;
 const PDF = "application/pdf";
+const objMeta = (o: { size?: number; mimetype?: string } = {}) => JSON.stringify({ size: o.size ?? 1000, mimetype: o.mimetype ?? PDF, eTag: `"etag-${fileN}"` });
 const upload = async (owner: string) => {
   const path = `${owner}/file${++fileN}.pdf`;
-  await raw("insert into storage.objects (bucket_id, name, owner) values ('resources', $1, $2)", [path, owner]);
+  await raw("insert into storage.objects (bucket_id, name, owner, metadata) values ('resources', $1, $2, $3)", [path, owner, objMeta()]);
   return path;
 };
 const create = async (owner: string, o: { title?: string; course?: string | null; vis?: string; tags?: string[]; desc?: string } = {}) => {

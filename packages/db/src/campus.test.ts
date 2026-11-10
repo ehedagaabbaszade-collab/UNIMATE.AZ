@@ -137,14 +137,14 @@ describe("communities", () => {
   });
   it("study groups: invite code only for moderators; join_by_code; wrong code fails; code rotation invalidates the old one", async () => {
     const code = (await one(A, "select public.get_invite_code($1) as c", [groupC])).c as string;
-    expect(code).toMatch(/^[A-Z0-9]{10}$/);
+    expect(code).toMatch(/^[A-Z0-9]{20}$/);
     await fails(B, "select public.get_invite_code($1)", [groupC]);
-    await fails(C, "select public.join_by_code('WRONGCODE1')");
+    expect((await one(C, "select public.join_by_code('WRONGCODE1') as id")).id).toBeNull(); // a miss returns null (so the attempt is recorded durably)
     expect((await one(C, "select public.join_by_code($1) as id", [code.toLowerCase()])).id).toBe(groupC);
     expect((await one(C, "select public.get_community($1) as c", [groupC])).c.my_status).toBe("active");
     const code2 = (await one(A, "select public.get_invite_code($1, true) as c", [groupC])).c as string;
     expect(code2).not.toBe(code);
-    await fails(B, "select public.join_by_code($1)", [code]);
+    expect((await one(B, "select public.join_by_code($1) as id", [code])).id).toBeNull();
     await run(B, "select public.join_by_code($1)", [code2]);
     // group discussion = group feed, visible to members only
     const p = await post(C, groupC, "Exam prep plan", "Meet on Monday");
@@ -447,7 +447,7 @@ describe("reports and moderation", () => {
     await run(C, "select public.report_content('comment', $1, 'harassment')", [tc]);
     // community moderator queue: scoped to the community, not visible to ordinary members
     const q = await rows(A, "select * from public.community_moderation_queue($1)", [pubC]);
-    expect(q.map((x) => x.target_kind).sort()).toEqual(["comment", "community", "post", "post"]); // incl. the earlier report on the (now deleted) anonymous post
+    expect(q.map((x) => x.target_kind).sort()).toEqual(["comment", "post", "post"]); // incl. the earlier report on the (now deleted) anonymous post; community reports are site-moderator only
     expect(q.find((x) => x.report_id === rid)).toMatchObject({ category: "spam", author_id: B });
     await fails(C, "select * from public.community_moderation_queue($1)", [pubC]);
     expect(await rows(B, "select * from public.community_moderation_queue($1)", [pubC]).catch(() => "denied")).toBe("denied");
@@ -458,7 +458,7 @@ describe("reports and moderation", () => {
     expect((await notifs(C, "report_resolved")).map((x) => x.params.report_id)).toEqual([rid]);
     expect((await rows(A, "select * from public.community_moderation_queue($1, 'actioned')", [pubC])).length).toBe(1);
     // existing site-wide admin path still resolves the other reports and notifies too
-    const other = q.find((x) => x.target_kind === "community")!.report_id;
+    const other = (await raw("select id from public.reports where community_id = $1", [pubC]))[0]!.id as string;
     await run(SITEMOD, "select public.admin_resolve_report($1, 'dismissed', 'ok')", [other]);
     expect((await raw("select status from public.reports where id = $1", [other]))[0]!.status).toBe("dismissed");
     expect((await notifs(C, "report_resolved")).length).toBe(2);
@@ -584,7 +584,7 @@ describe("search and notification templates", () => {
   it("every campus template exists in az, tr, en and ru with identical placeholders", async () => {
     const t = await raw("select key, locale, title, body from public.notification_templates where key like 'campus\\_%' order by key, locale");
     const keys = [...new Set(t.map((x) => x.key))];
-    expect(keys.sort()).toEqual(["campus_comment_reply", "campus_event_reminder", "campus_join_approved", "campus_join_request", "campus_new_follower", "campus_post_reply", "campus_reaction_milestone"]);
+    expect(keys.sort()).toEqual(["campus_comment_reply", "campus_comment_reply_op", "campus_event_reminder", "campus_join_approved", "campus_join_request", "campus_new_follower", "campus_post_reply", "campus_reaction_milestone"]);
     for (const k of keys) {
       const per = t.filter((x) => x.key === k);
       expect(per.map((x) => x.locale).sort()).toEqual(["az", "en", "ru", "tr"]);

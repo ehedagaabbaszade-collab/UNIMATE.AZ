@@ -9,7 +9,7 @@ export const resourceReader: ImportDeps["resources"] = {
   getVisible: (userId, id) =>
     executor.user(userId, async (q) => {
       const r = await q.query(
-        "select id, uploader_id, title, storage_path, mime_type, size_bytes, original_filename, course_id, status from public.resources where id = $1",
+        "select id, uploader_id, title, storage_path, mime_type, size_bytes, original_filename, course_id, status, storage_object_id, storage_etag, storage_size from public.resources where id = $1",
         [id],
       );
       const x = r.rows[0] as Record<string, unknown> | undefined;
@@ -19,8 +19,23 @@ export const resourceReader: ImportDeps["resources"] = {
             storagePath: x.storage_path as string | null, mimeType: x.mime_type as string | null,
             sizeBytes: x.size_bytes === null ? null : Number(x.size_bytes), originalFilename: x.original_filename as string | null,
             courseId: x.course_id as string | null, status: x.status as "pending" | "published" | "removed",
+            storageObjectId: x.storage_object_id as string | null, storageEtag: x.storage_etag as string | null,
+            storageSize: x.storage_size === null || x.storage_size === undefined ? null : Number(x.storage_size),
           }
         : null;
+    }),
+};
+
+/** Current object at a path (service role), compared with the binding recorded by create_resource before signing/copying. */
+export const objectVerifier: NonNullable<ImportDeps["objects"]> = {
+  stat: (path) =>
+    executor.service(async (q) => {
+      const r = await q.query(
+        "select id, metadata ->> 'eTag' as etag, case when (metadata ->> 'size') ~ '^[0-9]{1,15}$' then (metadata ->> 'size')::bigint end as size from storage.objects where bucket_id = $1 and name = $2",
+        [RESOURCES_BUCKET, path],
+      );
+      const x = r.rows[0] as { id: string; etag: string | null; size: string | number | null } | undefined;
+      return x ? { id: x.id, etag: x.etag ? x.etag.replace(/^"|"$/g, "") : null, size: x.size === null ? null : Number(x.size) } : null;
     }),
 };
 

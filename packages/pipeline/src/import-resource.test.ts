@@ -18,14 +18,18 @@ afterAll(async () => {
 });
 
 let n = 0;
-async function mkResource(o: { uploader?: string; status?: string; vis?: string; mime?: string; size?: number; path?: string | null } = {}) {
+// Stand-in for storage.objects: what is stored at each path RIGHT NOW (tests may tamper with it).
+const stored = new Map<string, { id: string; etag: string | null; size: number | null }>();
+async function mkResource(o: { uploader?: string; status?: string; vis?: string; mime?: string; size?: number; path?: string | null; unbound?: boolean } = {}) {
   const up = o.uploader ?? ids.alice;
   n++;
   const path = o.path === undefined ? `${up}/notes-${n}.pdf` : o.path;
+  const obj = { id: crypto.randomUUID(), etag: `etag-${n}`, size: o.size ?? 2048 };
+  if (path) stored.set(path, obj);
   const { rows } = await env.db.query<{ id: string }>(
-    `insert into public.resources (uploader_id, title, storage_path, status, visibility, mime_type, size_bytes)
-     values ($1, $2, $3, $4::public.content_status, $5::public.resource_visibility, $6, $7) returning id`,
-    [up, `Shared ${n}`, path, o.status ?? "published", o.vis ?? "public", o.mime ?? PDF, o.size ?? 2048],
+    `insert into public.resources (uploader_id, title, storage_path, status, visibility, mime_type, size_bytes, storage_object_id, storage_etag, storage_size)
+     values ($1, $2, $3, $4::public.content_status, $5::public.resource_visibility, $6, $7, $8, $9, $10) returning id`,
+    [up, `Shared ${n}`, path, o.status ?? "published", o.vis ?? "public", o.mime ?? PDF, o.size ?? 2048, o.unbound ? null : obj.id, o.unbound ? null : obj.etag, o.unbound ? null : obj.size],
   );
   return rows[0]!.id;
 }
@@ -35,15 +39,16 @@ function makeDeps() {
   const copies: Array<[string, string]> = [];
   const deps: ImportDeps = {
     repo: env.repo,
+    objects: { stat: async (p) => stored.get(p) ?? null },
     resources: {
       // RLS-scoped read as the caller: the same visibility rules as the app
       async getVisible(userId, id) {
         const r = await asUser(env.db, userId, (tx) =>
-          tx.query<any>("select id, uploader_id, title, storage_path, mime_type, size_bytes, original_filename, course_id, status from public.resources where id = $1", [id]),
+          tx.query<any>("select id, uploader_id, title, storage_path, mime_type, size_bytes, original_filename, course_id, status, storage_object_id, storage_etag, storage_size from public.resources where id = $1", [id]),
         );
         const x = r.rows[0];
         return x
-          ? ({ id: x.id, uploaderId: x.uploader_id, title: x.title, storagePath: x.storage_path, mimeType: x.mime_type, sizeBytes: x.size_bytes === null ? null : Number(x.size_bytes), originalFilename: x.original_filename, courseId: x.course_id, status: x.status } satisfies ImportableResource)
+          ? ({ id: x.id, uploaderId: x.uploader_id, title: x.title, storagePath: x.storage_path, mimeType: x.mime_type, sizeBytes: x.size_bytes === null ? null : Number(x.size_bytes), originalFilename: x.original_filename, courseId: x.course_id, status: x.status, storageObjectId: x.storage_object_id, storageEtag: x.storage_etag, storageSize: x.storage_size === null ? null : Number(x.storage_size) } satisfies ImportableResource)
           : null;
       },
     },
@@ -150,6 +155,35 @@ describe("importResource", () => {
     await expect(importResource(deps, { userId: user, resourceId: await mkResource() })).rejects.toBeInstanceOf(QuotaExceededError);
     expect(await docCount(user)).toBe(before);
     expect(objects.size).toBe(objectsBefore);
+  });
+});
+
+describe("bound storage object (signing and import verify it)", () => {
+  const tamper = (id: string, patch: Partial<{ id: string; etag: string | null; size: number | null }>) => {
+    for (const [p, o] of stored) if (p.includes(`notes-${id}`)) stored.set(p, { ...o, ...patch });
+  };
+  it("serves and imports while the stored object is the bound one (positive control)", async () => {
+    const { deps } = makeDeps();
+    const r = await mkResource();
+    expect((await authorizeResourceDownload(deps, { userId: ids.bob, resourceId: r })).path).toContain("notes-");
+  });
+  it("refuses a replaced object (different id, etag or size), a missing object, an unbound row and a missing verifier", async () => {
+    const { deps } = makeDeps();
+    const cases: Array<Partial<{ id: string; etag: string | null; size: number | null }>> = [{ id: crypto.randomUUID() }, { etag: "swapped" }, { size: 1 }];
+    for (const patch of cases) {
+      const r = await mkResource();
+      tamper(String(n), patch);
+      await expect(authorizeResourceDownload(deps, { userId: ids.bob, resourceId: r })).rejects.toMatchObject({ code: "not_found" });
+      await expect(importResource(deps, { userId: ids.bob, resourceId: r })).rejects.toMatchObject({ code: "not_found" });
+    }
+    const gone = await mkResource();
+    stored.delete(`${ids.alice}/notes-${n}.pdf`);
+    await expect(authorizeResourceDownload(deps, { userId: ids.bob, resourceId: gone })).rejects.toMatchObject({ code: "not_found" });
+    const unbound = await mkResource({ unbound: true });
+    await expect(authorizeResourceDownload(deps, { userId: ids.bob, resourceId: unbound })).rejects.toMatchObject({ code: "not_found" });
+    const ok = await mkResource();
+    await expect(authorizeResourceDownload({ resources: deps.resources }, { userId: ids.bob, resourceId: ok })).rejects.toMatchObject({ code: "not_found" });
+    expect((await authorizeResourceDownload(deps, { userId: ids.bob, resourceId: ok })).path).toBeTruthy(); // control
   });
 });
 

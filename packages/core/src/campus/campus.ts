@@ -59,6 +59,8 @@ export interface CommentRow {
   my_liked: boolean;
   my_helpful: boolean;
   is_accepted: boolean;
+  /** true for comments written by the post's owner (asker); author fields are null when the post is anonymous. */
+  is_op?: boolean;
 }
 export interface CommentNode extends CommentRow {
   children: CommentNode[];

@@ -166,12 +166,15 @@ describe("communities and posts", () => {
     ).rejects.toThrow(/row-level security/);
   });
   it("joining a private community only yields a pending membership, which grants no read access", async () => {
+    // the fixture community defaults to kind 'group' (invite-only since migration 4500); this test is about plain private communities
+    await db.query("update public.communities set kind = 'course' where id = $1", [ids.privCommunity]);
     await expect(
       asUser(db, B, (tx) => tx.query("insert into public.memberships (community_id, user_id, status) values ($1, $2, 'active')", [ids.privCommunity, B])),
     ).rejects.toThrow(/row-level security/);
     await asUser(db, B, (tx) => tx.query("insert into public.memberships (community_id, user_id, status) values ($1, $2, 'pending')", [ids.privCommunity, B]));
     expect(await select(db, "authenticated", B, "select id from public.posts where community_id = $1", [ids.privCommunity])).toEqual([]);
     await db.query("delete from public.memberships where community_id = $1 and user_id = $2", [ids.privCommunity, B]);
+    await db.query("update public.communities set kind = 'group' where id = $1", [ids.privCommunity]);
   });
   it("anyone authenticated can read public community posts", async () => {
     expect(await select(db, "authenticated", B, "select id from public.posts where id = $1", [ids.pubPost])).toHaveLength(1);

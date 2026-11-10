@@ -3,7 +3,7 @@
 // POST { resourceId } (user JWT) -> 202 { documentId, jobId, created }
 import { documentJobRunner, importResource, TesseractOcrEngine } from "@unimate/pipeline";
 import { aiConfig, authenticate, corsHeaders, errorResponse, json, ocrLangPath, readBody, repository, storageReader, uuidField } from "../_shared/runtime.ts";
-import { importAdapters, resourceReader } from "../_shared/notes.ts";
+import { importAdapters, objectVerifier, resourceReader } from "../_shared/notes.ts";
 
 declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void } | undefined;
 
@@ -15,7 +15,7 @@ Deno.serve(async (req) => {
     if (!userId) return json(401, { error: "unauthorized" });
     const resourceId = uuidField(await readBody(req), "resourceId");
     const repo = repository();
-    const { documentId, job, created } = await importResource({ repo, resources: resourceReader, ...importAdapters() }, { userId, resourceId });
+    const { documentId, job, created } = await importResource({ repo, resources: resourceReader, objects: objectVerifier, ...importAdapters() }, { userId, resourceId });
     if (created) {
       const { provider, guard } = aiConfig();
       const runner = documentJobRunner(

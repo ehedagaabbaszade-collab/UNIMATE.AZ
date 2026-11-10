@@ -14,7 +14,7 @@ afterAll(async () => {
 });
 
 const LOCALES = ["az", "tr", "en", "ru"];
-const KEYS = ["welcome", "document_ready", "deletion_requested", "deletion_cancelled", "plan_expiring", "plan_expired", "report_resolved", "achievement_unlocked", "challenge_completed", "campus_post_reply", "campus_comment_reply", "campus_reaction_milestone", "campus_new_follower", "campus_join_request", "campus_join_approved", "campus_event_reminder"];
+const KEYS = ["welcome", "document_ready", "deletion_requested", "deletion_cancelled", "plan_expiring", "plan_expired", "report_resolved", "achievement_unlocked", "challenge_completed", "campus_post_reply", "campus_comment_reply", "campus_comment_reply_op", "campus_reaction_milestone", "campus_new_follower", "campus_join_request", "campus_join_approved", "campus_event_reminder"];
 const raw = async (sql: string, params: unknown[] = []) => (await db.query<Record<string, any>>(sql, params)).rows;
 const run = (uid: string, sql: string, params: unknown[] = []) => asUser(db, uid, (tx) => tx.query<Record<string, any>>(sql, params));
 let n = 0;

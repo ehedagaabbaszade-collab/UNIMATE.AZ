@@ -310,12 +310,15 @@ describe("S9: resources.storage_path", () => {
   const ins = (p: string | null, n: number) =>
     run(A, "insert into public.resources (uploader_id, title, storage_path) values ($1, $2, $3)", [A, `s9-${n}`, p]);
   it("must start with uploader_id/ and not traverse", async () => {
-    await expect(ins(`${B}/x.pdf`, 1)).rejects.toThrow(/check constraint/);
-    await expect(ins("loose.pdf", 2)).rejects.toThrow(/check constraint/);
-    await expect(ins(`${A}/../${B}/x.pdf`, 3)).rejects.toThrow(/check constraint/);
+    await expect(ins(`${B}/x.pdf`, 1)).rejects.toThrow(/check constraint|invalid storage path|not been uploaded/);
+    await expect(ins("loose.pdf", 2)).rejects.toThrow(/check constraint|invalid storage path|not been uploaded/);
+    await expect(ins(`${A}/../${B}/x.pdf`, 3)).rejects.toThrow(/check constraint|invalid storage path|not been uploaded/);
   });
   it("positive control: own folder and null path are accepted", async () => {
+    // direct inserts must point at an object that really exists in the caller's folder (bound by trigger, migration 4510)
+    await db.query("insert into storage.objects (bucket_id, name, owner, metadata) values ('resources', $1, $2, '{\"size\":10,\"mimetype\":\"application/pdf\"}')", [`${A}/x.pdf`, A]);
     await ins(`${A}/x.pdf`, 4);
+    await expect(ins(`${A}/missing.pdf`, 6)).rejects.toThrow(/not been uploaded/);
     await ins(null, 5);
   });
 });

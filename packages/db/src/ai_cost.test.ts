@@ -345,12 +345,12 @@ describe("budget reservations", () => {
     expect(await reserve(id, A, 60)).toMatchObject({ ok: true, existing: true });
     expect(n((await spendRow("user", A))!.reserved_micro_usd)).toBe(60);
     expect(await reserve(id, B, 60)).toEqual({ ok: false, error: "request_id_conflict" });
-    expect(await settle(id, w.small, 1000, 500)).toMatchObject({ ok: true, already: false, actual_micro_usd: 60, clamped: true });
+    expect(await settle(id, w.small, 1000, 500)).toMatchObject({ ok: true, already: false, actual_micro_usd: 450, clamped: true });
     // settle again (a retry): no second deduction, no second ai_usage row
     expect(await settle(id, w.small, 1000, 500)).toMatchObject({ ok: true, already: true });
     expect(await reserve(id, A, 60)).toMatchObject({ ok: true, existing: true, status: "settled" });
     const s = (await spendRow("user", A))!;
-    expect(n(s.spent_micro_usd)).toBe(60);
+    expect(n(s.spent_micro_usd)).toBe(450); // uncapped actual (reserved 60)
     expect(n(s.reserved_micro_usd)).toBe(0);
     expect((await raw("select * from public.ai_usage where request_id = $1", [id])).length).toBe(1);
   });
@@ -375,14 +375,15 @@ describe("budget reservations", () => {
     expect(u.model_id).toBe(w.small);
   });
 
-  it("clamps usage above the reservation cap and flags it", async () => {
+  it("records the UNCAPPED actual above the reservation, flags it, and the next reserve fails at the ceiling", async () => {
     await budget("user", A, "day", 100_000);
     const id = rid();
     await reserve(id, A, 100, null, "chat", w.big);
     const r = await settle(id, w.big, 100_000, 100_000); // would cost 1.8M
-    expect(r).toMatchObject({ ok: true, actual_micro_usd: 100, clamped: true });
-    expect(n((await spendRow("user", A))!.spent_micro_usd)).toBe(100);
+    expect(r).toMatchObject({ ok: true, actual_micro_usd: 1_800_000, clamped: true });
+    expect(n((await spendRow("user", A))!.spent_micro_usd)).toBe(1_800_000);
     expect((await raw("select clamped, actual_micro_usd from public.ai_reservations where request_id = $1", [id]))[0]).toMatchObject({ clamped: true });
+    expect(await reserve(rid(), A, 1)).toMatchObject({ ok: false, error: "budget_exceeded", scope: "user", period: "day" });
   });
 
   it("billable failure without measured usage settles at the reserved estimate (failed_billable)", async () => {
@@ -426,7 +427,18 @@ describe("budget reservations", () => {
     expect(rows).toEqual([{ status: "settled" }]);
   });
 
-  it("the sweeper releases only reservations older than the threshold; stuck view lists them", async () => {
+  it("a RELEASED request_id cannot be taken over by another user (no charge to B, owner unchanged)", async () => {
+    await budget("user", A, "day", 1000);
+    await budget("user", B, "day", 1000);
+    const id = rid();
+    await reserve(id, A, 300, null, "chat", w.small);
+    await release(id);
+    expect(await reserve(id, B, 300, null, "chat", w.small)).toEqual({ ok: false, error: "request_id_conflict" });
+    expect((await raw("select user_id, status from public.ai_reservations where request_id = $1", [id]))[0]).toMatchObject({ user_id: A, status: "released" });
+    expect(n((await spendRow("user", B))?.reserved_micro_usd ?? 0)).toBe(0);
+  });
+
+  it("the sweeper settles (bills the estimate as failed_billable) only reservations older than the threshold; stuck view lists them", async () => {
     await budget("user", A, "day", 1000);
     const old = rid();
     const fresh = rid();
@@ -440,8 +452,10 @@ describe("budget reservations", () => {
     expect((await svc("select public.ai_sweep_orphan_reservations(30) as n"))[0]!.n).toBe(1);
     expect((await svc("select public.ai_sweep_orphan_reservations(30) as n"))[0]!.n).toBe(0);
     expect(n((await spendRow("user", A))!.reserved_micro_usd)).toBe(100);
+    expect(n((await spendRow("user", A))!.spent_micro_usd)).toBe(100); // estimate charged, not refunded
     const st = await raw("select request_id, status from public.ai_reservations order by request_id");
-    expect(Object.fromEntries(st.map((r) => [r.request_id, r.status]))).toEqual({ [old]: "released", [fresh]: "reserved" });
+    expect(Object.fromEntries(st.map((r) => [r.request_id, r.status]))).toEqual({ [old]: "settled", [fresh]: "reserved" });
+    expect(await raw("select status, cost_micro_usd::int c from public.ai_usage where request_id = $1", [old])).toEqual([{ status: "failed_billable", c: 100 }]);
   });
 
   it("validates inputs", async () => {

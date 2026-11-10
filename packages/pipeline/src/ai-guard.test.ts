@@ -1,7 +1,7 @@
 import { ProviderNotConfiguredError, type AiProvider, type EmbedRequest, type EmbedResult, type GenerateRequest, type GenerateResult } from "@unimate/core";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { asUser } from "../../db/src/harness";
-import { BudgetExceededError, GuardedProvider, RateLimitedError, SqlAiLedger, classifyFailure, subRequestId } from "./ai-guard";
+import { BudgetExceededError, GuardedProvider, RateLimitedError, SqlAiLedger, classifyFailure, estimateInputTokens, subRequestId } from "./ai-guard";
 import { embedAll } from "./ai";
 import { PipelineError } from "./errors";
 import { readyDocFromText } from "./fixtures";
@@ -81,7 +81,7 @@ const guardFor = (p: AiProvider, o: { maxRetries?: number; timeoutMs?: number } 
   const g = new GuardedProvider({ ledger, provider: p, sleep: async (ms) => void sleeps.push(ms), random: () => 0.5, ...o });
   return { g, sleeps };
 };
-const ctx = (requestId = rid(), userId = A) => ({ userId, plan: "FREE" as const, requestId });
+const ctx = (requestId = rid(), userId: string = A) => ({ userId, plan: "FREE" as const, requestId });
 const call = (g: GuardedProvider, c = ctx(), task: "chat" | "rag" | "summarize" = "chat") => g.generate(c, task, { prompt: "hello world", system: "sys", maxOutputTokens: 500 });
 const usageRows = (id: string) => raw("select * from public.ai_usage where request_id = $1", [id]);
 const resv = async (id: string) => (await raw("select * from public.ai_reservations where request_id = $1", [id]))[0];
@@ -270,14 +270,15 @@ describe("GuardedProvider: failures, retries, fallback", () => {
     expect(Number((await raw("select spent_micro_usd from public.ai_spend where scope = 'global' and period = 'day'"))[0].spent_micro_usd)).toBe(spentBefore);
   });
 
-  it("a crashed attempt (reservation left open) is resumed with the same id without double-reserving", async () => {
+  it("a crashed attempt (reservation left open) is NOT resumed: no second paid call until the sweeper settles it", async () => {
     const c = ctx();
     await ledger.reserve({ requestId: c.requestId, userId: A, plan: "free", estimateMicroUsd: 50_000, task: "chat", modelId: mdl.big! });
     const p = new Scripted([ok(10, 10)]);
     const { g } = guardFor(p);
-    await call(g, c);
+    await expectCode(call(g, c), "request_in_progress");
+    expect(p.models).toEqual([]);
     expect((await raw("select count(*)::int as c from public.ai_reservations where request_id = $1", [c.requestId]))[0].c).toBe(1);
-    expect(await reservedTotal()).toBe(0);
+    expect(await reservedTotal()).toBe(50_000);
   });
 });
 
@@ -402,7 +403,7 @@ describe("embed rate limit counts one operation", () => {
 
 describe("orphan sweeper through the ledger", () => {
   beforeEach(() => configure());
-  it("releases a reservation whose worker died", async () => {
+  it("settles a reservation whose worker died at its estimate (billable), not a refund", async () => {
     const id = rid();
     await ledger.reserve({ requestId: id, userId: A, plan: "free", estimateMicroUsd: 1234, task: "chat", modelId: mdl.big! });
     expect(await reservedTotal()).toBe(1234);
@@ -410,5 +411,68 @@ describe("orphan sweeper through the ledger", () => {
     const n = (await pgliteExecutor(env.db).service((q) => q.query<any>("select public.ai_sweep_orphan_reservations(30) as n"))).rows[0].n;
     expect(n).toBe(1);
     expect(await reservedTotal()).toBe(0);
+    expect((await resv(id)).status).toBe("settled");
+    expect(await usageRows(id)).toMatchObject([{ status: "failed_billable" }]);
+    expect(Number((await usageRows(id))[0].cost_micro_usd)).toBe(1234);
+  });
+});
+
+describe("hardening: in-flight duplicates, id reuse, estimates, uncapped settle", () => {
+  beforeEach(() => configure());
+
+  it("a request_id that is still 'reserved' is never called a second time", async () => {
+    const id = rid();
+    await ledger.reserve({ requestId: id, userId: A, plan: "free", estimateMicroUsd: 500, task: "chat", modelId: mdl.big! });
+    const p = new Scripted([ok()]);
+    const { g } = guardFor(p);
+    const e = await expectCode(call(g, ctx(id)), "request_in_progress");
+    expect(e.billable).toBe(false);
+    expect(p.models).toEqual([]);
+    expect(await reservedTotal()).toBe(500); // the original reservation is untouched
+  });
+
+  it("another user cannot reuse a request_id (open, settled or released)", async () => {
+    const id = rid();
+    await call(guardFor(new Scripted([ok(5, 5)])).g, ctx(id, A)); // settled for A
+    const p = new Scripted([ok()]);
+    const e = await expectCode(call(guardFor(p).g, ctx(id, B)), "ai_ledger_error");
+    expect(e.message).toMatch(/request_id_conflict/);
+    expect(p.models).toEqual([]);
+    const id2 = rid();
+    await ledger.reserve({ requestId: id2, userId: A, plan: "free", estimateMicroUsd: 10, task: "chat", modelId: mdl.big! });
+    await ledger.release(id2);
+    expect(await ledger.reserve({ requestId: id2, userId: B, plan: "free", estimateMicroUsd: 10, task: "chat", modelId: mdl.big! })).toMatchObject({ ok: false, error: "request_id_conflict" });
+  });
+
+  it("estimates non-Latin text (ru) at 2 chars/token and Latin/az at 3; embeddings use the same estimator", async () => {
+    expect(estimateInputTokens(["abcdefghi"])).toBe(3);
+    expect(estimateInputTokens(["əğşçöüıİ abc"])).toBe(4); // az/tr extended Latin stays at 3 chars/token
+    expect(estimateInputTokens(["привет мир"])).toBe(5);
+    expect(estimateInputTokens(["привет"])).toBe(3);
+    expect(estimateInputTokens(["привет", "abc"])).toBe(4);
+    const ru = "я".repeat(3000);
+    const la = "a".repeat(3000);
+    const embedEstimate = async (text: string) => {
+      const id = rid();
+      await guardFor(new Scripted([ok()])).g.embed(ctx(id), [text]);
+      return Number((await resv(id)).estimate_micro_usd);
+    };
+    // embedder: 20_000 micro-USD per Mtok -> ru (1500 tokens) reserves more than latin (1000 tokens)
+    expect(await embedEstimate(ru)).toBeGreaterThan(await embedEstimate(la));
+  });
+
+  it("records the uncapped actual cost; the next call fails at the ceiling", async () => {
+    // big: 3 + 15 micro-USD per 1k tokens. Reserve covers ~ (tiny prompt + 5 output tokens); the provider reports far more.
+    await configure({ userLimit: 40_000 });
+    const c = ctx();
+    const r = await guardFor(new Scripted([ok(1000, 2000)])).g.generate(c, "chat", { prompt: "hi", maxOutputTokens: 5 });
+    expect(r.text).toBe("hi");
+    const row = await resv(c.requestId);
+    expect(Number(row.actual_micro_usd)).toBe(33_000); // 1000*3 + 2000*15, not clamped to the estimate
+    expect(Number(row.actual_micro_usd)).toBeGreaterThan(Number(row.estimate_micro_usd));
+    expect(row.clamped).toBe(true);
+    expect(Number((await raw("select spent_micro_usd from public.ai_spend where scope = 'user' and key = $1 and period = 'day'", [A]))[0].spent_micro_usd)).toBe(33_000);
+    const e = await call(guardFor(new Scripted([ok()])).g, ctx(rid(), A)).then(() => null, (x) => x);
+    expect(e).toBeInstanceOf(BudgetExceededError);
   });
 });

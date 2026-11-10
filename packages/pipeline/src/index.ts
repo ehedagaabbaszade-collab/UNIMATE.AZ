@@ -20,3 +20,4 @@ export * from "./providers/env";
 // pglite-repository is test/dev only and intentionally not exported here.
 export * from "./storage-path";
 export * from "./security";
+export * from "./account-purge";

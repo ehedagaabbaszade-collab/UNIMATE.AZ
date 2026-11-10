@@ -1,15 +1,19 @@
 "use client";
 
 import { Button, EmptyState } from "@unimate/ui";
-import { scheduleReview, type ReviewGrade } from "@unimate/core";
+import type { ReviewGrade } from "@unimate/core";
 import { useState } from "react";
 import { useI18n } from "@/i18n/provider";
 import type { FlashcardRow } from "@/lib/db";
 import { getBrowserClient } from "@/lib/supabase/browser";
+import { dropReviewed, parseReviewResult } from "./review";
 
 const GRADES: ReviewGrade[] = ["again", "hard", "good", "easy"];
 
-/** Reviews the given due cards one by one; each rating is scheduled by the pure SM-2 helper and persisted. */
+/**
+ * Reviews the given due cards one by one. The schedule (SM-2) and XP are decided by the server (review_flashcard):
+ * the client only sends the grade and shows what came back. A card the server says is not due simply leaves the queue.
+ */
 export function FlashcardStudy({ cards, onDone }: { cards: FlashcardRow[]; onDone: () => void }) {
   const { t, dateTime } = useI18n();
   const [queue, setQueue] = useState(cards);
@@ -32,18 +36,19 @@ export function FlashcardStudy({ cards, onDone }: { cards: FlashcardRow[]; onDon
   async function rate(grade: ReviewGrade) {
     setBusy(true);
     setError(false);
-    const next = scheduleReview({ ease: Number(card.ease), intervalDays: card.interval_days, repetitions: card.repetitions }, grade, new Date());
-    const { error: err } = await getBrowserClient()
-      .from("flashcards")
-      .update({ ease: next.ease, interval_days: next.intervalDays, repetitions: next.repetitions, due_at: next.dueAt.toISOString() })
-      .eq("id", card.id);
+    const { data, error: err } = await getBrowserClient().rpc("review_flashcard", { p_card_id: card.id, p_grade: grade });
     setBusy(false);
-    if (err) return setError(true);
-    setNextInfo(t("cards.next", { date: dateTime(next.dueAt) }));
-    setReviewed((n) => n + 1);
+    const res = err ? null : parseReviewResult(data);
+    if (!res) return setError(true);
+    if (res.reviewed) {
+      setReviewed((n) => n + 1);
+      const when = res.due_at ? t("cards.next", { date: dateTime(new Date(res.due_at)) }) : null;
+      const xp = res.awarded > 0 ? t("cards.xpEarned", { n: res.awarded }) : null;
+      setNextInfo([when, xp].filter(Boolean).join(" · ") || null);
+    }
     setFlipped(false);
-    // "again" cards come back in this session (10 minutes is shorter than a study sitting); the rest leave the queue.
-    setQueue((q) => (grade === "again" ? [...q.slice(1), { ...card, ease: next.ease, interval_days: next.intervalDays, repetitions: next.repetitions }] : q.slice(1)));
+    // "again" cards are due again in 10 minutes (server clock); a local re-queue would only get not_due replies.
+    setQueue((q) => dropReviewed(q, card.id));
   }
 
   return (

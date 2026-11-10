@@ -27,16 +27,12 @@ export type AskResult = z.infer<typeof askResultSchema>;
 
 const generated = <T extends z.ZodType>(output: T) => z.object({ output, cached: z.boolean(), promptVersion: z.number() });
 export const summaryResultSchema = generated(z.object({ summary: z.string(), key_points: z.array(z.string()) }));
+// The server persists the quiz and returns ids + prompts + options ONLY: the answer key never reaches the client.
 export const quizResultSchema = generated(
   z.object({
-    questions: z.array(
-      z.object({
-        prompt: z.string().min(1),
-        options: z.array(z.string().min(1)).length(4),
-        answer_index: z.number().int().min(0).max(3),
-        explanation: z.string().default(""),
-      }),
-    ),
+    quizId: z.string().uuid(),
+    outputLanguage: z.string().optional(),
+    questions: z.array(z.object({ id: z.string().uuid(), prompt: z.string().min(1), options: z.array(z.string().min(1)) })),
   }),
 );
 export const flashcardsResultSchema = generated(z.object({ cards: z.array(z.object({ front: z.string().min(1), back: z.string().min(1) })) }));

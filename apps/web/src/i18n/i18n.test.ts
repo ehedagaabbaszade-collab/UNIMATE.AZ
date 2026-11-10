@@ -34,6 +34,9 @@ describe("translator and formatting", () => {
   it("interpolates and falls back to the key", () => {
     expect(interpolate("Hi {name}", { name: "Aysel" })).toBe("Hi Aysel");
     expect(interpolate("Hi {name}")).toBe("Hi {name}");
+    // single pass: a substituted value is never re-expanded, and inherited keys are not placeholders
+    expect(interpolate("{a} {b}", { a: "{b}", b: "x" })).toBe("{b} x");
+    expect(interpolate("{constructor}", { a: 1 })).toBe("{constructor}");
     expect(lookup(catalogs.en, "nope.nothing")).toBe("nope.nothing");
     expect(createTranslator("en")("common.of", { a: 1, b: 2 })).toBe("1 of 2");
   });

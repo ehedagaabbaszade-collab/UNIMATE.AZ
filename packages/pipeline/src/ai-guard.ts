@@ -152,6 +152,23 @@ const LEGACY_TASK: Record<RouteTask, AiTask> = {
 /** Deliberately pessimistic (3 chars/token) so the reservation covers real usage; the excess is released at settle. */
 export const approxTokens = (chars: number): number => Math.ceil(chars / 3);
 
+/**
+ * Conservative input-token estimate for real text: Latin script (incl. az/tr extended letters, below U+0370) at 3
+ * chars/token, every other script (Cyrillic for ru, Greek, CJK, ...) at 2 chars/token, which tokenizes far worse.
+ * Counted per code point so surrogate pairs are not double counted.
+ */
+export function estimateInputTokens(texts: readonly string[]): number {
+  let latin = 0;
+  let other = 0;
+  for (const t of texts) {
+    for (const ch of t) {
+      if (ch.codePointAt(0)! >= 0x370) other++;
+      else latin++;
+    }
+  }
+  return Math.ceil(latin / 3 + other / 2);
+}
+
 export class GuardedProvider {
   private readonly timeoutMs: number;
   private readonly maxRetries: number;
@@ -184,11 +201,11 @@ export class GuardedProvider {
     opts: { route?: ResolvedRoute } = {},
   ): Promise<GuardedGenerateResult> {
     const route = opts.route ?? (await this.resolve(task, ctx.plan));
-    const inChars = (req.system?.length ?? 0) + req.prompt.length;
+    const inTokens = estimateInputTokens([req.system ?? "", req.prompt]);
     return this.execute(
       ctx,
       route,
-      (m) => estimateCostMicroUsd(m, approxTokens(inChars), req.maxOutputTokens),
+      (m) => estimateCostMicroUsd(m, inTokens, req.maxOutputTokens),
       async (provider, m) => {
         const r = await provider.generate({
           task: LEGACY_TASK[route.task],
@@ -204,11 +221,11 @@ export class GuardedProvider {
 
   async embed(ctx: GuardContext, inputs: string[], opts: { route?: ResolvedRoute } = {}): Promise<GuardedEmbedResult> {
     const route = opts.route ?? (await this.resolve("embed", ctx.plan));
-    const chars = inputs.reduce((n, s) => n + s.length, 0);
+    const inTokens = estimateInputTokens(inputs);
     return this.execute(
       ctx,
       route,
-      (m) => estimateCostMicroUsd(m, approxTokens(chars), 0),
+      (m) => estimateCostMicroUsd(m, inTokens, 0),
       async (provider, m) => {
         const r = await provider.embed({ model: m.model, inputs });
         return { value: r, usage: r.usage };
@@ -257,6 +274,9 @@ export class GuardedProvider {
     }
     // Same request_id seen before and already paid for: never call (and pay) the provider a second time.
     if (reserved.status === "settled") throw new PipelineError("duplicate_request", "This AI request was already completed", false, false);
+    // Same request_id still open ('reserved'): another worker may be mid-call (or crashed after calling). A second paid
+    // call would double-spend, so refuse; the orphan sweeper settles an abandoned reservation at its estimate.
+    if (reserved.existing && reserved.status === "reserved") throw new PipelineError("request_in_progress", "This AI request is already in progress", false, false);
     const cap = reserved.estimateMicroUsd;
 
     const candidates = [route.primary, ...route.fallbacks];
@@ -310,7 +330,7 @@ export class GuardedProvider {
     try {
       await this.o.ledger.release(requestId);
     } catch {
-      /* the orphan sweeper (ai_sweep_orphan_reservations) returns it later */
+      /* the orphan sweeper (ai_sweep_orphan_reservations) settles it later, at the estimate (billable) */
     }
   }
 }

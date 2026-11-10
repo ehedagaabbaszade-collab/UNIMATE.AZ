@@ -3,64 +3,90 @@
 import { Badge, Button, Card, EmptyState, Skeleton, useToast } from "@unimate/ui";
 import { useState } from "react";
 import { EdgeNotice } from "@/components/EdgeNotice";
-import { useUser } from "@/components/user";
 import { aiLanguage } from "@/i18n";
 import { useI18n } from "@/i18n/provider";
-import type { AttemptRow, QuestionRow, QuizRow } from "@/lib/db";
+import type { AttemptRow, QuizRow } from "@/lib/db";
 import type { EdgeError } from "@/lib/edge";
 import { generateQuizMaterial } from "@/lib/edge-client";
 import { getBrowserClient } from "@/lib/supabase/browser";
 import { unwrap, useAsync } from "@/lib/use-async";
-import { isCorrect, parseOptions, scoreQuiz, toQuestionRows, type QuizQuestion } from "./quiz";
+import { buildAnswers, parseOptions, parseSubmitResult, type QuizQuestion, type SubmitResult } from "./quiz";
 
 function QuizTaker({ quiz, onExit }: { quiz: QuizRow; onExit: () => void }) {
   const { t } = useI18n();
-  const user = useUser();
   const { toast } = useToast();
+  // No answer/explanation columns are requested: the key lives server-side and is returned by submit_quiz_attempt.
   const qs = useAsync<QuizQuestion[]>(async () => {
-    const rows = unwrap(await getBrowserClient().from("questions").select("id,quiz_id,position,prompt,options,answer,explanation").eq("quiz_id", quiz.id).order("position")) as QuestionRow[];
-    return rows.map((r) => ({ id: r.id, prompt: r.prompt, options: parseOptions(r.options), answer: r.answer, explanation: r.explanation }));
+    const rows = unwrap(await getBrowserClient().from("questions").select("id,prompt,options").eq("quiz_id", quiz.id).order("position")) as {
+      id: string;
+      prompt: string;
+      options: unknown;
+    }[];
+    return rows.map((r) => ({ id: r.id, prompt: r.prompt, options: parseOptions(r.options) }));
   }, [quiz.id]);
 
   const [index, setIndex] = useState(0);
-  const [choice, setChoice] = useState<number | null>(null);
-  const [checked, setChecked] = useState(false);
-  const [answers, setAnswers] = useState<Record<string, number>>({});
-  const [finished, setFinished] = useState<{ score: number; max: number } | null>(null);
-  const startedAt = useState(() => new Date().toISOString())[0];
+  const [choices, setChoices] = useState<Record<string, number>>({});
+  const [result, setResult] = useState<SubmitResult | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  // One id per finish: a retried submit (network hiccup) is idempotent server-side and never double-awards.
+  const [attemptId, setAttemptId] = useState(() => crypto.randomUUID());
 
   if (qs.loading) return <Skeleton height={200} />;
   const questions = qs.data ?? [];
   if (questions.length === 0) return <EmptyState title={t("quiz.none")} action={<Button onClick={onExit}>{t("common.back")}</Button>} />;
 
-  async function saveAttempt(final: Record<string, number>) {
-    const res = scoreQuiz(questions, final);
-    setFinished(res);
-    const { error } = await getBrowserClient().from("attempts").insert({
-      quiz_id: quiz.id,
-      user_id: user.id,
-      score: res.score,
-      max_score: res.max,
-      answers: final,
-      started_at: startedAt,
-      completed_at: new Date().toISOString(),
+  async function submit() {
+    setSubmitting(true);
+    const { data, error } = await getBrowserClient().rpc("submit_quiz_attempt", {
+      p_quiz_id: quiz.id,
+      p_answers: buildAnswers(questions, choices),
+      p_attempt_id: attemptId,
     });
-    if (error) toast(t("quiz.saveFailed", { reason: error.message }), "error");
-    else toast(t("quiz.saved"), "success");
+    setSubmitting(false);
+    const parsed = error ? null : parseSubmitResult(data);
+    if (!parsed) return toast(t("quiz.saveFailed", { reason: error?.message ?? t("common.genericError") }), "error");
+    setResult(parsed);
+    toast(t("quiz.saved"), "success");
   }
 
-  if (finished)
+  if (result) {
+    const byId = new Map(result.results.map((r) => [r.question_id, r]));
     return (
       <Card>
-        <h2>{t("quiz.score", { a: finished.score, b: finished.max })}</h2>
+        <h2>{t("quiz.score", { a: result.score, b: result.max_score })}</h2>
+        <p role="status" className="um-muted">
+          {result.xp_awarded > 0 ? t("quiz.xpEarned", { n: result.xp_awarded }) : t("quiz.noXp")}
+        </p>
+        <ol className="stack" style={{ marginTop: "var(--space-4)" }}>
+          {questions.map((q) => {
+            const r = byId.get(q.id);
+            const answer = r?.correct_answer ?? (r?.correct_option != null ? q.options[r.correct_option] : undefined) ?? "";
+            return (
+              <li key={q.id}>
+                <strong>{q.prompt}</strong>
+                {r && r.correct !== null ? (
+                  <div role="status" className={r.correct ? "ok-box" : "err-box"}>
+                    {r.correct ? t("quiz.correct") : t("quiz.incorrect", { answer })}
+                    {r.explanation ? (
+                      <p style={{ fontWeight: 400, marginTop: 4 }}>
+                        <strong>{t("quiz.explanation")}: </strong>
+                        {r.explanation}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+              </li>
+            );
+          })}
+        </ol>
         <div className="row" style={{ marginTop: "var(--space-4)" }}>
           <Button
             onClick={() => {
               setIndex(0);
-              setChoice(null);
-              setChecked(false);
-              setAnswers({});
-              setFinished(null);
+              setChoices({});
+              setResult(null);
+              setAttemptId(crypto.randomUUID());
             }}
           >
             {t("quiz.retake")}
@@ -71,66 +97,32 @@ function QuizTaker({ quiz, onExit }: { quiz: QuizRow; onExit: () => void }) {
         </div>
       </Card>
     );
+  }
 
   const q = questions[index]!;
   const last = index === questions.length - 1;
+  const choice = choices[q.id];
   return (
     <div className="stack">
       <div className="quiz-progress" aria-hidden="true">
-        <span style={{ width: `${((index + (checked ? 1 : 0)) / questions.length) * 100}%` }} />
+        <span style={{ width: `${(index / questions.length) * 100}%` }} />
       </div>
       <p className="um-muted">{t("quiz.question", { a: index + 1, b: questions.length })}</p>
       <fieldset className="seg" style={{ minWidth: 0 }}>
         <legend style={{ fontSize: "var(--text-lg)", fontWeight: 650, marginBottom: "var(--space-3)" }}>{q.prompt}</legend>
         <div className="stack">
-          {q.options.map((o, i) => {
-            const cls = checked ? (o === q.answer ? "option option--right" : i === choice ? "option option--wrong" : "option") : "option";
-            return (
-              <label key={i} className={cls}>
-                <input type="radio" name={`q-${q.id}`} checked={choice === i} disabled={checked} onChange={() => setChoice(i)} />
-                <span>{o}</span>
-              </label>
-            );
-          })}
+          {q.options.map((o, i) => (
+            <label key={i} className="option">
+              <input type="radio" name={`q-${q.id}`} checked={choice === i} onChange={() => setChoices((c) => ({ ...c, [q.id]: i }))} />
+              <span>{o}</span>
+            </label>
+          ))}
         </div>
       </fieldset>
-      {checked ? (
-        <div role="status" className={isCorrect(q, choice ?? undefined) ? "ok-box" : "err-box"}>
-          {isCorrect(q, choice ?? undefined) ? t("quiz.correct") : t("quiz.incorrect", { answer: q.answer })}
-          {q.explanation ? (
-            <p style={{ fontWeight: 400, marginTop: 4 }}>
-              <strong>{t("quiz.explanation")}: </strong>
-              {q.explanation}
-            </p>
-          ) : null}
-        </div>
-      ) : null}
       <div className="row">
-        {!checked ? (
-          <Button
-            disabled={choice === null}
-            onClick={() => {
-              if (choice === null) return;
-              setAnswers((a) => ({ ...a, [q.id]: choice }));
-              setChecked(true);
-            }}
-          >
-            {t("quiz.check")}
-          </Button>
-        ) : (
-          <Button
-            onClick={() => {
-              if (last) void saveAttempt(answers);
-              else {
-                setIndex(index + 1);
-                setChoice(null);
-                setChecked(false);
-              }
-            }}
-          >
-            {last ? t("quiz.seeResults") : t("quiz.nextQ")}
-          </Button>
-        )}
+        <Button disabled={choice === undefined} loading={submitting} onClick={() => (last ? void submit() : setIndex(index + 1))}>
+          {last ? t("quiz.seeResults") : t("quiz.nextQ")}
+        </Button>
         <Button variant="ghost" onClick={onExit}>
           {t("common.close")}
         </Button>
@@ -141,7 +133,6 @@ function QuizTaker({ quiz, onExit }: { quiz: QuizRow; onExit: () => void }) {
 
 export function QuizPanel({ documentId }: { documentId: string }) {
   const { t, locale, date } = useI18n();
-  const user = useUser();
   const quizzes = useAsync(async () => {
     const sb = getBrowserClient();
     const qz = unwrap(await sb.from("quizzes").select("id,title,created_at").eq("document_id", documentId).order("created_at", { ascending: false })) as QuizRow[];
@@ -164,23 +155,10 @@ export function QuizPanel({ documentId }: { documentId: string }) {
       setErr(res.error);
       return;
     }
-    // The edge function returns the quiz but persists nothing: store it as the signed-in user (RLS owner policies).
-    const sb = getBrowserClient();
-    const created = await sb
-      .from("quizzes")
-      .insert({ user_id: user.id, document_id: documentId, title: `${new Date().toLocaleDateString(locale)} · ${res.data.output.questions.length}` })
-      .select("id,title,created_at")
-      .single<QuizRow>();
-    if (created.error) {
-      setBusy(false);
-      return setDbErr(created.error.message);
-    }
-    const rows = await sb.from("questions").insert(toQuestionRows(created.data.id, res.data.output.questions));
+    // The edge function persisted the quiz (and its answer key) server-side; only the id comes back. Read the row (RLS).
+    const created = await getBrowserClient().from("quizzes").select("id,title,created_at").eq("id", res.data.output.quizId).single<QuizRow>();
     setBusy(false);
-    if (rows.error) {
-      await sb.from("quizzes").delete().eq("id", created.data.id);
-      return setDbErr(rows.error.message);
-    }
+    if (created.error) return setDbErr(created.error.message);
     quizzes.reload();
     setActive(created.data);
   }

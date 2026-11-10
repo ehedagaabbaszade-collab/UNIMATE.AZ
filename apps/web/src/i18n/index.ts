@@ -37,7 +37,7 @@ export function lookup(messages: Messages, key: string): string {
 
 export function interpolate(template: string, params?: Params): string {
   if (!params) return template;
-  return template.replace(/\{(\w+)\}/g, (m, name: string) => (name in params ? String(params[name]) : m));
+  return template.replace(/\{(\w+)\}/g, (m, name: string) => (Object.hasOwn(params, name) ? String(params[name]) : m));
 }
 
 export type Translate = (key: MessageKey, params?: Params) => string;

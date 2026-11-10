@@ -43,6 +43,8 @@ const OVERRIDES: Record<string, Record<string, string>> = {
   processing_jobs: { kind: "'chunk'", idempotency_key: "'job-' || gen_random_uuid()::text" },
   notifications: { kind: "'seed'", title: "'t'" },
   xp_events: { kind: "'seed'", points: "5" },
+  achievements: { name: `'{"az":"a","tr":"a","en":"a","ru":"a"}'::jsonb`, description: `'{"az":"a","tr":"a","en":"a","ru":"a"}'::jsonb`, criteria: `'{"metric":"xp_total","target":1}'::jsonb` },
+  challenges: { title: `'{"az":"a","tr":"a","en":"a","ru":"a"}'::jsonb`, description: `'{"az":"a","tr":"a","en":"a","ru":"a"}'::jsonb`, criteria: `'{"metric":"xp","target":1}'::jsonb`, ends_at: "now() + interval '1 day'" },
   ai_usage: { feature: "'chat'" },
   ai_rate_limits: { task: "'chat'" },
   ai_reservations: { request_id: "'req-' || gen_random_uuid()::text", plan: "'free'" },

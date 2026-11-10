@@ -58,6 +58,7 @@ export const MODULES: readonly ModuleEntry[] = [
     tileOrder: 4,
     hero: { order: 2, bodyKey: "mobile.home.heroPlannerBody", ctaKey: "mobile.home.heroPlannerCta" },
   },
+  { id: "gamification", href: "/gamification", icon: "gamification", module: "gamification", labelKey: "brand.module.gamification", tileOrder: 8 },
   { id: "focus", href: "/focus", icon: "pomodoro", tileColors: ["#B45309", "#C2410C"], labelKey: "nav.focus", tileOrder: 9 },
   { id: "gpa", href: "/gpa", icon: "gpa", tileColors: ["#2563EB", "#4F46E5"], labelKey: "nav.gpa", tileOrder: 10 },
 ];

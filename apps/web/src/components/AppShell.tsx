@@ -9,6 +9,7 @@ import { clearSchedule } from "@/features/planner/offline-cache";
 import { getBrowserClient } from "@/lib/supabase/browser";
 import { useUser } from "./user";
 import { AppLogo } from "./brand";
+import { NotificationBell } from "@/features/gamification/NotificationBell";
 import { LocaleSwitcher } from "./prefs";
 
 const NAV = [
@@ -16,6 +17,7 @@ const NAV = [
   { href: "/documents", key: "nav.documents", icon: "ai-study", mobile: true },
   { href: "/flashcards", key: "nav.flashcards", icon: "flashcard", mobile: false },
   { href: "/planner", key: "nav.planner", icon: "planner", mobile: true },
+  { href: "/gamification", key: "brand.module.gamification", icon: "gamification", mobile: false },
   { href: "/focus", key: "nav.focus", icon: "pomodoro", mobile: true },
   { href: "/gpa", key: "nav.gpa", icon: "gpa", mobile: false },
   { href: "/settings", key: "nav.settings", icon: "settings", mobile: true },
@@ -57,6 +59,7 @@ export function AppShell({ displayName, children }: { displayName: string | null
           <div className="sidebar__user">
             <Avatar name={displayName} size={34} />
             <span className="sidebar__name">{displayName ?? ""}</span>
+            <NotificationBell />
           </div>
           <LocaleSwitcher compact />
           <button type="button" className="navlink navlink--button" onClick={signOut}>
@@ -70,6 +73,7 @@ export function AppShell({ displayName, children }: { displayName: string | null
           <Link href="/dashboard" className="brand">
             <AppLogo kind="logo" variant="dark" layout="row" height={30} />
           </Link>
+          <NotificationBell />
         </header>
         <OfflineBanner online={online} message={t("common.offline")} />
         <main id="main" className="page" tabIndex={-1}>

@@ -1,30 +1,29 @@
+import { parseNotifications, type NotificationItem } from "@unimate/core";
 import { useI18n } from "@unimate/i18n/react";
 import { useRouter } from "expo-router";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
+import { Icon } from "../../src/components/Icon";
 import { AppText, Button, Card, EmptyState, ErrorState, Screen, ScreenHeader, Skeleton } from "../../src/components/ui";
 import { unwrap, useAsync } from "../../src/lib/use-async";
 import { useUser } from "../../src/state/session";
 import { useTheme } from "../../src/theme/ThemeProvider";
 
-interface NotificationRow {
-  id: string;
-  title: string;
-  body: string | null;
-  read_at: string | null;
-  created_at: string;
-}
-
-/** Server notifications rendered per the user's profile locale (view notifications_rendered). Read-only plus mark-as-read. */
+/** Server notifications rendered per the user's profile locale (RPC list_my_notifications). Read-only plus mark-as-read. */
 export default function NotificationsRoute() {
   const { t, dateTime } = useI18n();
   const router = useRouter();
   const { theme } = useTheme();
   const { supabase: sb } = useUser();
-  const list = useAsync(async () => unwrap(await sb.from("notifications_rendered").select("id,title,body,read_at,created_at").order("created_at", { ascending: false }).limit(50)) as NotificationRow[], []);
+  const list = useAsync(async () => parseNotifications(unwrap(await sb.rpc("list_my_notifications", { p_limit: 50 }))), []);
   const unread = (list.data ?? []).filter((n) => !n.read_at).length;
 
   async function markAll() {
-    await sb.from("notifications").update({ read_at: new Date().toISOString() }).is("read_at", null);
+    await sb.rpc("mark_notifications_read");
+    list.reload();
+  }
+
+  async function markOne(id: string) {
+    await sb.rpc("mark_notifications_read", { p_ids: [id] });
     list.reload();
   }
 
@@ -40,9 +39,11 @@ export default function NotificationsRoute() {
         <EmptyState title={t("mobile.notifications.empty")} />
       ) : (
         <View style={{ gap: 10 }}>
-          {list.data?.map((n) => (
-            <Card key={n.id}>
+          {list.data?.map((n: NotificationItem) => (
+            <Pressable key={n.id} disabled={!!n.read_at} onPress={() => void markOne(n.id)} accessibilityRole={n.read_at ? "text" : "button"} accessibilityLabel={`${n.title ?? ""}. ${n.body ?? ""}`}>
+            <Card>
               <View style={{ flexDirection: "row", gap: 8, alignItems: "center", justifyContent: "space-between" }}>
+                {n.kind === "achievement" ? <Icon name="achievements" size="sm" color={theme.warning} /> : null}
                 <AppText style={{ fontWeight: n.read_at ? "400" : "700", flex: 1 }}>{n.title}</AppText>
                 {!n.read_at ? <View accessibilityElementsHidden style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: theme.danger }} /> : null}
               </View>
@@ -51,6 +52,7 @@ export default function NotificationsRoute() {
                 {dateTime(n.created_at)}
               </AppText>
             </Card>
+            </Pressable>
           ))}
         </View>
       )}

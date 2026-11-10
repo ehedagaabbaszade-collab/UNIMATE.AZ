@@ -1,6 +1,7 @@
 "use client";
 
-import { Badge, Card, EmptyState, ErrorState, Skeleton } from "@unimate/ui";
+import { parseMyProgress } from "@unimate/core";
+import { Badge, Card, EmptyState, ErrorState, Icon, ProgressRing, Skeleton } from "@unimate/ui";
 import Link from "next/link";
 import { useUser } from "@/components/user";
 import { useI18n } from "@unimate/i18n/react";
@@ -12,7 +13,7 @@ import { classesOn, hhmm, upcomingItems } from "../planner/schedule";
 import { useSchedule } from "../planner/useSchedule";
 
 export function Dashboard() {
-  const { t, dateTime, date } = useI18n();
+  const { t, dateTime, date, number, percent } = useI18n();
   const user = useUser();
   const schedule = useSchedule();
   const extras = useAsync(async () => {
@@ -32,6 +33,8 @@ export function Dashboard() {
     };
   }, []);
 
+  const progress = useAsync(async () => parseMyProgress(unwrap(await getBrowserClient().rpc("my_progress"))), []);
+
   const now = new Date();
   const todays = schedule.data ? classesOn(schedule.data.timetable, now) : [];
   const upcoming = schedule.data ? upcomingItems(schedule.data.tasks, schedule.data.exams, now) : [];
@@ -44,6 +47,32 @@ export function Dashboard() {
       </div>
 
       {extras.error ? <ErrorState title={t("dashboard.loadFailed")} description={extras.error} /> : null}
+
+      <Card>
+        <div style={{ display: "flex", gap: 20, alignItems: "center", flexWrap: "wrap" }}>
+          {progress.loading && !progress.data ? (
+            <Skeleton height={96} width={96} />
+          ) : progress.data ? (
+            <>
+              <ProgressRing value={progress.data.level_progress * 100} label={t("gamification.levelProgress")}>
+                {percent(progress.data.level_progress, { maximumFractionDigits: 0 })}
+              </ProgressRing>
+              <div className="stack" style={{ gap: 4 }}>
+                <p className="um-muted">{t("gamification.progressTitle")}</p>
+                <p className="stat">{t("gamification.level", { n: progress.data.level })}</p>
+                <p>
+                  <Icon name="xp" size={18} /> {t("gamification.xp", { n: number(progress.data.xp) })} · <Icon name="streak" size={18} />{" "}
+                  {progress.data.streak.current > 0 ? t("gamification.streak", { n: progress.data.streak.current }) : t("gamification.noStreak")} · <Icon name="achievements" size={18} />{" "}
+                  {t("gamification.achievementCount", { n: progress.data.achievements.unlocked })}
+                </p>
+                <Link href="/gamification">{t("brand.module.gamification")}</Link>
+              </div>
+            </>
+          ) : (
+            <p className="um-muted">{t("gamification.loadFailed")}</p>
+          )}
+        </div>
+      </Card>
 
       <div className="grid-stats">
         <Card>

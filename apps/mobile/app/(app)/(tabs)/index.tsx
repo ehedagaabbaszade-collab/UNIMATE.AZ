@@ -1,17 +1,18 @@
-import { localDay } from "@unimate/core";
+import { localDay, parseMyProgress } from "@unimate/core";
 import { useI18n } from "@unimate/i18n/react";
+import type { IconName } from "@unimate/ui/icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter, type Href } from "expo-router";
 import { useCallback, useRef, useState } from "react";
 import { FlatList, Pressable, View, useWindowDimensions } from "react-native";
 import { BrandHeader } from "../../../src/components/Brand";
 import { Icon, ModuleIcon } from "../../../src/components/Icon";
+import { ProgressRing } from "../../../src/components/ProgressRing";
 import { AppText, Badge, Card, EmptyState, Screen, Skeleton } from "../../../src/components/ui";
 import { useSchedule } from "../../../src/features/planner/useSchedule";
-import { hasProgress, liveStreak, parseStreak, sumPoints, type ProgressSummary } from "../../../src/lib/progress";
 import { heroModules, tileLayout, type ModuleEntry } from "../../../src/lib/registry";
 import { upcomingItems } from "../../../src/lib/schedule";
-import { unwrap, useAsync } from "../../../src/lib/use-async";
+import { useAsync } from "../../../src/lib/use-async";
 import { useUser } from "../../../src/state/session";
 import { useTheme } from "../../../src/theme/ThemeProvider";
 import { MIN_TOUCH, radii, spacing } from "../../../src/theme/tokens";
@@ -116,7 +117,7 @@ function TileGrid({ items, hasMore }: { items: ModuleEntry[]; hasMore: boolean }
 }
 
 export default function Home() {
-  const { t, date, dateTime, number } = useI18n();
+  const { t, date, dateTime, number, percent } = useI18n();
   const router = useRouter();
   const { theme } = useTheme();
   const { user, profile, supabase: sb } = useUser();
@@ -124,13 +125,8 @@ export default function Home() {
   const layout = tileLayout();
 
   const extras = useAsync(async () => {
-    const [unread, streakRes, xp] = await Promise.all([
-      sb.from("notifications").select("id", { count: "exact", head: true }).is("read_at", null),
-      sb.from("streaks").select("current_streak,longest_streak,last_active_date").eq("user_id", user.id).maybeSingle(),
-      sumPoints(async (from, to) => ((unwrap(await sb.from("xp_events").select("points").eq("user_id", user.id).range(from, to)) as { points: number }[]) ?? []).map((r) => r.points)),
-    ]);
-    const progress: ProgressSummary = { xp, streak: parseStreak(streakRes.data) };
-    return { unread: unread.count ?? 0, progress };
+    const [unread, prog] = await Promise.all([sb.rpc("unread_notification_count"), sb.rpc("my_progress")]);
+    return { unread: typeof unread.data === "number" ? unread.data : 0, progress: prog.error ? null : parseMyProgress(prog.data) };
   }, [user.id]);
 
   // Tab screens stay mounted: refresh server data whenever Home regains focus (new XP, tasks, notifications).
@@ -151,8 +147,7 @@ export default function Home() {
   const now = new Date();
   const today = localDay(now);
   const upcoming = schedule.data ? upcomingItems(schedule.data.tasks, schedule.data.exams, now, 3) : [];
-  const progress = extras.data?.progress;
-  const streak = progress ? liveStreak(progress.streak, today) : null;
+  const progress = extras.data?.progress ?? null;
   const name = profile?.display_name?.trim();
 
   return (
@@ -180,39 +175,44 @@ export default function Home() {
       <HeroCarousel items={heroModules()} />
       <TileGrid items={layout.tiles} hasMore={layout.overflow.length > 0} />
 
-      <Card accessibilityRole="summary">
-        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-          <AppText variant="heading">{t("mobile.home.progressTitle")}</AppText>
-          {progress && (progress.xp ?? 0) > 0 ? (
-            <View style={{ flexDirection: "row", gap: 6, alignItems: "center" }}>
-              <Icon name="xp" size="sm" color={theme.warning} />
-              <AppText variant="label">{t("mobile.home.xp", { n: number(progress.xp ?? 0) })}</AppText>
-            </View>
-          ) : null}
-        </View>
-        {extras.loading && !extras.data ? (
-          <Skeleton height={48} />
-        ) : progress && hasProgress(progress, today) ? (
-          <View style={{ gap: spacing.sm }}>
-            {streak !== null ? (
-              <View style={{ flexDirection: "row", gap: spacing.sm, alignItems: "center", backgroundColor: theme.cardStrong, borderRadius: radii.pill, paddingHorizontal: spacing.md, minHeight: 40 }}>
-                <Icon name="streak" size="sm" color={theme.warning} />
-                <AppText>{t("mobile.home.streak", { n: streak })}</AppText>
-              </View>
-            ) : null}
-            {progress.streak && progress.streak.longest_streak > 0 ? (
-              <View style={{ flexDirection: "row", gap: spacing.sm, alignItems: "center", backgroundColor: theme.cardStrong, borderRadius: radii.pill, paddingHorizontal: spacing.md, minHeight: 40 }}>
-                <Icon name="achievements" size="sm" color={theme.active} />
-                <AppText>{t("mobile.home.bestStreak", { n: progress.streak.longest_streak })}</AppText>
+      <Pressable onPress={() => go(router, "/gamification")} accessibilityRole="button" accessibilityLabel={t("brand.module.gamification")}>
+        <Card accessibilityRole="summary">
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+            <AppText variant="heading">{t("mobile.home.progressTitle")}</AppText>
+            {progress ? (
+              <View style={{ flexDirection: "row", gap: 6, alignItems: "center" }}>
+                <Icon name="rewards" size="sm" color={theme.warning} />
+                <AppText variant="label">{t("mobile.home.xp", { n: number(progress.xp) })}</AppText>
               </View>
             ) : null}
           </View>
-        ) : extras.error ? (
-          <AppText muted>{t("dashboard.loadFailed")}</AppText>
-        ) : (
-          <AppText muted>{t("mobile.home.progressEmpty")}</AppText>
-        )}
-      </Card>
+          {extras.loading && !extras.data ? (
+            <Skeleton height={96} />
+          ) : progress ? (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.lg }}>
+              <ProgressRing fraction={progress.level_progress} track={theme.cardStrong} from="#22D3EE" to="#A855F7" label={t("gamification.levelProgress")}>
+                {percent(progress.level_progress, { maximumFractionDigits: 0 })}
+              </ProgressRing>
+              <View style={{ flex: 1, gap: spacing.sm }}>
+                {[
+                  { icon: "leaderboard", color: theme.active, text: t("gamification.level", { n: progress.level }) },
+                  { icon: "streak", color: theme.warning, text: progress.streak.current > 0 ? t("gamification.streak", { n: progress.streak.current }) : t("gamification.noStreak") },
+                  { icon: "achievements", color: theme.warning, text: t("gamification.achievementCount", { n: progress.achievements.unlocked }) },
+                ].map((row) => (
+                  <View key={row.icon} style={{ flexDirection: "row", gap: spacing.sm, alignItems: "center", backgroundColor: theme.cardStrong, borderRadius: radii.pill, paddingHorizontal: spacing.md, minHeight: 36 }}>
+                    <Icon name={row.icon as IconName} size="sm" color={row.color} />
+                    <AppText variant="caption" numberOfLines={1} style={{ flex: 1 }}>
+                      {row.text}
+                    </AppText>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ) : (
+            <AppText muted>{t("dashboard.loadFailed")}</AppText>
+          )}
+        </Card>
+      </Pressable>
 
       <View style={{ gap: spacing.sm }}>
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>

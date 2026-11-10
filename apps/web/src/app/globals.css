@@ -169,3 +169,9 @@
 .warn-box { padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--warning-soft); color: var(--warning); font-size: var(--text-sm); font-weight: 600; }
 .ok-box { padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--accent-soft); color: var(--accent); font-size: var(--text-sm); font-weight: 600; }
 .err-box { padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--danger-soft); color: var(--danger); font-size: var(--text-sm); font-weight: 600; }
+
+/* Notification bell */
+.bell { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; color: inherit; margin-left: auto; }
+.bell:hover { background: var(--surface-2); }
+.bell:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.bell__dot { position: absolute; top: 9px; right: 10px; width: 10px; height: 10px; border-radius: 50%; background: var(--danger); box-shadow: 0 0 0 2px var(--nav-bg, var(--surface)); }

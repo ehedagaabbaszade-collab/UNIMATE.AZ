@@ -37,13 +37,13 @@ describe("module registry", () => {
   it("Home grid is 3x3: more than 9 tiles become 8 plus an overflow list", () => {
     const extra = (n: number): ModuleEntry => ({ id: `x${n}`, href: `/x${n}`, icon: "campus", module: "campus", labelKey: "brand.module.campus", tileOrder: 20 + n });
     expect(tileLayout().overflow).toEqual([]);
-    const all = [...MODULES, extra(1), extra(2), extra(3), extra(4)]; // 6 + 4 = 10 tiles
+    const all = [...MODULES, extra(1), extra(2), extra(3)]; // 7 + 3 = 10 tiles
     const { tiles, overflow } = tileLayout(all);
     expect(tiles).toHaveLength(8);
     expect(overflow).toHaveLength(2);
-    expect(tileLayout([...MODULES, extra(1), extra(2), extra(3)]).tiles).toHaveLength(9); // exactly 9: no overflow
+    expect(tileLayout([...MODULES, extra(1), extra(2)]).tiles).toHaveLength(9); // exactly 9: no overflow
   });
   it("never lists planned modules before their screens exist", () => {
-    for (const id of ["campus", "notes", "career", "gamification"]) expect(MODULES.some((m) => m.id === id)).toBe(false);
+    for (const id of ["campus", "notes", "career"]) expect(MODULES.some((m) => m.id === id)).toBe(false);
   });
 });

@@ -404,6 +404,13 @@ export const en = {
   },
   meta: { description: "Study platform for students in Azerbaijan." },
   errorPage: { title: "Something broke", body: "An unexpected error occurred. You can try again.", notFoundTitle: "Page not found", notFoundBody: "The page you are looking for does not exist.", home: "Go home" },
+  brand: {
+    logo: "UNIMATE.AZ logo",
+    mark: "UNIMATE.AZ brandmark",
+    module: { aiStudy: "AI Study", campus: "Campus", notes: "Notes", planner: "Planner", career: "Career", gamification: "Gamification", profile: "Profile", settings: "Settings" },
+    status: { success: "Success", info: "Information", warning: "Warning", error: "Error", pending: "Pending", locked: "Locked" },
+    file: { pdf: "PDF document", docx: "Word document", pptx: "PowerPoint presentation", xlsx: "Excel spreadsheet", image: "Image", video: "Video", audio: "Audio", zip: "ZIP archive" },
+  },
 } as const;
 
 type DeepString<T> = { [K in keyof T]: T[K] extends string ? string : DeepString<T[K]> };

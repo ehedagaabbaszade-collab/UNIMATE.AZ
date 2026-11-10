@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { BackendNotConfigured } from "@/components/BackendNotConfigured";
-import { LogoMark } from "@/components/icons";
+import { AppLogo } from "@/components/brand";
 import { LocaleSwitcher } from "@/components/prefs";
 import { getT } from "@/i18n/server";
 import { getSupabaseEnv } from "@/lib/supabase/env";
@@ -19,8 +19,7 @@ export default async function AuthLayout({ children }: { children: ReactNode }) 
         <div className="auth__card">
           <div className="auth__top">
             <Link href="/" className="auth__brand">
-              <LogoMark />
-              UNIMATE
+              <AppLogo kind="logo" height={84} />
             </Link>
             <LocaleSwitcher compact />
           </div>

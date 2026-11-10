@@ -1,6 +1,6 @@
 "use client";
 
-import { OfflineBanner, Avatar, useOnlineStatus } from "@unimate/ui";
+import { Icon, OfflineBanner, Avatar, useOnlineStatus, type IconName } from "@unimate/ui";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
@@ -8,18 +8,18 @@ import { useI18n } from "@unimate/i18n/react";
 import { clearSchedule } from "@/features/planner/offline-cache";
 import { getBrowserClient } from "@/lib/supabase/browser";
 import { useUser } from "./user";
-import { CardsIcon, DocsIcon, FocusIcon, GpaIcon, HomeIcon, LogoMark, PlannerIcon, SettingsIcon, SignOutIcon } from "./icons";
+import { AppLogo } from "./brand";
 import { LocaleSwitcher } from "./prefs";
 
 const NAV = [
-  { href: "/dashboard", key: "nav.dashboard", icon: HomeIcon, mobile: true },
-  { href: "/documents", key: "nav.documents", icon: DocsIcon, mobile: true },
-  { href: "/flashcards", key: "nav.flashcards", icon: CardsIcon, mobile: false },
-  { href: "/planner", key: "nav.planner", icon: PlannerIcon, mobile: true },
-  { href: "/focus", key: "nav.focus", icon: FocusIcon, mobile: true },
-  { href: "/gpa", key: "nav.gpa", icon: GpaIcon, mobile: false },
-  { href: "/settings", key: "nav.settings", icon: SettingsIcon, mobile: true },
-] as const;
+  { href: "/dashboard", key: "nav.dashboard", icon: "home", mobile: true },
+  { href: "/documents", key: "nav.documents", icon: "ai-study", mobile: true },
+  { href: "/flashcards", key: "nav.flashcards", icon: "flashcard", mobile: false },
+  { href: "/planner", key: "nav.planner", icon: "planner", mobile: true },
+  { href: "/focus", key: "nav.focus", icon: "pomodoro", mobile: true },
+  { href: "/gpa", key: "nav.gpa", icon: "gpa", mobile: false },
+  { href: "/settings", key: "nav.settings", icon: "settings", mobile: true },
+] as const satisfies ReadonlyArray<{ href: string; key: string; icon: IconName; mobile: boolean }>;
 
 export function AppShell({ displayName, children }: { displayName: string | null; children: ReactNode }) {
   const { t } = useI18n();
@@ -43,13 +43,12 @@ export function AppShell({ displayName, children }: { displayName: string | null
       </a>
       <aside className="sidebar">
         <Link href="/dashboard" className="brand">
-          <LogoMark />
-          <span>UNIMATE</span>
+          <AppLogo kind="logo" variant="dark" layout="row" height={36} />
         </Link>
         <nav aria-label={t("nav.main")} className="sidebar__nav">
-          {NAV.map(({ href, key, icon: Icon }) => (
+          {NAV.map(({ href, key, icon }) => (
             <Link key={href} href={href} className="navlink" aria-current={isActive(href) ? "page" : undefined}>
-              <Icon />
+              <Icon name={icon} size={22} />
               <span>{t(key)}</span>
             </Link>
           ))}
@@ -61,21 +60,26 @@ export function AppShell({ displayName, children }: { displayName: string | null
           </div>
           <LocaleSwitcher compact />
           <button type="button" className="navlink navlink--button" onClick={signOut}>
-            <SignOutIcon />
+            <Icon name="sign-out" size={22} />
             <span>{t("nav.signOut")}</span>
           </button>
         </div>
       </aside>
       <div className="shell__main">
+        <header className="mobilebar">
+          <Link href="/dashboard" className="brand">
+            <AppLogo kind="logo" variant="dark" layout="row" height={30} />
+          </Link>
+        </header>
         <OfflineBanner online={online} message={t("common.offline")} />
         <main id="main" className="page" tabIndex={-1}>
           {children}
         </main>
       </div>
       <nav className="tabbar" aria-label={t("nav.main")}>
-        {NAV.filter((n) => n.mobile).map(({ href, key, icon: Icon }) => (
+        {NAV.filter((n) => n.mobile).map(({ href, key, icon }) => (
           <Link key={href} href={href} className="tabbar__item" aria-current={isActive(href) ? "page" : undefined}>
-            <Icon />
+            <Icon name={icon} />
             <span>{t(key)}</span>
           </Link>
         ))}

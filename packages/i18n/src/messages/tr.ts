@@ -405,4 +405,11 @@ export const tr = {
   },
   meta: { description: "Azerbaycan'daki öğrenciler için çalışma platformu." },
   errorPage: { title: "Bir şey bozuldu", body: "Beklenmeyen bir hata oluştu. Tekrar deneyebilirsin.", notFoundTitle: "Sayfa bulunamadı", notFoundBody: "Aradığın sayfa yok.", home: "Ana sayfaya git" },
+  brand: {
+    logo: "UNIMATE.AZ logosu",
+    mark: "UNIMATE.AZ marka simgesi",
+    module: { aiStudy: "AI Study", campus: "Kampüs", notes: "Notlar", planner: "Planlayıcı", career: "Kariyer", gamification: "Oyunlaştırma", profile: "Profil", settings: "Ayarlar" },
+    status: { success: "Başarılı", info: "Bilgi", warning: "Uyarı", error: "Hata", pending: "Bekliyor", locked: "Kilitli" },
+    file: { pdf: "PDF belgesi", docx: "Word belgesi", pptx: "PowerPoint sunumu", xlsx: "Excel tablosu", image: "Görsel", video: "Video", audio: "Ses", zip: "ZIP arşivi" },
+  },
 } satisfies Messages;

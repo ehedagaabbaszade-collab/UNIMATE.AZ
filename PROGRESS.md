@@ -29,6 +29,7 @@ Repo: 545 vitest tests passing (46 files); `npm run typecheck` clean in all work
 4. Expo mobile app (real backend) + web gaps: Campus, Notes library, Career (admin-managed listings only, CV builder, interview prep), gamification screens (server-verified), notifications, profile/subscription (read-only status; payment architecture doc, no fake charges; App Store/Google Play billing doc).
 5. Admin app (users/roles, universities/faculties/majors/courses, moderation/reports, materials, subscriptions, AI providers/models/budgets/costs, analytics, audit logs, config) with server-side role guard.
 6. E2E/prod builds, deployment + EAS + store metadata + beta instructions + FINAL_DELIVERY_REPORT.md.
+3c STATUS (T): items (a)(b)(c)(d web+admin metadata)(f)(g) done and tested; see docs/BRAND_IDENTITY.md. Still open: mobile app.json/theme + react-native-svg wrapper, admin header/login (admin UI not built), true PNG originals.
 
 ## Known external blockers
 AI provider key; Supabase project (not created - needs approval); Deno for edge functions; Android/EAS account; Apple toolchain (macOS).

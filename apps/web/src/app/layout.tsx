@@ -9,16 +9,24 @@ import { I18nProvider } from "@unimate/i18n/react";
 import { getT } from "@/i18n/server";
 import { THEME_COOKIE, toTheme } from "@/lib/theme";
 
+const OG_LOCALE = { az: "az_AZ", tr: "tr_TR", en: "en_GB", ru: "ru_RU" } as const;
+
 export async function generateMetadata(): Promise<Metadata> {
-  const { t } = await getT();
+  const { t, locale } = await getT();
+  const description = t("meta.description");
   return {
-    title: { default: "UNIMATE", template: "%s · UNIMATE" },
-    description: t("meta.description"),
+    metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
+    title: { default: "UNIMATE.AZ", template: "%s · UNIMATE" },
+    description,
+    applicationName: "UNIMATE.AZ",
+    // og:image / twitter:image come from app/opengraph-image.png and app/twitter-image.png (file conventions).
+    openGraph: { type: "website", siteName: "UNIMATE.AZ", title: "UNIMATE.AZ", description, locale: OG_LOCALE[locale] },
+    twitter: { card: "summary_large_image", title: "UNIMATE.AZ", description },
   };
 }
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f4f6fb" },
+    { media: "(prefers-color-scheme: light)", color: "#f1f5ff" },
     { media: "(prefers-color-scheme: dark)", color: "#0b1020" },
   ],
 };

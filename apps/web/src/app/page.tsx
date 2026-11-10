@@ -2,7 +2,7 @@ import { ErrorState } from "@unimate/ui";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { LocaleSwitcher } from "@/components/prefs";
-import { LogoMark } from "@/components/icons";
+import { AppLogo } from "@/components/brand";
 import { getT } from "@/i18n/server";
 import { getServerClient } from "@/lib/supabase/server";
 
@@ -16,10 +16,7 @@ export default async function Landing() {
   return (
     <>
       <header className="topbar">
-        <span className="auth__brand">
-          <LogoMark />
-          UNIMATE
-        </span>
+        <span aria-hidden="true" />
         <div className="row">
           <LocaleSwitcher compact />
           {supabase ? (
@@ -36,6 +33,7 @@ export default async function Landing() {
           </div>
         ) : null}
         <section className="hero">
+          <AppLogo kind="logo" height={112} />
           <p className="eyebrow">{t("landing.eyebrow")}</p>
           <h1>{t("landing.title")}</h1>
           <p className="hero__lead">{t("landing.body")}</p>

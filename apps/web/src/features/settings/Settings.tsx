@@ -1,8 +1,9 @@
 "use client";
 
-import { Button, Card, Dialog, Input, useToast } from "@unimate/ui";
+import { Button, Card, Dialog, Input, ModuleIcon, useToast } from "@unimate/ui";
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
+import { AppLogo } from "@/components/brand";
 import { LocaleSwitcher, ThemeToggle } from "@/components/prefs";
 import type { ThemePref } from "@/lib/theme";
 import { useUser } from "@/components/user";
@@ -64,7 +65,10 @@ export function Settings({ theme }: { theme: ThemePref }) {
   return (
     <div className="stack-lg">
       <div className="page-head">
-        <h1>{t("settings.title")}</h1>
+        <div className="row" style={{ flexWrap: "nowrap" }}>
+          <ModuleIcon module="settings" size={44} />
+          <h1>{t("settings.title")}</h1>
+        </div>
         {user.email ? <p>{t("settings.signedInAs", { email: user.email })}</p> : null}
       </div>
 
@@ -101,6 +105,13 @@ export function Settings({ theme }: { theme: ThemePref }) {
         <h2>{t("settings.exportTitle")}</h2>
         <p className="um-muted" style={{ margin: "var(--space-2) 0 var(--space-4)" }}>{t("settings.exportBody")}</p>
         <Button variant="secondary" onClick={exportData} loading={exporting}>{t("settings.exportCta")}</Button>
+      </Card>
+
+      <Card>
+        <div className="row">
+          <AppLogo kind="mark" height={40} />
+          <p className="um-muted">{t("common.appName")}</p>
+        </div>
       </Card>
 
       <Card>

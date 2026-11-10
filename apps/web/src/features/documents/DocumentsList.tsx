@@ -1,10 +1,9 @@
 "use client";
 
-import { Badge, Button, Card, EmptyState, ErrorState, Skeleton, useToast, type BadgeTone } from "@unimate/ui";
+import { Badge, Button, Card, EmptyState, ErrorState, FileIcon, Icon, Skeleton, fileKindFromMime, useToast, type BadgeTone } from "@unimate/ui";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useUser } from "@/components/user";
-import { UploadIcon } from "@/components/icons";
 import type { MessageKey } from "@unimate/i18n";
 import { formatBytes } from "@unimate/i18n";
 import { useI18n } from "@unimate/i18n/react";
@@ -111,7 +110,7 @@ export function DocumentsList() {
 
       <div className="upload-zone">
         <div className="row">
-          <UploadIcon />
+          <Icon name="upload" size="lg" />
           <div>
             <h2>{t("documents.upload")}</h2>
             <p className="um-muted">{t("documents.uploadHint")}</p>
@@ -162,7 +161,13 @@ export function DocumentsList() {
                     {date(d.created_at)}
                   </span>
                 </div>
-                <h3>{d.title}</h3>
+                <div className="row" style={{ flexWrap: "nowrap", alignItems: "flex-start" }}>
+                  {(() => {
+                    const kind = fileKindFromMime(d.mime_type, d.original_filename ?? "");
+                    return kind ? <FileIcon kind={kind} size={36} label={t(`brand.file.${kind}`)} /> : null;
+                  })()}
+                  <h3>{d.title}</h3>
+                </div>
                 <p className="um-muted" style={{ fontSize: "var(--text-sm)" }}>
                   {[d.page_count != null ? t("documents.pages", { n: d.page_count }) : null, d.size_bytes != null ? formatBytes(locale, d.size_bytes) : null].filter(Boolean).join(" · ")}
                 </p>

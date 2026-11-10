@@ -405,4 +405,11 @@ export const ru = {
   },
   meta: { description: "Учебная платформа для студентов Азербайджана." },
   errorPage: { title: "Что-то сломалось", body: "Произошла непредвиденная ошибка. Можно попробовать ещё раз.", notFoundTitle: "Страница не найдена", notFoundBody: "Запрошенной страницы не существует.", home: "На главную" },
+  brand: {
+    logo: "Логотип UNIMATE.AZ",
+    mark: "Знак UNIMATE.AZ",
+    module: { aiStudy: "AI Study", campus: "Кампус", notes: "Заметки", planner: "Планировщик", career: "Карьера", gamification: "Геймификация", profile: "Профиль", settings: "Настройки" },
+    status: { success: "Успешно", info: "Информация", warning: "Предупреждение", error: "Ошибка", pending: "В ожидании", locked: "Заблокировано" },
+    file: { pdf: "Документ PDF", docx: "Документ Word", pptx: "Презентация PowerPoint", xlsx: "Таблица Excel", image: "Изображение", video: "Видео", audio: "Аудио", zip: "Архив ZIP" },
+  },
 } satisfies Messages;

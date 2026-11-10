@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LEGAL_SLUGS, legal, type LegalSlug } from "@/content/legal";
-import { LogoMark } from "@/components/icons";
+import { AppLogo } from "@/components/brand";
 import { LocaleSwitcher } from "@/components/prefs";
 import { getT } from "@/i18n/server";
 
@@ -23,8 +23,7 @@ export default async function LegalPage({ params }: { params: Promise<{ slug: st
     <>
       <header className="topbar">
         <Link href="/" className="auth__brand">
-          <LogoMark />
-          UNIMATE
+          <AppLogo kind="mark" height={36} />
         </Link>
         <LocaleSwitcher compact />
       </header>

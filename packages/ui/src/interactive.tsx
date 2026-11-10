@@ -1,5 +1,6 @@
 "use client";
 
+import { Icon } from "./icons";
 import {
   createContext,
   useCallback,
@@ -138,7 +139,7 @@ export function ToastProvider({ children, dismissLabel = "Dismiss" }: { children
           <div key={t.id} className={`um-toast um-toast--${t.tone}`} role={t.tone === "error" ? "alert" : "status"}>
             <span>{t.message}</span>
             <button type="button" aria-label={dismissLabel} onClick={() => setItems((cur) => cur.filter((i) => i.id !== t.id))}>
-              ×
+              <Icon name="close" size="sm" />
             </button>
           </div>
         ))}

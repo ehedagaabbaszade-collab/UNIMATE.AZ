@@ -91,8 +91,8 @@ describe("no service-role or secret material in apps/web", () => {
     expect(hits).toEqual([]);
   });
 
-  it("only the two public env vars are read from process.env in app source", () => {
-    const allowed = new Set(["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "NODE_ENV"]);
+  it("only the public env vars (Supabase URL/anon key, site URL) are read from process.env in app source", () => {
+    const allowed = new Set(["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "NEXT_PUBLIC_SITE_URL", "NODE_ENV"]);
     const bad: string[] = [];
     for (const f of walk(path.join(WEB_ROOT, "src"), () => false)) {
       if (path.resolve(f) === SELF || ![".ts", ".tsx"].includes(path.extname(f))) continue;

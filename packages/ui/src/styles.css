@@ -1,16 +1,31 @@
 /* UNIMATE design tokens + component styles.
-   Palette: Midnight Navy #10182B, Indigo #6D5DFB (deepened to #5A48F0 for AA text/buttons on light),
-   Mint #21C9A8 (deepened to #0B7F6B for text on light), Cloud #F4F6FB.
-   Text pairs are intended to be >= 4.5:1 (hand-checked, not machine-audited). */
+   Official brand palette (docs/BRAND_IDENTITY.md): Indigo #4F46E5 (primary), Purple #7C3AED, Blue #3B82F6,
+   Cyan #06B6DA, Cloud #F1F5FF, Navy #10182B, Mint #21C9A8 (auxiliary/success; deepened to #0A7060 for text on light).
+   Blue and Cyan are decorative accents: they do NOT reach 4.5:1 as text on white. Never use them for body text.
+   Text pairs are >= 4.5:1 and enforced by packages/ui/src/contrast.test.ts (parses this file). Keep the two dark
+   blocks below identical (the test checks that). */
 
 :root {
   color-scheme: light;
   --um-navy: #10182b;
-  --um-indigo: #6d5dfb;
+  --um-indigo: #4f46e5;
+  --um-purple: #7c3aed;
+  --um-blue: #3b82f6;
+  --um-cyan: #06b6da;
   --um-mint: #21c9a8;
-  --um-cloud: #f4f6fb;
+  --um-cloud: #f1f5ff;
+  /* Brand gradient (indigo -> purple -> blue). Sparingly: logo tiles, avatars, progress, one hero accent. Same in both themes. */
+  --brand-gradient: linear-gradient(135deg, var(--um-indigo) 0%, var(--um-purple) 55%, var(--um-blue) 100%);
+  /* Icon system. Mirrored in src/icons/paths.ts (ICON_SIZES / ICON_STROKE); one grid (24), one stroke, round caps/joins. */
+  --icon-xs: 16px;
+  --icon-sm: 20px;
+  --icon-md: 24px;
+  --icon-lg: 32px;
+  --icon-xl: 48px;
+  --icon-stroke: 1.75;
+  --tile-radius: 28%;
 
-  --bg: #f4f6fb;
+  --bg: #f1f5ff;
   --surface: #ffffff;
   --surface-2: #eef1f8;
   --surface-3: #e4e9f4;
@@ -18,12 +33,12 @@
   --text-muted: #4b556b;
   --border: #dde2ee;
   --border-strong: #b9c1d6;
-  --primary: #5a48f0;
-  --primary-hover: #4938d8;
-  --primary-soft: #e9e6ff;
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --primary-soft: #e8e9ff;
   --on-primary: #ffffff;
   --on-danger: #ffffff;
-  --accent: #0b7f6b;
+  --accent: #0a7060;
   --accent-soft: #d9f5ee;
   --danger: #c5283d;
   --danger-soft: #fde6e9;
@@ -31,7 +46,7 @@
   --warning-soft: #fdf0d5;
   --info: #1f5fbf;
   --info-soft: #e0ecfd;
-  --focus: #5a48f0;
+  --focus: #4f46e5;
   --nav-bg: #10182b;
   --nav-text: #c9d0e4;
   --nav-active-bg: #1f2a4a;
@@ -81,9 +96,9 @@
     --text-muted: #a3aec8;
     --border: #2a3558;
     --border-strong: #3d4b78;
-    --primary: #8b7eff;
-    --primary-hover: #a094ff;
-    --primary-soft: #272456;
+    --primary: #8e9bff;
+    --primary-hover: #a9b3ff;
+    --primary-soft: #26286b;
     --on-primary: #0b1020;
     --on-danger: #1a0a10;
     --accent: #21c9a8;
@@ -94,7 +109,7 @@
     --warning-soft: #3a2b10;
     --info: #7ab0ff;
     --info-soft: #14284a;
-    --focus: #a094ff;
+    --focus: #a9b3ff;
     --nav-bg: #080c19;
     --nav-active-bg: #1a2340;
     --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
@@ -112,9 +127,9 @@
   --text-muted: #a3aec8;
   --border: #2a3558;
   --border-strong: #3d4b78;
-  --primary: #8b7eff;
-  --primary-hover: #a094ff;
-  --primary-soft: #272456;
+  --primary: #8e9bff;
+  --primary-hover: #a9b3ff;
+  --primary-soft: #26286b;
   --on-primary: #0b1020;
   --on-danger: #1a0a10;
   --accent: #21c9a8;
@@ -125,7 +140,7 @@
   --warning-soft: #3a2b10;
   --info: #7ab0ff;
   --info-soft: #14284a;
-  --focus: #a094ff;
+  --focus: #a9b3ff;
   --nav-bg: #080c19;
   --nav-active-bg: #1a2340;
   --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
@@ -259,9 +274,29 @@ textarea.um-input { min-height: 96px; resize: vertical; }
 .um-ring__label { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
 
 /* Avatar */
-.um-avatar { display: inline-grid; place-items: center; border-radius: 50%; background: linear-gradient(135deg, var(--um-indigo), #4a3fd0); color: #fff; font-weight: 700; overflow: hidden; flex: none; user-select: none; }
+.um-avatar { display: inline-grid; place-items: center; border-radius: 50%; background: linear-gradient(135deg, var(--um-indigo), var(--um-purple)); color: #fff; font-weight: 700; overflow: hidden; flex: none; user-select: none; }
 .um-avatar img { width: 100%; height: 100%; object-fit: cover; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }
+
+/* Brand logo: light + dark artwork both rendered in "auto" mode and switched by theme (same selectors as the tokens above). */
+.um-brand { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; vertical-align: middle; line-height: 0; flex: none; }
+.um-brand__pair { display: inline-flex; flex-direction: column; align-items: center; line-height: 0; }
+.um-brand--row .um-brand__pair { flex-direction: row; }
+.um-brand img { display: block; max-width: none; height: auto; }
+.um-brand--auto .um-brand__dark { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .um-brand--auto .um-brand__light { display: none; }
+  :root:not([data-theme="light"]) .um-brand--auto .um-brand__dark { display: inline-flex; }
+}
+:root[data-theme="dark"] .um-brand--auto .um-brand__light { display: none; }
+:root[data-theme="dark"] .um-brand--auto .um-brand__dark { display: inline-flex; }
+
+/* Icons */
+.um-icon { flex: none; display: inline-block; vertical-align: middle; }
+.um-tile { display: inline-grid; place-items: center; flex: none; border-radius: var(--tile-radius); color: #fff; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.28), 0 2px 6px rgb(16 24 43 / 0.18); }
+.um-filetile { display: inline-grid; place-items: center; flex: none; border-radius: 22%; color: #fff; font-weight: 800; letter-spacing: 0.02em; line-height: 1; font-family: var(--font-sans); }
+.um-langchip { display: inline-flex; align-items: center; gap: 6px; min-height: 24px; padding: 0 10px 0 8px; border-radius: var(--radius-full); border: 1px solid var(--border-strong); background: var(--surface-2); color: var(--text); font-size: var(--text-xs); font-weight: 700; letter-spacing: 0.04em; line-height: 1; }
+.um-langchip::before { content: ""; width: 4px; height: 14px; border-radius: 2px; background: var(--chip-accent, var(--um-indigo)); }

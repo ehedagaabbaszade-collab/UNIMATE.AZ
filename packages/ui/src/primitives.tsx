@@ -1,3 +1,4 @@
+import { Icon } from "./icons";
 import {
   forwardRef,
   useId,
@@ -173,17 +174,8 @@ export function Avatar({ name, src, size = 40 }: { name?: string | null; src?: s
 }
 
 // ---------------------------------------------------------------- States
-const STATE_ICON = (
-  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M4 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7Z" />
-  </svg>
-);
-const ERROR_ICON = (
-  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <circle cx="12" cy="12" r="9" />
-    <path d="M12 7.5v5.5M12 16.5h.01" />
-  </svg>
-);
+const STATE_ICON = <Icon name="materials" size="lg" />;
+const ERROR_ICON = <Icon name="error" size="lg" />;
 
 export function EmptyState({ title, description, action, icon }: { title: string; description?: string; action?: ReactNode; icon?: ReactNode }) {
   return (
@@ -234,8 +226,9 @@ export function ProgressRing({
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
         <defs>
           <linearGradient id={gradId} x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#6d5dfb" />
-            <stop offset="100%" stopColor="#21c9a8" />
+            <stop offset="0%" style={{ stopColor: "var(--um-indigo)" }} />
+            <stop offset="55%" style={{ stopColor: "var(--um-purple)" }} />
+            <stop offset="100%" style={{ stopColor: "var(--um-blue)" }} />
           </linearGradient>
         </defs>
         <circle className="um-ring__track" cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={stroke} />
@@ -251,9 +244,7 @@ export function OfflineBanner({ online, message, children }: { online: boolean; 
   if (online) return null;
   return (
     <div className="um-offline" role="status" aria-live="polite">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-        <path d="M2 8.8a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0M12 20h.01M3 3l18 18" />
-      </svg>
+      <Icon name="offline" size="xs" />
       <span>{message}</span>
       {children}
     </div>

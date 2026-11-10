@@ -405,4 +405,11 @@ export const az = {
   },
   meta: { description: "Azərbaycandakı tələbələr üçün təhsil platforması." },
   errorPage: { title: "Nəsə xarab oldu", body: "Gözlənilməz xəta baş verdi. Yenidən cəhd edə bilərsiniz.", notFoundTitle: "Səhifə tapılmadı", notFoundBody: "Axtardığınız səhifə mövcud deyil.", home: "Ana səhifəyə" },
+  brand: {
+    logo: "UNIMATE.AZ loqosu",
+    mark: "UNIMATE.AZ loqo işarəsi",
+    module: { aiStudy: "AI Study", campus: "Campus", notes: "Qeydlər", planner: "Planlayıcı", career: "Karyera", gamification: "Oyunlaşdırma", profile: "Profil", settings: "Parametrlər" },
+    status: { success: "Uğurlu", info: "Məlumat", warning: "Xəbərdarlıq", error: "Xəta", pending: "Gözləyir", locked: "Kilidli" },
+    file: { pdf: "PDF sənədi", docx: "Word sənədi", pptx: "PowerPoint təqdimatı", xlsx: "Excel cədvəli", image: "Şəkil", video: "Video", audio: "Səs", zip: "ZIP arxivi" },
+  },
 } satisfies Messages;

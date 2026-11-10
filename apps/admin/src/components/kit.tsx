@@ -252,7 +252,7 @@ export function TabsNav<T extends string>({ label, items, active, onChange }: { 
   const refs = useRef<Record<string, HTMLButtonElement | null>>({});
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     const i = items.findIndex((x) => x.id === active);
-    let n = i;
+    let n: number;
     if (e.key === "ArrowRight") n = (i + 1) % items.length;
     else if (e.key === "ArrowLeft") n = (i - 1 + items.length) % items.length;
     else if (e.key === "Home") n = 0;

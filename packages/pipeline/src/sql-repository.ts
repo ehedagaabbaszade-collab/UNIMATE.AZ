@@ -32,6 +32,7 @@ export interface SqlExecutor {
   user<T>(userId: string, fn: (q: Queryable) => Promise<T>): Promise<T>;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic SQL row shape
 type Row = Record<string, any>;
 const iso = (d: Date) => d.toISOString();
 const vec = (v: number[]) => `[${v.join(",")}]`;

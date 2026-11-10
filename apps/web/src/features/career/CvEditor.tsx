@@ -24,6 +24,7 @@ import { useAsync } from "@/lib/use-async";
 import { deleteCv, getCv, myTracking, saveCv } from "./api";
 import { Chips } from "./parts";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- CV JSON is schema-less in the editor
 type Obj = Record<string, any>;
 type Kind = "text" | "csv" | "lines" | "bool";
 interface FieldDef {

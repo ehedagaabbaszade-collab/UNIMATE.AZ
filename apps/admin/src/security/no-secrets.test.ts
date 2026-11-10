@@ -26,7 +26,7 @@ const FORBIDDEN: Array<{ name: string; re: RegExp }> = [
 const BUILD_FORBIDDEN: Array<{ name: string; re: RegExp }> = [
   { name: "service-role env var", re: new RegExp(j("SUPABASE_", "SERVICE", "_ROLE"), "i") },
   { name: "new-style secret key value", re: new RegExp(j("sb_", "secret", "_[A-Za-z0-9_-]{16,}")) },
-  { name: "database connection string", re: new RegExp(j("postgres(ql)?", ":\/\/[^\s\"']+:[^\s\"']+@")) },
+  { name: "database connection string", re: new RegExp(j("postgres(ql)?", "://[^\\s\"']+:[^\\s\"']+@")) },
   { name: "worker secret", re: new RegExp(j("WORKER", "_SECRET")) },
   { name: "provider API key var", re: new RegExp(j("(OPENAI|ANTHROPIC|GEMINI)", "_API_KEY")) },
 ];

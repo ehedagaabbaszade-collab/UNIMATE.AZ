@@ -397,7 +397,7 @@ describe("comments, Q&A, reactions", () => {
     await comment(A, np, "reply to B", rc);
     const forC = await rows(C, "select * from public.list_my_notifications(100)");
     expect(forC.filter((x) => x.params?.post_id === np).length).toBe(2);
-    const forB = await rows(B, "select * from public.list_my_notifications(100)");
+    await rows(B, "select * from public.list_my_notifications(100)");
     expect((await notifs(B, "campus_comment_reply")).length).toBe(1);
     await comment(C, np, "own thread");
     expect((await rows(C, "select * from public.list_my_notifications(100)")).filter((x) => x.params?.post_id === np).length).toBe(2);

@@ -60,11 +60,13 @@ export interface AiLedger {
   release(requestId: string): Promise<void>;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- RPC jsonb result is untyped
 const asJson = (v: unknown): any => (typeof v === "string" ? JSON.parse(v) : v);
 
 /** AiLedger over the service_role RPCs from 20260101001900_ai_cost_config.sql. */
 export class SqlAiLedger implements AiLedger {
   constructor(private readonly exec: SqlExecutor) {}
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RPC jsonb result is untyped
   private async rpc(sql: string, params: unknown[]): Promise<any> {
     const rows = await this.exec.service((q: Queryable) => q.query<{ r: unknown }>(sql, params));
     return asJson(rows.rows[0]?.r);

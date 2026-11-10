@@ -31,7 +31,7 @@ export function Tabs({ items, defaultId, label, onChange }: { items: TabItem[]; 
   };
   const onKeyDown = (e: KeyboardEvent) => {
     const idx = items.findIndex((i) => i.id === active);
-    let next = idx;
+    let next: number;
     if (e.key === "ArrowRight") next = (idx + 1) % items.length;
     else if (e.key === "ArrowLeft") next = (idx - 1 + items.length) % items.length;
     else if (e.key === "Home") next = 0;

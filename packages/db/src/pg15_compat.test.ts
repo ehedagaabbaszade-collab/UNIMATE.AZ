@@ -21,8 +21,13 @@ export function stripNoise(sql: string): string {
       let depth = 1;
       i += 2;
       while (i < sql.length && depth > 0) {
-        if (sql.slice(i, i + 2) === "/*") (depth++, (i += 2));
-        else if (sql.slice(i, i + 2) === "*/") (depth--, (i += 2));
+        if (sql.slice(i, i + 2) === "/*") {
+          depth++;
+          i += 2;
+        } else if (sql.slice(i, i + 2) === "*/") {
+          depth--;
+          i += 2;
+        }
         else i++;
       }
       out += " ";

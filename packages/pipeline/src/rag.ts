@@ -45,7 +45,7 @@ export interface AskResult {
  * marker that was not retrieved.
  */
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const BRACKET = /([ \t]?)\[([^\]\[]+)\](\([^)\n]*\))?/g;
+const BRACKET = /([ \t]?)\[([^\][]+)\](\([^)\n]*\))?/g;
 
 /**
  * Runs BEFORE validateCitations: NFKC-normalises (so full-width brackets are seen), lowercases UUIDs, and drops every

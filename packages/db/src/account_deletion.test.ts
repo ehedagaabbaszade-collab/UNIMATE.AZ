@@ -166,7 +166,7 @@ describe("account purge removes every row owned by the user", () => {
       try {
         row = (await q(sql))[0] ?? {};
       } catch (e) {
-        throw new Error(`seeding ${table}.${fkCol} failed: ${(e as Error).message}\n${sql}`);
+        throw new Error(`seeding ${table}.${fkCol} failed: ${(e as Error).message}\n${sql}`, { cause: e });
       }
       cache.set(key, row);
       return row;

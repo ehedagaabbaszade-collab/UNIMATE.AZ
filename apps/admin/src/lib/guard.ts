@@ -79,6 +79,7 @@ export function decide(signedIn: boolean, role: AppRole | null | undefined, path
 /** Open-redirect guard for the post-sign-in target. */
 export function safeNext(next: string | null | undefined, fallback = "/"): string {
   if (!next || typeof next !== "string") return fallback;
+  // eslint-disable-next-line no-control-regex -- intentional: reject/strip control characters
   if (!next.startsWith("/") || next.startsWith("//") || next.startsWith("/\\") || /[\u0000-\u001f]/.test(next)) return fallback;
   return next;
 }

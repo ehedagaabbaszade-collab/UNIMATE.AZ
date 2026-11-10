@@ -130,6 +130,7 @@ export async function processDocument(
       }
     }
   }
+  // eslint-disable-next-line no-useless-assignment -- intentional: drop the reference so the buffer can be GC'd
   bytes = null; // release the file buffer before chunking/embedding
   const emptyPages = pages.filter((p) => !p.hasText).map((p) => p.page);
   if (emptyPages.length === pages.length) {

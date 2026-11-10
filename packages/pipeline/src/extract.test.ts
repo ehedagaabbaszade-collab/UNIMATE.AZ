@@ -103,7 +103,10 @@ describe("zip parser-differential and decode-bomb hardening", () => {
   const cat = (...p: Uint8Array[]) => {
     const out = new Uint8Array(p.reduce((n, x) => n + x.length, 0));
     let at = 0;
-    for (const x of p) (out.set(x, at), (at += x.length));
+    for (const x of p) {
+      out.set(x, at);
+      at += x.length;
+    }
     return out;
   };
   /** Rebuilds the archive with `extraCd` appended to the central directory and/or `gap` bytes before the EOCD. */

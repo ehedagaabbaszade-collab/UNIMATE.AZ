@@ -113,7 +113,7 @@ export async function importResource(
         idempotencyKey: key,
       });
       createdDoc = true;
-    } catch (e) {
+    } catch {
       // lost a race with a parallel import: use the winner's row and drop our copy
       const winner = await deps.documents.findByIdempotencyKey(userId, key).catch(() => null);
       await deps.storage.removeDocument(dest).catch(() => {});

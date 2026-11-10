@@ -76,7 +76,7 @@ describe("config RPCs: who may call what", () => {
     w = await world();
   });
 
-  const adminCalls = (w: World): [string, string, unknown[]][] => [
+  const adminCalls = (_w: World): [string, string, unknown[]][] => [
     ["revert", "select public.admin_revert_config(1, 'because')", []],
     ["cost_breakdown", "select * from public.admin_ai_cost_breakdown(7, 'model')", []],
     ["top_spenders", "select * from public.admin_ai_top_spenders(7, 5)", []],

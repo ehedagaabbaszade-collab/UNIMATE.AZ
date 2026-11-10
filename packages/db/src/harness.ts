@@ -85,7 +85,7 @@ export async function createTestDb(opts: { seed?: boolean } = {}): Promise<PGlit
     try {
       await db.exec(sql);
     } catch (e) {
-      throw new Error(`migration ${file} failed: ${(e as Error).message}`);
+      throw new Error(`migration ${file} failed: ${(e as Error).message}`, { cause: e });
     }
   }
   if (opts.seed) {

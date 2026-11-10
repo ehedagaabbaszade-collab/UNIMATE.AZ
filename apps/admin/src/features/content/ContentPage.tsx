@@ -49,7 +49,8 @@ function Editor({ kind }: { kind: Kind }) {
   const tpl = useAsync(() => api.templates(), [], isTpl);
   const cnt = useAsync(() => api.contents(), [], !isTpl);
   const state = (isTpl ? tpl : cnt) as AsyncState<Array<TemplateRow | ContentRow>>;
-  const rows: Array<TemplateRow | ContentRow> = (isTpl ? tpl.data : cnt.data) ?? [];
+  const rowsData = isTpl ? tpl.data : cnt.data;
+  const rows: Array<TemplateRow | ContentRow> = useMemo(() => rowsData ?? [], [rowsData]);
   const [target, setTarget] = useState<Target | null>(null);
   const [historyOf, setHistoryOf] = useState<Target | null>(null);
   const [draft, setDraft] = useState({ title: "", body: "" });

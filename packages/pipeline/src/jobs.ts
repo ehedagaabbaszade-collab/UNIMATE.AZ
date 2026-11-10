@@ -92,8 +92,7 @@ export class JobRunner {
     } catch (e) {
       const error = sanitizeError(e);
       const retryable = e instanceof PipelineError ? e.retryable : true; // unknown errors: assume transient
-      let outcome: FailOutcome | null;
-      outcome = await repo.failJob(job.id, workerId, now, error, {
+      const outcome: FailOutcome | null = await repo.failJob(job.id, workerId, now, error, {
         retryable,
         backoffMs: (n) => backoffMs(n, this.backoff),
       });

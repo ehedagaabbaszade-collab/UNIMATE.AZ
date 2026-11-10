@@ -30,7 +30,7 @@ export async function proxy(request: NextRequest) {
     },
   });
 
-  let signedIn = false;
+  let signedIn: boolean;
   try {
     const { data } = await supabase.auth.getUser();
     signedIn = !!data.user;

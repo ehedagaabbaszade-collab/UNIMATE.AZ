@@ -180,6 +180,7 @@ export const canReplyTo = (depth: number): boolean => depth < CAMPUS_LIMITS.comm
 
 /** Mirror of the server's campus_text_ok: plain text only. Returns the problem, or null when the text is fine. */
 export function campusTextProblem(text: string): "html" | "link" | "control" | null {
+  // eslint-disable-next-line no-control-regex -- intentional: reject/strip control characters
   if (/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(text)) return "control";
   if (/<\s*\/?\s*(script|iframe|img|a|b|i|u|div|span|p|br|svg|style|link|meta|object|embed|form|input|button|html|body|h[1-6]|ul|ol|li|table|video|audio|source|base)\b/i.test(text) || text.includes("<!--")) return "html";
   if (/(^|[^a-z0-9])(http|ftp|ftps|sftp|file|ws|wss):\/\//i.test(text) || /(^|[^a-z0-9])(javascript|vbscript):/i.test(text) || /(^|[^a-z0-9])data:[a-z]+\//i.test(text)) return "link";

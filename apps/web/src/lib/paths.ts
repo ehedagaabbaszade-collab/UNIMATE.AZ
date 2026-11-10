@@ -10,6 +10,7 @@ export const isAuthOnlyPath = (pathname: string) => AUTH_ONLY_PATHS.some((p) => 
 /** Accept only same-origin relative paths as post-login redirect targets (open-redirect guard). */
 export function safeNext(next: string | null | undefined, fallback = "/dashboard"): string {
   if (!next || typeof next !== "string") return fallback;
+  // eslint-disable-next-line no-control-regex -- intentional: reject/strip control characters
   if (!next.startsWith("/") || next.startsWith("//") || next.startsWith("/\\") || /[\u0000-\u001f]/.test(next)) return fallback;
   return next;
 }

@@ -25,6 +25,7 @@ export async function postJson(
   headers: Record<string, string>,
   body: unknown,
   timeoutMs: number,
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- provider JSON is untyped; callers validate
 ): Promise<any> {
   let res: Response;
   try {

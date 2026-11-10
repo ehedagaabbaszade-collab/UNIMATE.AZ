@@ -26,7 +26,7 @@ export async function proxy(request: NextRequest) {
     },
   });
 
-  let userId: string | null = null;
+  let userId: string | null;
   try {
     userId = (await supabase.auth.getUser()).data.user?.id ?? null;
   } catch {
@@ -66,5 +66,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|brand/|.*\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|brand/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
 };

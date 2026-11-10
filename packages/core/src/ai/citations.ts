@@ -24,9 +24,9 @@ export interface CitationResult {
 /** Input cap: the sentence splitter is regex based, so unbounded input is a CPU risk. */
 export const MAX_ANSWER_CHARS = 100_000;
 
-const MARKER = /\[([^\]\[]+)\](\([^)\n]*\))?/g;
-const SPLITTER = /(?:\[[^\]\[\n.!?]*\]|[^.!?\n])+[.!?]*(?:[ \t]*\[[^\]\[\n.!?]*\])*\s*|\n+|[.!?]+/g;
-const BRACKET = /\[([^\]\[]+)\]/g;
+const MARKER = /\[([^\][]+)\](\([^)\n]*\))?/g;
+const SPLITTER = /(?:\[[^\][\n.!?]*\]|[^.!?\n])+[.!?]*(?:[ \t]*\[[^\][\n.!?]*\])*\s*|\n+|[.!?]+/g;
+const BRACKET = /\[([^\][]+)\]/g;
 
 /** NFKC-normalise (folds fullwidth brackets etc.) and drop invisible format characters (zero-width, bidi). */
 const normalise = (s: string): string => s.normalize("NFKC").replace(/\p{Cf}/gu, "");

@@ -127,7 +127,7 @@ export async function callEdge<S extends z.ZodType>(
   } catch {
     return { ok: false, error: { kind: "network", status: 0 } };
   }
-  let json: unknown = null;
+  let json: unknown;
   try {
     json = await res.json();
   } catch {

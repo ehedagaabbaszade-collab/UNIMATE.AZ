@@ -30,6 +30,7 @@ import { useTheme } from "../../theme/ThemeProvider";
 import { useUser } from "../../state/session";
 import { deleteCv, getCv, myTracking, saveCv } from "./api";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- CV JSON is schema-less in the editor
 type Obj = Record<string, any>;
 type Kind = "text" | "csv" | "lines" | "bool";
 interface FieldDef {

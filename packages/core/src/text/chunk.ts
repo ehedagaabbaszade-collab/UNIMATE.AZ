@@ -18,6 +18,7 @@ export function cleanText(input: string): string {
   return input
     .normalize("NFC")
     .replace(/\r\n?/g, "\n")
+    // eslint-disable-next-line no-control-regex -- intentional: reject/strip control characters
     .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F​-‍⁠﻿­]/g, "")
     // de-hyphenate "exam-\nple" -> "example" (only when continuation is lowercase)
     .replace(/(\p{L})-[ \t]*\n[ \t]*(\p{Ll})/gu, "$1$2")

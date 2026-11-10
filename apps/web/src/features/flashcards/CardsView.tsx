@@ -5,8 +5,7 @@ import { isDue } from "@unimate/core";
 import { useState } from "react";
 import { EdgeNotice } from "@/components/EdgeNotice";
 import { useUser } from "@/components/user";
-import { aiLanguage } from "@/i18n";
-import { useI18n } from "@/i18n/provider";
+import { useI18n } from "@unimate/i18n/react";
 import type { FlashcardRow } from "@/lib/db";
 import type { EdgeError } from "@/lib/edge";
 import { generateFlashcardMaterial } from "@/lib/edge-client";
@@ -33,7 +32,7 @@ export function CardsView({ documentId }: { documentId?: string }) {
     setBusy(true);
     setErr(null);
     setDbErr(null);
-    const res = await generateFlashcardMaterial(documentId, 15, aiLanguage(locale));
+    const res = await generateFlashcardMaterial(documentId, 15, locale);
     if (!res.ok) {
       setBusy(false);
       return setErr(res.error);

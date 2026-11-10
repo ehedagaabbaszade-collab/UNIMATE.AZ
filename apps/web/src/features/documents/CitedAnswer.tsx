@@ -2,7 +2,7 @@
 
 import { Badge } from "@unimate/ui";
 import type { StructuredCitation } from "@/lib/edge";
-import { useT } from "@/i18n/provider";
+import { useT } from "@unimate/i18n/react";
 import { isUngroundedAnswer, pageLabel, segmentAnswer } from "./citations";
 
 /** Renders an assistant answer. Chips come ONLY from the validated structured `citations`; the text is plain text. */

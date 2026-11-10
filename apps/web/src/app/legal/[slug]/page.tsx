@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { legalAz } from "@/content/legal/az";
-import { legalEn } from "@/content/legal/en";
-import { LEGAL_SLUGS, type LegalSlug } from "@/content/legal/types";
+import { LEGAL_SLUGS, legal, type LegalSlug } from "@/content/legal";
 import { LogoMark } from "@/components/icons";
 import { LocaleSwitcher } from "@/components/prefs";
 import { getT } from "@/i18n/server";
@@ -19,10 +17,7 @@ export default async function LegalPage({ params }: { params: Promise<{ slug: st
   const { slug } = await params;
   if (!(LEGAL_SLUGS as readonly string[]).includes(slug)) notFound();
   const { t, locale } = await getT();
-  const useAz = locale === "az";
-  const doc = (useAz ? legalAz : legalEn)[slug];
-  if (!doc) notFound();
-  const fallback = locale === "ru" || locale === "tr";
+  const doc = legal[locale][slug as LegalSlug];
 
   return (
     <>
@@ -43,7 +38,6 @@ export default async function LegalPage({ params }: { params: Promise<{ slug: st
             ))}
           </nav>
           <p className="draft-banner" role="note">{t("legal.draftBanner")}</p>
-          {fallback ? <p className="hint-box" role="note">{t("legal.fallbackNotice")}</p> : null}
           <h1>{doc.title}</h1>
           <p className="um-muted">{t("legal.lastUpdated")}</p>
           {doc.sections.map((s) => (

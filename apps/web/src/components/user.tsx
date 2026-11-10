@@ -12,6 +12,7 @@ const Ctx = createContext<CurrentUser | null>(null);
 export function UserProvider({ user, children }: { user: CurrentUser; children: ReactNode }) {
   return <Ctx.Provider value={user}>{children}</Ctx.Provider>;
 }
+export const useOptionalUser = (): CurrentUser | null => useContext(Ctx);
 export function useUser(): CurrentUser {
   const u = useContext(Ctx);
   if (!u) throw new Error("useUser must be used inside <UserProvider>");

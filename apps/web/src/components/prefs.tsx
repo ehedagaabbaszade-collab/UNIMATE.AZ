@@ -2,19 +2,19 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { LOCALES, LOCALE_COOKIE, LOCALE_NAMES, isLocale } from "@/i18n";
-import { useI18n } from "@/i18n/provider";
+import { useToast } from "@unimate/ui";
+import { LOCALES, LOCALE_NAMES, createTranslator, isLocale } from "@unimate/i18n";
+import { useI18n } from "@unimate/i18n/react";
+import { persistLocale } from "@/i18n/client";
+import { useOptionalUser } from "@/components/user";
+import { writeCookie } from "@/lib/cookies";
 import { THEME_COOKIE, type ThemePref } from "@/lib/theme";
-
-
-const YEAR = 60 * 60 * 24 * 365;
-export const writeCookie = (name: string, value: string) => {
-  document.cookie = `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${YEAR}; SameSite=Lax`;
-};
 
 export function LocaleSwitcher({ compact }: { compact?: boolean }) {
   const { locale, t } = useI18n();
   const router = useRouter();
+  const user = useOptionalUser();
+  const { toast } = useToast();
   return (
     <div className="um-field" style={compact ? { gap: 4 } : undefined}>
       <label className={compact ? "um-sr-only" : "um-label"} htmlFor="locale-select">
@@ -26,9 +26,12 @@ export function LocaleSwitcher({ compact }: { compact?: boolean }) {
         style={compact ? { minHeight: 36, padding: "4px 8px" } : undefined}
         value={locale}
         onChange={(e) => {
-          if (!isLocale(e.target.value)) return;
-          writeCookie(LOCALE_COOKIE, e.target.value);
-          document.documentElement.lang = e.target.value;
+          const next = e.target.value;
+          if (!isLocale(next)) return;
+          // The local copy changes first so the UI switches at once; the profile write follows when signed in.
+          void persistLocale(next, user?.id ?? null).then((ok) => {
+            if (!ok) toast(createTranslator(next)("language.saveFailed"), "error");
+          });
           router.refresh();
         }}
       >

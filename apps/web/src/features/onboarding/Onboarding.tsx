@@ -1,11 +1,12 @@
 "use client";
 
-import { Button, Select } from "@unimate/ui";
+import { Button, Select, useToast } from "@unimate/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { writeCookie } from "@/components/prefs";
-import { LOCALES, LOCALE_COOKIE, LOCALE_NAMES, toProfileLocale, type AppLocale } from "@/i18n";
-import { useI18n } from "@/i18n/provider";
+import { LOCALES, LOCALE_NAMES, createTranslator, type Locale } from "@unimate/i18n";
+import { useI18n } from "@unimate/i18n/react";
+import { persistLocale } from "@/i18n/client";
+import { writeCookie } from "@/lib/cookies";
 import { getBrowserClient } from "@/lib/supabase/browser";
 import { AcademicPicker, type AcademicValue } from "../academic/AcademicPicker";
 
@@ -24,9 +25,12 @@ export function Onboarding({ userId, initial }: { userId: string; initial: { uni
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
 
-  const setLocale = (l: AppLocale) => {
-    writeCookie(LOCALE_COOKIE, l);
-    document.documentElement.lang = l;
+  const { toast } = useToast();
+  // Persist on change (profiles.locale + cookie), not only at the end, so the choice survives leaving the flow.
+  const setLocale = (l: Locale) => {
+    void persistLocale(l, userId).then((ok) => {
+      if (!ok) toast(createTranslator(l)("language.saveFailed"), "error");
+    });
     router.refresh();
   };
 
@@ -36,7 +40,7 @@ export function Onboarding({ userId, initial }: { userId: string; initial: { uni
     const { error: err } = await getBrowserClient()
       .from("profiles")
       .update({
-        locale: toProfileLocale(locale),
+        locale,
         university_id: academic.universityId || null,
         major_id: academic.majorId || null,
         study_year: year ? Number(year) : null,
@@ -89,7 +93,6 @@ export function Onboarding({ userId, initial }: { userId: string; initial: { uni
               </label>
             ))}
           </div>
-          {locale === "tr" ? <p className="warn-box" style={{ marginTop: "var(--space-3)" }}>{t("onboarding.localeNote")}</p> : null}
         </fieldset>
       ) : null}
 

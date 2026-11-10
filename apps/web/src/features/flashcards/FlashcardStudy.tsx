@@ -3,7 +3,7 @@
 import { Button, EmptyState } from "@unimate/ui";
 import type { ReviewGrade } from "@unimate/core";
 import { useState } from "react";
-import { useI18n } from "@/i18n/provider";
+import { useI18n } from "@unimate/i18n/react";
 import type { FlashcardRow } from "@/lib/db";
 import { getBrowserClient } from "@/lib/supabase/browser";
 import { dropReviewed, parseReviewResult } from "./review";

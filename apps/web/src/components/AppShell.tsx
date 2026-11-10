@@ -4,7 +4,7 @@ import { OfflineBanner, Avatar, useOnlineStatus } from "@unimate/ui";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
-import { useI18n } from "@/i18n/provider";
+import { useI18n } from "@unimate/i18n/react";
 import { clearSchedule } from "@/features/planner/offline-cache";
 import { getBrowserClient } from "@/lib/supabase/browser";
 import { useUser } from "./user";

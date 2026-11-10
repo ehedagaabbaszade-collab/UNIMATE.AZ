@@ -3,8 +3,7 @@
 import { Badge, Button, Card, EmptyState, Skeleton, useToast } from "@unimate/ui";
 import { useState } from "react";
 import { EdgeNotice } from "@/components/EdgeNotice";
-import { aiLanguage } from "@/i18n";
-import { useI18n } from "@/i18n/provider";
+import { useI18n } from "@unimate/i18n/react";
 import type { AttemptRow, QuizRow } from "@/lib/db";
 import type { EdgeError } from "@/lib/edge";
 import { generateQuizMaterial } from "@/lib/edge-client";
@@ -149,7 +148,7 @@ export function QuizPanel({ documentId }: { documentId: string }) {
     setBusy(true);
     setErr(null);
     setDbErr(null);
-    const res = await generateQuizMaterial(documentId, 10, aiLanguage(locale));
+    const res = await generateQuizMaterial(documentId, 10, locale);
     if (!res.ok) {
       setBusy(false);
       setErr(res.error);

@@ -39,6 +39,23 @@ describe("profiles.locale", () => {
   });
 });
 
+describe("profiles.locale_set_at (migration 20260101003900)", () => {
+  const setAt = async (u: string) => (await raw("select locale_set_at from public.profiles where id = $1", [u]))[0]!.locale_set_at;
+  it("is null for a new profile, and stamped by the database whenever locale is written", async () => {
+    const u = await newUser();
+    expect(await setAt(u)).toBeNull();
+    await run(u, "update public.profiles set display_name = 'x' where id = $1", [u]);
+    expect(await setAt(u)).toBeNull(); // unrelated updates do not count as a language choice
+    await run(u, "update public.profiles set locale = 'az' where id = $1", [u]); // re-choosing the default is still a choice
+    expect(await setAt(u)).not.toBeNull();
+  });
+  it("ignores a client-supplied value when locale is written", async () => {
+    const u = await newUser();
+    await run(u, "update public.profiles set locale = 'ru', locale_set_at = '2000-01-01' where id = $1", [u]);
+    expect(new Date(await setAt(u)).getFullYear()).toBeGreaterThan(2020);
+  });
+});
+
 describe("notification_templates seeds", () => {
   it("every event has all four locales, non-empty copy, and identical placeholders across locales", async () => {
     const rows = await raw("select key, locale, title, body from public.notification_templates order by key, locale");

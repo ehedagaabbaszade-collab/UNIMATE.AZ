@@ -3,7 +3,7 @@
 import { Badge, Card, EmptyState, ErrorState, Skeleton } from "@unimate/ui";
 import Link from "next/link";
 import { useUser } from "@/components/user";
-import { useI18n } from "@/i18n/provider";
+import { useI18n } from "@unimate/i18n/react";
 import type { DocumentRow } from "@/lib/db";
 import { getBrowserClient } from "@/lib/supabase/browser";
 import { unwrap, useAsync } from "@/lib/use-async";

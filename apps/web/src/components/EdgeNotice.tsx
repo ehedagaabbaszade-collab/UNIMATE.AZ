@@ -1,7 +1,7 @@
 "use client";
 
 import { edgeErrorMessageKey, type EdgeError } from "@/lib/edge";
-import { useT } from "@/i18n/provider";
+import { useT } from "@unimate/i18n/react";
 
 /** Clear, honest message for a failed server-function call (provider not configured, quota, network...). */
 export function EdgeNotice({ error }: { error: EdgeError }) {

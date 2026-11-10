@@ -1,4 +1,4 @@
-import type { MessageKey } from "@/i18n";
+import type { MessageKey } from "@unimate/i18n";
 
 /** Maps Supabase Auth failures to i18n keys without echoing server text. */
 export function authErrorKey(err: { message?: string; status?: number; code?: string }, fallback: MessageKey): MessageKey {

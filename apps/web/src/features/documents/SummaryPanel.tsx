@@ -3,8 +3,7 @@
 import { Button, Card, Skeleton, Tabs } from "@unimate/ui";
 import { useState } from "react";
 import { EdgeNotice } from "@/components/EdgeNotice";
-import { aiLanguage } from "@/i18n";
-import { useI18n } from "@/i18n/provider";
+import { useI18n } from "@unimate/i18n/react";
 import type { SummaryRow } from "@/lib/db";
 import type { EdgeError } from "@/lib/edge";
 import { generateSummary } from "@/lib/edge-client";
@@ -26,7 +25,7 @@ function KindView({ documentId, kind }: { documentId: string; kind: Kind }) {
   async function generate() {
     setBusy(true);
     setErr(null);
-    const res = await generateSummary(documentId, kind, aiLanguage(locale));
+    const res = await generateSummary(documentId, kind, locale);
     setBusy(false);
     if (!res.ok) setErr(res.error);
     else rows.reload();

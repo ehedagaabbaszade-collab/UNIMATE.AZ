@@ -2,7 +2,7 @@
 
 import { Button, Card, Input, ProgressRing, Select } from "@unimate/ui";
 import { useMemo, useState } from "react";
-import { useI18n } from "@/i18n/provider";
+import { useI18n } from "@unimate/i18n/react";
 import { LETTERS, computeGpa, type BandInput, type GpaRow, type ScaleMode } from "./compute";
 
 let counter = 0;

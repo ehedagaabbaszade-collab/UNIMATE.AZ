@@ -39,7 +39,7 @@ export const tr = {
     more: "Daha fazla",
   },
   theme: { label: "Tema", system: "Sistem", light: "Açık", dark: "Koyu" },
-  language: { label: "Dil" },
+  language: { label: "Dil", saveFailed: "Dil kaydedilemedi: seçiminiz hesabınıza yazılamadı." },
   backend: {
     title: "Arka uç yapılandırılmadı",
     body: "Bu uygulama bir Supabase projesi gerektirir. NEXT_PUBLIC_SUPABASE_URL ve NEXT_PUBLIC_SUPABASE_ANON_KEY ayarlı değil; bu yüzden giriş ve tüm veri özellikleri kapalı. Örnek veri gösterilmez.",
@@ -130,7 +130,6 @@ export const tr = {
     studyYear: "Sınıf",
     done: "Her şey hazır",
     saveFailed: "Profil kaydedilemedi.",
-    localeNote: "Türkçe arayüzde mevcut, ancak veritabanı yalnızca az, en ve ru saklıyor; bu yüzden profil dili İngilizceye döner.",
   },
   documents: {
     title: "Belgeler",
@@ -396,7 +395,6 @@ export const tr = {
   legal: {
     title: "Hukuki",
     draftBanner: "HUKUKİ İNCELEME İÇİN TASLAK. Bu metin bir avukat tarafından onaylanmadı ve nihai değildir.",
-    fallbackNotice: "Bu sayfa yalnızca İngilizce ve Azerbaycan Türkçesi olarak mevcuttur. İngilizce sürüm gösteriliyor.",
     lastUpdated: "Taslak sürüm 0.1",
     privacy: "Gizlilik Politikası",
     terms: "Kullanım Şartları",
@@ -405,5 +403,6 @@ export const tr = {
     retention: "Veri Saklama",
     notFound: "Böyle bir sayfa yok.",
   },
+  meta: { description: "Azerbaycan'daki öğrenciler için çalışma platformu." },
   errorPage: { title: "Bir şey bozuldu", body: "Beklenmeyen bir hata oluştu. Tekrar deneyebilirsin.", notFoundTitle: "Sayfa bulunamadı", notFoundBody: "Aradığın sayfa yok.", home: "Ana sayfaya git" },
 } satisfies Messages;

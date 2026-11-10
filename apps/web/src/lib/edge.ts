@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { MessageKey } from "@/i18n";
+import type { MessageKey } from "@unimate/i18n";
 
 // ------------------------------------------------------------------ response schemas
 // Shapes mirror supabase/functions/* (process-document, ask-document, generate-study-material). The server's

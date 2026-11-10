@@ -4,7 +4,7 @@ import { Button, Card, ProgressRing, Skeleton, useToast } from "@unimate/ui";
 import { DEFAULT_POMODORO_XP, pomodoroXp } from "@unimate/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useUser } from "@/components/user";
-import { useI18n } from "@/i18n/provider";
+import { useI18n } from "@unimate/i18n/react";
 import type { StudySessionRow } from "@/lib/db";
 import { getBrowserClient } from "@/lib/supabase/browser";
 import { unwrap, useAsync } from "@/lib/use-async";

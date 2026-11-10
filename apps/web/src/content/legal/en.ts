@@ -1,8 +1,8 @@
-import type { LegalDoc } from "./types";
+import type { LegalDoc, LegalSlug } from "./types";
 
 const CONTACT = "[contact email to be inserted before publication]";
 
-export const legalEn: Record<string, LegalDoc> = {
+export const legalEn: Record<LegalSlug, LegalDoc> = {
   privacy: {
     title: "Privacy Policy",
     sections: [

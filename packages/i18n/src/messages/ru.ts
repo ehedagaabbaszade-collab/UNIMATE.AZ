@@ -39,7 +39,7 @@ export const ru = {
     more: "Ещё",
   },
   theme: { label: "Тема", system: "Системная", light: "Светлая", dark: "Тёмная" },
-  language: { label: "Язык" },
+  language: { label: "Язык", saveFailed: "Не удалось сохранить язык в аккаунте." },
   backend: {
     title: "Бэкенд не настроен",
     body: "Приложению нужен проект Supabase. NEXT_PUBLIC_SUPABASE_URL и NEXT_PUBLIC_SUPABASE_ANON_KEY не заданы, поэтому вход и все функции с данными отключены. Примерные данные не показываются.",
@@ -130,7 +130,6 @@ export const ru = {
     studyYear: "Курс",
     done: "Всё готово",
     saveFailed: "Не удалось сохранить профиль.",
-    localeNote: "Турецкий доступен в интерфейсе, но база хранит только az, en и ru, поэтому язык профиля будет английским.",
   },
   documents: {
     title: "Документы",
@@ -263,7 +262,7 @@ export const ru = {
     plan: { FREE: "Бесплатный", PLUS: "Plus", PRO: "Pro", GROUP: "Группа" },
     messages: "Сообщений ИИ сегодня",
     docs: "Документов в этом месяце",
-    maxPages: "До {n} страниц на документ",
+    maxPages: "До {n, plural, one {# страницы} other {# страниц}} на документ",
     features: "Включено: {list}",
     unavailable: "Не удалось загрузить использование.",
     feature: { ocr: "OCR", flashcards: "карточки", quiz: "тесты", export: "экспорт", group_sharing: "общий доступ для групп", priority_models: "приоритетные модели" },
@@ -396,7 +395,6 @@ export const ru = {
   legal: {
     title: "Правовая информация",
     draftBanner: "ЧЕРНОВИК ДЛЯ ЮРИДИЧЕСКОЙ ПРОВЕРКИ. Текст не одобрен юристом и не является окончательным.",
-    fallbackNotice: "Эта страница доступна только на английском и азербайджанском. Показана английская версия.",
     lastUpdated: "Черновая версия 0.1",
     privacy: "Политика конфиденциальности",
     terms: "Условия использования",
@@ -405,5 +403,6 @@ export const ru = {
     retention: "Хранение данных",
     notFound: "Такой страницы нет.",
   },
+  meta: { description: "Учебная платформа для студентов Азербайджана." },
   errorPage: { title: "Что-то сломалось", body: "Произошла непредвиденная ошибка. Можно попробовать ещё раз.", notFoundTitle: "Страница не найдена", notFoundBody: "Запрошенной страницы не существует.", home: "На главную" },
 } satisfies Messages;

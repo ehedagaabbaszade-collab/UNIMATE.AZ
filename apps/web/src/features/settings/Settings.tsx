@@ -6,7 +6,7 @@ import { useState, type FormEvent } from "react";
 import { LocaleSwitcher, ThemeToggle } from "@/components/prefs";
 import type { ThemePref } from "@/lib/theme";
 import { useUser } from "@/components/user";
-import { useI18n } from "@/i18n/provider";
+import { useI18n } from "@unimate/i18n/react";
 import { profileNameSchema } from "@/lib/schemas";
 import { getBrowserClient } from "@/lib/supabase/browser";
 import { EXPORT_TABLES, OWNER_COLUMN, buildExport } from "./export";

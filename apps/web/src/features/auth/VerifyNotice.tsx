@@ -3,7 +3,7 @@
 import { Button } from "@unimate/ui";
 import Link from "next/link";
 import { useState } from "react";
-import { useT } from "@/i18n/provider";
+import { useT } from "@unimate/i18n/react";
 import { getBrowserClient } from "@/lib/supabase/browser";
 import { authErrorKey } from "./auth-errors";
 

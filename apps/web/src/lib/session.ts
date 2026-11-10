@@ -13,7 +13,7 @@ export interface Session {
   profile: Profile | null;
 }
 
-const PROFILE_COLUMNS = "id,display_name,avatar_url,university_id,major_id,study_year,locale";
+const PROFILE_COLUMNS = "id,display_name,avatar_url,university_id,major_id,study_year,locale,locale_set_at";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Verified server-side session (getUser validates the JWT with Supabase Auth). Returns null if not configured. */

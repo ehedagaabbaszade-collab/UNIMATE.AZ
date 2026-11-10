@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
-import { createTranslator, LOCALE_COOKIE, toLocale, type AppLocale } from "./index";
+import { createTranslator, LOCALE_COOKIE, toLocale, type Locale } from "@unimate/i18n";
 
-export async function getLocale(): Promise<AppLocale> {
+export async function getLocale(): Promise<Locale> {
   const store = await cookies();
   return toLocale(store.get(LOCALE_COOKIE)?.value);
 }

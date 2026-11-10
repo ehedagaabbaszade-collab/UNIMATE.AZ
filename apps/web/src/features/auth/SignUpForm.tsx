@@ -4,8 +4,8 @@ import { Button, Input } from "@unimate/ui";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { useT } from "@/i18n/provider";
-import type { MessageKey } from "@/i18n";
+import { useLocale, useT } from "@unimate/i18n/react";
+import type { MessageKey } from "@unimate/i18n";
 import { fieldErrors, signUpSchema } from "@/lib/schemas";
 import { getBrowserClient } from "@/lib/supabase/browser";
 import { AcademicPicker, type AcademicValue } from "../academic/AcademicPicker";
@@ -13,6 +13,7 @@ import { authErrorKey } from "./auth-errors";
 
 export function SignUpForm() {
   const t = useT();
+  const locale = useLocale();
   const router = useRouter();
   const [errors, setErrors] = useState<Record<string, MessageKey>>({});
   const [formError, setFormError] = useState<MessageKey | null>(null);
@@ -46,7 +47,7 @@ export function SignUpForm() {
       password: v.password,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding`,
-        data: { display_name: v.displayName, ...(v.universityId ? { university_id: v.universityId } : {}), ...(v.majorId ? { major_id: v.majorId } : {}) },
+        data: { display_name: v.displayName, locale, ...(v.universityId ? { university_id: v.universityId } : {}), ...(v.majorId ? { major_id: v.majorId } : {}) },
       },
     });
     if (error) {

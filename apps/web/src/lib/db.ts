@@ -10,7 +10,8 @@ export interface Profile {
   university_id: string | null;
   major_id: string | null;
   study_year: number | null;
-  locale: "az" | "en" | "ru";
+  locale: "az" | "tr" | "en" | "ru";
+  locale_set_at: string | null;
 }
 
 export type DocStatus = "pending_upload" | "uploaded" | "processing" | "ready" | "failed";

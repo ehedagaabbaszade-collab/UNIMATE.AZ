@@ -3,8 +3,8 @@
 import { Button, Input } from "@unimate/ui";
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
-import { useT } from "@/i18n/provider";
-import type { MessageKey } from "@/i18n";
+import { useT } from "@unimate/i18n/react";
+import type { MessageKey } from "@unimate/i18n";
 import { fieldErrors, forgotSchema } from "@/lib/schemas";
 import { getBrowserClient } from "@/lib/supabase/browser";
 import { authErrorKey } from "./auth-errors";

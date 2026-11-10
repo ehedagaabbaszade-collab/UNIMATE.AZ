@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { MessageKey } from "@/i18n";
+import type { MessageKey } from "@unimate/i18n";
 
 /** Zod error messages are i18n keys; the UI translates them. */
 const k = (key: MessageKey) => ({ error: key });

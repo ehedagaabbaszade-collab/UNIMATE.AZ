@@ -39,7 +39,7 @@ export const az = {
     more: "Daha çox",
   },
   theme: { label: "Mövzu", system: "Sistem", light: "Açıq", dark: "Tünd" },
-  language: { label: "Dil" },
+  language: { label: "Dil", saveFailed: "Dil dəyişdirilmədi: seçiminiz hesabınıza yazıla bilmədi." },
   backend: {
     title: "Backend konfiqurasiya edilməyib",
     body: "Bu tətbiq Supabase layihəsi tələb edir. NEXT_PUBLIC_SUPABASE_URL və NEXT_PUBLIC_SUPABASE_ANON_KEY təyin edilməyib, ona görə giriş və bütün məlumat funksiyaları söndürülüb. Heç bir nümunə məlumat göstərilmir.",
@@ -130,7 +130,6 @@ export const az = {
     studyYear: "Təhsil ili",
     done: "Hər şey hazırdır",
     saveFailed: "Profil saxlanıla bilmədi.",
-    localeNote: "Türk dili interfeysdə mövcuddur, lakin verilənlər bazası yalnız az, en və ru saxlayır, ona görə profil dili ingiliscəyə qayıdır.",
   },
   documents: {
     title: "Sənədlər",
@@ -396,7 +395,6 @@ export const az = {
   legal: {
     title: "Hüquqi",
     draftBanner: "HÜQUQİ YOXLAMA ÜÇÜN QARALAMA. Bu mətn hüquqşünas tərəfindən təsdiqlənməyib və yekun deyil.",
-    fallbackNotice: "Bu səhifə yalnız ingilis və azərbaycan dillərində mövcuddur.",
     lastUpdated: "Qaralama versiya 0.1",
     privacy: "Məxfilik Siyasəti",
     terms: "İstifadə Şərtləri",
@@ -405,5 +403,6 @@ export const az = {
     retention: "Məlumatın Saxlanması",
     notFound: "Belə səhifə yoxdur.",
   },
+  meta: { description: "Azərbaycandakı tələbələr üçün təhsil platforması." },
   errorPage: { title: "Nəsə xarab oldu", body: "Gözlənilməz xəta baş verdi. Yenidən cəhd edə bilərsiniz.", notFoundTitle: "Səhifə tapılmadı", notFoundBody: "Axtardığınız səhifə mövcud deyil.", home: "Ana səhifəyə" },
 } satisfies Messages;

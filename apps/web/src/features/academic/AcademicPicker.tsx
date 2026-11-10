@@ -4,7 +4,7 @@ import { Select } from "@unimate/ui";
 import { useAsync, unwrap } from "@/lib/use-async";
 import { getBrowserClient } from "@/lib/supabase/browser";
 import type { Faculty, Major, University } from "@/lib/db";
-import { useT } from "@/i18n/provider";
+import { useT } from "@unimate/i18n/react";
 import { groupInstitutions, institutionLabel } from "./institutions";
 
 export interface AcademicValue {

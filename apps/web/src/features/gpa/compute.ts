@@ -1,5 +1,5 @@
 import { AZ_100_SCALE, LETTER_4_SCALE, gradingScaleSchema, weightedGpa, type GradingScale } from "@unimate/core";
-import type { MessageKey } from "@/i18n";
+import type { MessageKey } from "@unimate/i18n";
 
 export type ScaleMode = "az" | "letter" | "custom";
 export interface GpaRow {

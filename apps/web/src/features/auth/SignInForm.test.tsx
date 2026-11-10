@@ -2,7 +2,7 @@
 import "@/test/dom";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { I18nProvider } from "@/i18n/provider";
+import { I18nProvider } from "@unimate/i18n/react";
 
 const signIn = vi.fn();
 const replace = vi.fn();

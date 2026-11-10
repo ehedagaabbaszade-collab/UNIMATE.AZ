@@ -3,8 +3,8 @@
 import { Badge, Button, EmptyState, ErrorState, Input, Select, Skeleton, Tabs, useOnlineStatus, useToast } from "@unimate/ui";
 import { useState, type FormEvent } from "react";
 import { useUser } from "@/components/user";
-import type { MessageKey } from "@/i18n";
-import { useI18n } from "@/i18n/provider";
+import type { MessageKey } from "@unimate/i18n";
+import { useI18n } from "@unimate/i18n/react";
 import type { ExamRow, TaskRow, TimetableRow } from "@/lib/db";
 import { examSchema, fieldErrors, taskSchema, timetableSchema } from "@/lib/schemas";
 import { getBrowserClient } from "@/lib/supabase/browser";

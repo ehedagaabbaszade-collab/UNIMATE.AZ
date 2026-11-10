@@ -4,14 +4,18 @@ import type { ReactNode } from "react";
 import { ToastProvider } from "@unimate/ui";
 import "@unimate/ui/styles.css";
 import "./globals.css";
-import { createTranslator, LOCALE_COOKIE, toLocale } from "@/i18n";
-import { I18nProvider } from "@/i18n/provider";
+import { createTranslator, LOCALE_COOKIE, toLocale } from "@unimate/i18n";
+import { I18nProvider } from "@unimate/i18n/react";
+import { getT } from "@/i18n/server";
 import { THEME_COOKIE, toTheme } from "@/lib/theme";
 
-export const metadata: Metadata = {
-  title: { default: "UNIMATE", template: "%s · UNIMATE" },
-  description: "Study platform for students in Azerbaijan.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getT();
+  return {
+    title: { default: "UNIMATE", template: "%s · UNIMATE" },
+    description: t("meta.description"),
+  };
+}
 export const viewport: Viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f4f6fb" },

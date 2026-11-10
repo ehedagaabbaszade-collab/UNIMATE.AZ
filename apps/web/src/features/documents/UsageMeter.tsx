@@ -2,8 +2,8 @@
 
 import { Badge, Card, ErrorState, ProgressRing, Skeleton } from "@unimate/ui";
 import type { Feature } from "@unimate/core";
-import { formatList } from "@/i18n";
-import { useI18n } from "@/i18n/provider";
+import { formatList } from "@unimate/i18n";
+import { useI18n } from "@unimate/i18n/react";
 import { getBrowserClient } from "@/lib/supabase/browser";
 import type { SubscriptionRow, UsageCounterRow } from "@/lib/db";
 import { dayStart, monthStart, summariseUsage } from "@/lib/usage";

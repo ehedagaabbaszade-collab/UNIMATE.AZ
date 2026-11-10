@@ -1,8 +1,8 @@
-import type { LegalDoc } from "./types";
+import type { LegalDoc, LegalSlug } from "./types";
 
 const CONTACT = "[əlaqə e-poçtu nəşrdən əvvəl əlavə olunacaq]";
 
-export const legalAz: Record<string, LegalDoc> = {
+export const legalAz: Record<LegalSlug, LegalDoc> = {
   privacy: {
     title: "Məxfilik Siyasəti",
     sections: [

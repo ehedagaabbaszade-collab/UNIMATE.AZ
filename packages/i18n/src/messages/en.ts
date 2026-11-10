@@ -38,7 +38,7 @@ export const en = {
     more: "More",
   },
   theme: { label: "Theme", system: "System", light: "Light", dark: "Dark" },
-  language: { label: "Language" },
+  language: { label: "Language", saveFailed: "Could not save the language to your account." },
   backend: {
     title: "Backend not configured",
     body: "This app needs a Supabase project. NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are not set, so sign-in and all data features are disabled. No sample data is shown.",
@@ -129,7 +129,6 @@ export const en = {
     studyYear: "Year of study",
     done: "You are all set",
     saveFailed: "Could not save your profile.",
-    localeNote: "Turkish is available in the interface, but the database only stores az, en and ru, so your saved profile language falls back to English.",
   },
   documents: {
     title: "Documents",
@@ -149,7 +148,7 @@ export const en = {
       ready: "Ready",
       failed: "Failed",
     },
-    pages: "{n} pages",
+    pages: "{n, plural, one {# page} other {# pages}}",
     size: "Size",
     loadFailed: "Could not load your documents.",
     refreshing: "Updating status automatically…",
@@ -238,10 +237,10 @@ export const en = {
     next: "Next review {date}",
     saveFailed: "Could not save your review.",
     xpEarned: "+{n} XP",
-    sessionDone: "Session complete. {n} cards reviewed.",
+    sessionDone: "Session complete. {n, plural, one {# card} other {# cards}} reviewed.",
     study: "Start review",
     allDocs: "All documents",
-    total: "{n} cards in total",
+    total: "{n, plural, one {# card} other {# cards}} in total",
   },
   ai: {
     providerNotConfigured: "AI is not configured on this server yet, so nothing was generated. Nothing was charged to your quota.",
@@ -262,7 +261,7 @@ export const en = {
     plan: { FREE: "Free", PLUS: "Plus", PRO: "Pro", GROUP: "Group" },
     messages: "AI messages today",
     docs: "Documents this month",
-    maxPages: "Up to {n} pages per document",
+    maxPages: "Up to {n, plural, one {# page} other {# pages}} per document",
     features: "Includes: {list}",
     unavailable: "Usage could not be loaded.",
     feature: { ocr: "OCR", flashcards: "flashcards", quiz: "quizzes", export: "export", group_sharing: "group sharing", priority_models: "priority models" },
@@ -364,7 +363,7 @@ export const en = {
     removeCourse: "Remove course",
     result: "Your GPA",
     resultNone: "Add a course with credits to see your GPA.",
-    totalCredits: "{n} credits",
+    totalCredits: "{n, plural, one {# credit} other {# credits}}",
     invalid: "Check the highlighted course rows.",
     scaleInvalid: "The custom scale is not valid: it needs at least one band covering score 0.",
     assumption: "Cutoffs differ between universities. The default scale is an assumption, not an official rule.",
@@ -395,7 +394,6 @@ export const en = {
   legal: {
     title: "Legal",
     draftBanner: "DRAFT FOR LEGAL REVIEW. This text has not been approved by a lawyer and is not final.",
-    fallbackNotice: "This page is only available in English and Azerbaijani. Showing the English version.",
     lastUpdated: "Draft version 0.1",
     privacy: "Privacy Policy",
     terms: "Terms of Service",
@@ -404,6 +402,7 @@ export const en = {
     retention: "Data Retention",
     notFound: "That page does not exist.",
   },
+  meta: { description: "Study platform for students in Azerbaijan." },
   errorPage: { title: "Something broke", body: "An unexpected error occurred. You can try again.", notFoundTitle: "Page not found", notFoundBody: "The page you are looking for does not exist.", home: "Go home" },
 } as const;
 

@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Workspace packages ship TypeScript sources.
-  transpilePackages: ["@unimate/core", "@unimate/ui"],
+  transpilePackages: ["@unimate/core", "@unimate/i18n", "@unimate/ui"],
   poweredByHeader: false,
   async headers() {
     return [

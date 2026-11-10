@@ -4,7 +4,7 @@ import { Button, Skeleton, Textarea } from "@unimate/ui";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { z } from "zod";
 import { EdgeNotice } from "@/components/EdgeNotice";
-import { useI18n } from "@/i18n/provider";
+import { useI18n } from "@unimate/i18n/react";
 import type { ChunkRow, MessageRow } from "@/lib/db";
 import { citationSchema, type EdgeError, type StructuredCitation } from "@/lib/edge";
 import { askDocument } from "@/lib/edge-client";

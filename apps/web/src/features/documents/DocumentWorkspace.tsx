@@ -3,7 +3,7 @@
 import { Badge, Button, EmptyState, ErrorState, Skeleton, Tabs } from "@unimate/ui";
 import Link from "next/link";
 import { useEffect } from "react";
-import { useI18n } from "@/i18n/provider";
+import { useI18n } from "@unimate/i18n/react";
 import type { DocumentRow } from "@/lib/db";
 import { getBrowserClient } from "@/lib/supabase/browser";
 import { unwrap, useAsync } from "@/lib/use-async";

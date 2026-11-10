@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, ErrorState } from "@unimate/ui";
-import { useT } from "@/i18n/provider";
+import { useT } from "@unimate/i18n/react";
 
 export default function GlobalError({ reset }: { error: Error; reset: () => void }) {
   const t = useT();

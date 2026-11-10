@@ -1,6 +1,6 @@
 import { ProviderNotConfiguredError, type AiProvider, type EmbedRequest, type EmbedResult, type GenerateRequest, type GenerateResult } from "@unimate/core";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { asUser } from "../../db/src/harness";
+import { asOwnerAs } from "../../db/src/harness";
 import { BudgetExceededError, GuardedProvider, RateLimitedError, SqlAiLedger, classifyFailure, estimateInputTokens, subRequestId } from "./ai-guard";
 import { embedAll } from "./ai";
 import { PipelineError } from "./errors";
@@ -39,7 +39,7 @@ class Scripted implements AiProvider {
   }
 }
 
-const adminSql = (sql: string, params: unknown[] = []) => asUser(env.db, ADMIN, (tx) => tx.query<any>(sql, params));
+const adminSql = (sql: string, params: unknown[] = []) => asOwnerAs(env.db, ADMIN, (tx) => tx.query<any>(sql, params));
 const raw = async (sql: string, params: unknown[] = []) => (await env.db.query<any>(sql, params)).rows;
 let seq = 0;
 const rid = () => `guard-${String(++seq).padStart(5, "0")}-${Math.random().toString(36).slice(2, 8)}`;

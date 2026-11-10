@@ -410,11 +410,11 @@ describe("AI task routing for career", () => {
     expect((cfg.routes ?? []).filter((r: any) => r.task === "cv_feedback")).toEqual([]);
   });
   it("an admin can route them; non-admins cannot", async () => {
-    const prov = (await rows(ADMIN, "select public.admin_set_ai_provider('career-test', 'openai', true, null) as id"))[0]!.id;
-    const model = (await rows(ADMIN, "select public.admin_set_ai_model($1, 'm-small', 'small', 100000, 400000, 10000, 4096, true, true) as id", [prov]))[0]!.id;
-    await fails(S1, "select public.admin_set_ai_route('cv_feedback'::public.ai_task, 'free', $1, '{}', 10)", [model]);
-    await rows(ADMIN, "select public.admin_set_ai_route('cv_feedback'::public.ai_task, 'free', $1, '{}', 10)", [model]);
-    await rows(ADMIN, "select public.admin_set_ai_route('interview_prep'::public.ai_task, 'free', $1, '{}', 10)", [model]);
+    const prov = (await rows(ADMIN, "select public.admin_ai_set_provider('career-test', 'openai', true, null, 'career test setup') as id"))[0]!.id;
+    const model = (await rows(ADMIN, "select public.admin_ai_set_model($1, 'm-small', 'small', 100000, 400000, 10000, 4096, true, true, 'career test setup') as id", [prov]))[0]!.id;
+    await fails(S1, "select public.admin_ai_set_route('cv_feedback'::public.ai_task, 'free', $1, '{}', 10, 'career test setup')", [model]);
+    await rows(ADMIN, "select public.admin_ai_set_route('cv_feedback'::public.ai_task, 'free', $1, '{}', 10, 'career test setup')", [model]);
+    await rows(ADMIN, "select public.admin_ai_set_route('interview_prep'::public.ai_task, 'free', $1, '{}', 10, 'career test setup')", [model]);
     const cfg = (await raw("select public.ai_load_config() as c"))[0]!.c;
     expect(cfg.routes.map((r: any) => r.task).sort()).toEqual(["cv_feedback", "interview_prep"]);
   });

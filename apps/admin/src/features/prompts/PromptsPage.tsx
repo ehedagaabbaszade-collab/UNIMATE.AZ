@@ -25,8 +25,7 @@ export function PromptsPage() {
       title: t("admin.prompts.activateTitle"),
       body: `${p.name} v${p.version}. ${t("admin.prompts.activateBody")}`,
       confirm: t("admin.prompts.activate"),
-      hideReason: true,
-      run: async () => void (await api.activatePrompt(p.id)),
+      run: async (reason) => void (await api.activatePrompt(p.id, reason)),
     });
 
   const columns: Column<PromptRow>[] = [

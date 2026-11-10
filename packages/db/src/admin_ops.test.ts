@@ -96,22 +96,22 @@ describe("system_config", () => {
     await db.query("insert into public.system_config (key, value) values ('seed.flag', 'true')");
     expect((await select(db, "authenticated", ADMIN, "select * from public.system_config")).length).toBe(1);
     expect((await select(db, "authenticated", SUPER, "select * from public.system_config")).length).toBe(1);
-    for (const u of [A, MOD]) {
-      expect(await select(db, "authenticated", u, "select * from public.system_config")).toEqual([]);
-      await expect(run(u, "insert into public.system_config (key, value) values ('x.y', '1')")).rejects.toThrow(/row-level security/);
-      expect((await run(u, "update public.system_config set value = '0'")).affectedRows).toBe(0);
-      expect((await run(u, "delete from public.system_config")).affectedRows).toBe(0);
+    // No direct write path for any API role (admins included): writes go through admin_set_system_config.
+    for (const u of [A, MOD, ADMIN, SUPER]) {
+      if (u === A || u === MOD) expect(await select(db, "authenticated", u, "select * from public.system_config")).toEqual([]);
+      await expect(run(u, "insert into public.system_config (key, value) values ('x.y', '1')")).rejects.toThrow(/permission denied/);
+      await expect(run(u, "update public.system_config set value = '0'")).rejects.toThrow(/permission denied/);
+      await expect(run(u, "delete from public.system_config")).rejects.toThrow(/permission denied/);
     }
     expect(await select(db, "anon", null, "select * from public.system_config")).toEqual([]);
-    await run(ADMIN, "insert into public.system_config (key, value, updated_by) values ('limits.chat', '{\"daily\": 50}', $1)", [A]);
-    expect((await raw("select updated_by from public.system_config where key = 'limits.chat'"))[0]!.updated_by).toBe(ADMIN);
-    await run(SUPER, "update public.system_config set value = '{\"daily\": 60}' where key = 'limits.chat'");
-    expect((await raw("select updated_by from public.system_config where key = 'limits.chat'"))[0]!.updated_by).toBe(SUPER);
-    expect((await run(ADMIN, "delete from public.system_config where key = 'limits.chat'")).affectedRows).toBe(1);
-    const a = await raw("select action, actor_id, metadata from public.audit_logs where entity_type = 'system_config' and entity_id = 'limits.chat' order by id");
-    expect(a.map((x) => x.action)).toEqual(["config.insert", "config.update", "config.delete"]);
-    expect(JSON.stringify(a)).not.toContain("daily");
-    await expect(run(ADMIN, "insert into public.system_config (key, value) values ('Bad Key', '1')")).rejects.toThrow(/check constraint/);
+    await run(ADMIN, "select public.admin_set_system_config('signup.enabled', 'true'::jsonb, 'valid reason')");
+    expect((await raw("select updated_by from public.system_config where key = 'signup.enabled'"))[0]!.updated_by).toBe(ADMIN);
+    await run(SUPER, "select public.admin_set_system_config('signup.enabled', 'false'::jsonb, 'valid reason')");
+    expect((await raw("select updated_by from public.system_config where key = 'signup.enabled'"))[0]!.updated_by).toBe(SUPER);
+    const a = await raw("select action, actor_id, metadata from public.audit_logs where entity_type = 'system_config' and entity_id = 'signup.enabled' order by id");
+    expect(a.map((x) => x.action)).toEqual(["config.insert", "config.update"]);
+    expect(a.map((x) => x.actor_id)).toEqual([ADMIN, SUPER]);
+    expect(JSON.stringify(a)).not.toContain('"value"');
   });
 });
 
@@ -292,30 +292,29 @@ describe("prompt_versions management", () => {
   beforeAll(async () => {
     await db.query("insert into public.prompt_versions (id, name, version, template, is_active) values ($1, 'sum', 1, 't', true), ($2, 'sum', 2, 't', false), ($3, 'other', 1, 't', true)", p);
   });
-  it("only admins may insert/update/delete; students and moderators see nothing", async () => {
-    for (const u of [A, MOD]) {
-      expect(await select(db, "authenticated", u, "select * from public.prompt_versions")).toEqual([]);
-      await expect(run(u, "insert into public.prompt_versions (name, version, template) values ('z', 1, 't')")).rejects.toThrow(/row-level security/);
-      expect((await run(u, "update public.prompt_versions set template = 'hack'")).affectedRows).toBe(0);
-      expect((await run(u, "delete from public.prompt_versions")).affectedRows).toBe(0);
+  it("nobody writes prompt_versions directly (admins included); students and moderators see nothing", async () => {
+    for (const u of [A, MOD, ADMIN, SUPER]) {
+      if (u === A || u === MOD) expect(await select(db, "authenticated", u, "select * from public.prompt_versions")).toEqual([]);
+      await expect(run(u, "insert into public.prompt_versions (name, version, template) values ('z', 1, 't')")).rejects.toThrow(/permission denied/);
+      await expect(run(u, "update public.prompt_versions set template = 'hack'")).rejects.toThrow(/permission denied/);
+      await expect(run(u, "delete from public.prompt_versions")).rejects.toThrow(/permission denied/);
     }
-    expect((await run(ADMIN, "insert into public.prompt_versions (name, version, template) values ('z', 1, 't')")).affectedRows).toBe(1);
-    expect((await select(db, "authenticated", SUPER, "select * from public.prompt_versions")).length).toBeGreaterThanOrEqual(4);
+    expect((await select(db, "authenticated", SUPER, "select * from public.prompt_versions")).length).toBeGreaterThanOrEqual(3);
   });
   it("activation: students and moderators denied", async () => {
-    for (const u of [A, MOD]) await expect(run(u, "select public.admin_activate_prompt_version($1)", [p[1]])).rejects.toThrow(/admin privileges required/);
+    for (const u of [A, MOD]) await expect(run(u, "select public.admin_activate_prompt_version($1, 'valid reason')", [p[1]])).rejects.toThrow(/admin privileges required/);
     expect(await active("sum")).toEqual([p[0]]);
   });
   it("admin and super_admin activate: exactly one active per name, other names untouched, audited", async () => {
-    await run(ADMIN, "select public.admin_activate_prompt_version($1)", [p[1]]);
+    await run(ADMIN, "select public.admin_activate_prompt_version($1, 'valid reason')", [p[1]]);
     expect(await active("sum")).toEqual([p[1]]);
     expect(await active("other")).toEqual([p[2]]);
-    await run(SUPER, "select public.admin_activate_prompt_version($1)", [p[0]]);
+    await run(SUPER, "select public.admin_activate_prompt_version($1, 'valid reason')", [p[0]]);
     expect(await active("sum")).toEqual([p[0]]);
-    await run(SUPER, "select public.admin_activate_prompt_version($1)", [p[0]]);
+    await run(SUPER, "select public.admin_activate_prompt_version($1, 'valid reason')", [p[0]]);
     expect(await active("sum")).toEqual([p[0]]);
     expect((await audit("prompt.activate", p[1]!)).length).toBe(1);
-    await expect(run(ADMIN, "select public.admin_activate_prompt_version($1)", [uuid("e", 50)])).rejects.toThrow(/not found/);
+    await expect(run(ADMIN, "select public.admin_activate_prompt_version($1, 'valid reason')", [uuid("e", 50)])).rejects.toThrow(/not found/);
   });
 });
 
@@ -326,7 +325,7 @@ describe("anon cannot call any admin RPC", () => {
     "select public.admin_moderate_content('post', null, 'remove', 'xxx')",
     "select public.admin_resolve_report(null, 'actioned')",
     "select public.admin_resolve_takedown(null, 'accepted', 'xxx')",
-    "select public.admin_activate_prompt_version(null)",
+    "select public.admin_activate_prompt_version(null, 'xxx')",
   ])("%s", async (sql) => {
     await expect(asAnon(db, (tx) => tx.query(sql))).rejects.toThrow(/permission denied/);
   });

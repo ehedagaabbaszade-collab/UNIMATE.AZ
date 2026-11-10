@@ -124,7 +124,8 @@ describe("moderation lists", () => {
     await expect(run(MOD, "select * from public.admin_reports_queue('bogus', 10, 0)")).rejects.toThrow(/invalid status/);
   });
   it("removed content lists resources removed by moderators", async () => {
-    const r = await raw("insert into public.resources (uploader_id, title, status) values ($1, 'Old notes', 'removed') returning id", [A]);
+    const r = await raw("insert into public.resources (uploader_id, title, status) values ($1, 'Old notes', 'published') returning id", [A]);
+    await run(MOD, "select public.admin_moderate_content('resource', $1, 'remove', $2)", [r[0]!.id, REASON]);
     const rows = (await run(MOD, "select * from public.admin_removed_content('resource', 10, 0)")).rows;
     expect(rows.map((x) => x.id)).toContain(r[0]!.id);
     expect((await run(MOD, "select public.admin_moderate_content('resource', $1, 'restore', $2) as ok", [r[0]!.id, REASON])).rows[0]!.ok).toBe(true);
@@ -176,7 +177,7 @@ describe("prompt versions", () => {
     const p3 = (await run(ADMIN, "select public.admin_create_prompt_version('summary', 'T3', null, false, $1) as id", [REASON])).rows[0]!.id;
     let rows = await raw("select id, version, is_active from public.prompt_versions where name = 'summary' order by version");
     expect(rows.map((r) => [r.version, r.is_active])).toEqual([[1, false], [2, true], [3, false]]);
-    await run(ADMIN, "select public.admin_activate_prompt_version($1)", [p1]);
+    await run(ADMIN, "select public.admin_activate_prompt_version($1, $2)", [p1, REASON]);
     rows = await raw("select id, is_active from public.prompt_versions where name = 'summary'");
     expect(rows.filter((r) => r.is_active).map((r) => r.id)).toEqual([p1]);
     expect(p2).not.toBe(p3);

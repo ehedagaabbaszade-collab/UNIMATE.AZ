@@ -1,7 +1,7 @@
 import { FakeProvider } from "@unimate/core/src/testing";
 import { resolveRoute, parseAiConfig, type GenerateRequest } from "@unimate/core";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { asUser } from "../../db/src/harness";
+import { asOwnerAs } from "../../db/src/harness";
 import { GuardedProvider, SqlAiLedger } from "./ai-guard";
 import { SqlCareerStore, cvFeedback, interviewQuestions, interviewScore, parseCvFeedbackRequest, parseInterviewRequest, type CareerDeps } from "./career";
 import { PipelineError } from "./errors";
@@ -16,7 +16,7 @@ const A = ids.alice;
 const B = ids.bob;
 
 const raw = async (sql: string, params: unknown[] = []) => (await env.db.query<any>(sql, params)).rows;
-const adminSql = (sql: string, params: unknown[] = []) => asUser(env.db, ADMIN, (tx) => tx.query<any>(sql, params));
+const adminSql = (sql: string, params: unknown[] = []) => asOwnerAs(env.db, ADMIN, (tx) => tx.query<any>(sql, params));
 
 const FEEDBACK = { overall: "Solid start.", strengths: ["Clear skills section"], improvements: [{ section: "summary", suggestion: "Add a two-sentence summary." }], missingKeywords: [], rewrittenSummary: "" };
 const QUESTIONS = { questions: [{ question: "Tell me about a project you led.", category: "behavioral", tips: "Use STAR." }] };

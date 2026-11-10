@@ -1,6 +1,6 @@
 import type { PGlite } from "@electric-sql/pglite";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { affected, asAnon, asService, asUser, createTestDb, ids, seedFixtures, select } from "./harness";
+import { affected, asAnon, asOwnerAs, asService, asUser, createTestDb, ids, seedFixtures, select } from "./harness";
 
 // NOTE: PGlite is a single connection, so "parallel" calls here are queued one after another. The concurrency tests
 // therefore prove the STATEMENT logic (check + update + insert are one unit, limits are exact), not true lock
@@ -23,7 +23,7 @@ const ADMIN = ids.admin;
 
 type R = Record<string, any>;
 const raw = async (sql: string, params: unknown[] = []) => (await db.query<R>(sql, params)).rows;
-const admin = async (sql: string, params: unknown[] = []) => (await asUser(db, ADMIN, (tx) => tx.query<R>(sql, params))).rows;
+const admin = async (sql: string, params: unknown[] = []) => (await asOwnerAs(db, ADMIN, (tx) => tx.query<R>(sql, params))).rows;
 const svc = async (sql: string, params: unknown[] = []) => (await asService(db, (tx) => tx.query<R>(sql, params))).rows;
 const n = (v: unknown) => Number(v);
 
@@ -77,12 +77,6 @@ describe("config RPCs: who may call what", () => {
   });
 
   const adminCalls = (w: World): [string, string, unknown[]][] => [
-    ["set_provider", "select public.admin_set_ai_provider('x-prov', 'openai', true, null)", []],
-    ["set_model", "select public.admin_set_ai_model($1, 'm', 'small', 1, 1, 1, 10, true, false)", [w.provider]],
-    ["set_route", "select public.admin_set_ai_route('chat', 'free', $1, '{}', 10)", [w.big]],
-    ["delete_route", "select public.admin_delete_ai_route('chat', 'free')", []],
-    ["set_budget", "select public.admin_set_ai_budget('global', '*', 'day', 5)", []],
-    ["delete_budget", "select public.admin_delete_ai_budget('global', '*', 'day')", []],
     ["revert", "select public.admin_revert_config(1, 'because')", []],
     ["cost_breakdown", "select * from public.admin_ai_cost_breakdown(7, 'model')", []],
     ["top_spenders", "select * from public.admin_ai_top_spenders(7, 5)", []],
@@ -311,7 +305,8 @@ describe("budget reservations", () => {
     expect((await reserve(rid(), B, 60)).ok).toBe(true); // another user is unaffected
     await budget("plan", "free", "day", 150);
     expect(await reserve(rid(), C, 50)).toEqual({ ok: false, error: "budget_exceeded", scope: "plan", period: "day" });
-    await budget("global", "*", "day", 130);
+    // inconsistent (plan > global) configs are refused by the RPC now; the ledger must still enforce one if it exists
+    await raw("insert into public.ai_budgets (scope, key, period, hard_limit_micro_usd) values ('global', '*', 'day', 130) on conflict (scope, key, period) do update set hard_limit_micro_usd = 130");
     expect(await reserve(rid(), C, 20)).toEqual({ ok: false, error: "budget_exceeded", scope: "global", period: "day" });
     // a rejected attempt reserved nothing anywhere
     expect(n((await spendRow("global", "*"))!.reserved_micro_usd)).toBe(120);

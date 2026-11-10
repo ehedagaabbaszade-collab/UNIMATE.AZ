@@ -378,7 +378,7 @@ export function createAdminApi(sb: SupabaseClient) {
     },
     createPrompt: (v: { name: string; template: string; model: string | null; activate: boolean; reason: string }) =>
       rpc(sb, "admin_create_prompt_version", { p_name: v.name, p_template: v.template, p_model: v.model, p_activate: v.activate, p_reason: v.reason }, idRpc),
-    activatePrompt: (id: string) => rpc(sb, "admin_activate_prompt_version", { p_id: id }, voidRpc),
+    activatePrompt: (id: string, reason: string) => rpc(sb, "admin_activate_prompt_version", { p_id: id, p_reason: reason }, voidRpc),
     // ---- AI config (reads: admin-only RLS; every write is a reason-carrying audited RPC)
     providers: async () => (await readPage(sb.from("ai_providers").select("id,name,kind,enabled,base_url_label,updated_at", { count: "exact" }).order("name").range(0, 199), providerRow)).rows,
     models: async () =>

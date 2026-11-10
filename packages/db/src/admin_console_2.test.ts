@@ -1,6 +1,6 @@
 import type { PGlite } from "@electric-sql/pglite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { asUser, createTestDb, ids, seedFixtures } from "./harness";
+import { asOwnerAs, asUser, createTestDb, ids, seedFixtures } from "./harness";
 
 let db: PGlite;
 beforeAll(async () => {
@@ -71,7 +71,7 @@ describe("AI config wrappers carry a required reason", () => {
     expect(await raw("select 1 from public.ai_task_routes where task = 'cv_feedback' and plan = 'free'")).toHaveLength(1);
   });
   it("the reason does not leak into a later unreasoned write in the same session", async () => {
-    await run(ADMIN, "select public.admin_set_ai_budget('global', '*', 'day', 5000000)");
+    await asOwnerAs(db, ADMIN, (tx) => tx.query("select public.admin_set_ai_budget('global', '*', 'day', 5000000)"));
     const last = (await raw("select reason from public.config_versions order by version desc limit 1"))[0]!;
     expect(last.reason).toBeNull();
   });
@@ -125,15 +125,12 @@ describe("system_config versions", () => {
     expect((await raw("select reason from public.system_config_versions where id = $1", [v3]))[0]!.reason).toContain(`revert to v${v1}`);
     await expect(run(ADMIN, "select public.admin_revert_system_config(999999, $1)", [REASON])).rejects.toThrow(/not found/);
   });
-  it("a revert of an insert deletes the key again; direct admin writes are still versioned (no reason)", async () => {
+  it("a revert of an insert deletes the key again; versions record the RPC reason", async () => {
     const v = (await run(ADMIN, "select public.admin_set_system_config('uploads.max_file_mb', '25'::jsonb, $1) as v", [REASON])).rows[0]!.v;
     await run(ADMIN, "select public.admin_revert_system_config($1, $2)", [v, REASON]); // value of that version is 25: stays
-    await run(ADMIN, "update public.system_config set value = '30'::jsonb where key = 'uploads.max_file_mb'");
     const last = (await raw("select action, reason from public.system_config_versions where key = 'uploads.max_file_mb' order by id desc limit 1"))[0]!;
-    expect(last).toEqual({ action: "update", reason: null });
-    await run(ADMIN, "delete from public.system_config where key = 'uploads.max_file_mb'");
-    const del = (await raw("select id, action, value from public.system_config_versions where key = 'uploads.max_file_mb' order by id desc limit 1"))[0]!;
-    expect(del).toMatchObject({ action: "delete", value: null });
+    expect(last.action).toBe("update");
+    expect(last.reason).toContain(REASON);
   });
   it("students cannot read config versions", async () => {
     expect((await run(A, "select * from public.system_config_versions")).rows).toHaveLength(0);
@@ -143,12 +140,12 @@ describe("system_config versions", () => {
 describe("notification template history", () => {
   it("records a version per save and reverts as a new version", async () => {
     await run(ADMIN, "select public.admin_set_notification_template('welcome', 'en', 'Hello', 'Hi {name}', $1)", [REASON]);
-    const v1 = (await raw("select id from public.notification_template_versions where key = 'welcome' and locale = 'en' order by id limit 1"))[0]!.id;
+    const v1 = (await raw("select id from public.notification_template_versions where key = 'welcome' and locale = 'en' and title = 'Hello' order by id limit 1"))[0]!.id;
     await run(ADMIN, "select public.admin_set_notification_template('welcome', 'en', 'Hello again', 'Hey {name}', $1)", [REASON]);
     await expect(run(ADMIN, "select public.admin_revert_notification_template($1, 'x')", [v1])).rejects.toThrow(/reason/);
     await run(ADMIN, "select public.admin_revert_notification_template($1, $2)", [v1, REASON]);
     expect((await raw("select title, body from public.notification_templates where key = 'welcome' and locale = 'en'"))[0]).toEqual({ title: "Hello", body: "Hi {name}" });
-    expect(await raw("select 1 from public.notification_template_versions where key = 'welcome' and locale = 'en'")).toHaveLength(3);
+    expect(await raw("select 1 from public.notification_template_versions where key = 'welcome' and locale = 'en'")).toHaveLength(4); // baseline + 3 saves
     expect((await run(A, "select * from public.notification_template_versions")).rows).toHaveLength(0);
     await expect(run(ADMIN, "select public.admin_revert_notification_template(999999, $1)", [REASON])).rejects.toThrow(/not found/);
   });

@@ -110,6 +110,12 @@ export async function asRole<T>(
 
 export const asUser = <T>(db: PGlite, uid: string | null, fn: (tx: Transaction) => Promise<T>) =>
   asRole(db, "authenticated", uid, fn);
+/** The JWT identity is `uid` but the statement runs with the connection's owner privileges: the path SECURITY DEFINER wrappers take. */
+export const asOwnerAs = <T>(db: PGlite, uid: string, fn: (tx: Transaction) => Promise<T>) =>
+  db.transaction(async (tx) => {
+    await tx.query("select set_config('request.jwt.claim.sub', $1, true)", [uid]);
+    return fn(tx);
+  });
 export const asAnon = <T>(db: PGlite, fn: (tx: Transaction) => Promise<T>) => asRole(db, "anon", null, fn);
 export const asService = <T>(db: PGlite, fn: (tx: Transaction) => Promise<T>) => asRole(db, "service_role", null, fn);
 

@@ -10,3 +10,4 @@ coverage
 .turbo
 supabase/.temp
 *.tsbuildinfo
+supabase/.build

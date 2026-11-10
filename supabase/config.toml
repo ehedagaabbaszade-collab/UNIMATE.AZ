@@ -6,3 +6,27 @@ port = 54321
 [db]
 port = 54322
 major_version = 15
+
+[functions.ask-document]
+entrypoint = "./.build/functions/ask-document/index.ts"
+
+[functions.cv-feedback]
+entrypoint = "./.build/functions/cv-feedback/index.ts"
+
+[functions.generate-study-material]
+entrypoint = "./.build/functions/generate-study-material/index.ts"
+
+[functions.import-resource]
+entrypoint = "./.build/functions/import-resource/index.ts"
+
+[functions.interview-prep]
+entrypoint = "./.build/functions/interview-prep/index.ts"
+
+[functions.process-document]
+entrypoint = "./.build/functions/process-document/index.ts"
+
+[functions.purge-accounts]
+entrypoint = "./.build/functions/purge-accounts/index.ts"
+
+[functions.resource-url]
+entrypoint = "./.build/functions/resource-url/index.ts"

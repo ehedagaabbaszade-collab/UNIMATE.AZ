@@ -42,3 +42,6 @@ Follow [AI_PROVIDERS.md](AI_PROVIDERS.md): set the key as a secret, then in the 
 
 ## 7. Mobile
 See [MOBILE_BUILD.md](MOBILE_BUILD.md).
+
+### Edge function build step
+The hosted bundler cannot resolve workspace packages (`@unimate/*`). Run `node scripts/build-functions.mjs` (esbuild) before deploying: it bundles each function into `supabase/.build/functions/<name>/index.ts` (gitignored), keeping `npm:`/`node:` imports external. `supabase/config.toml` `[functions.<name>].entrypoint` points at those files. Then `npx supabase functions deploy --use-api --yes`. Runtime behaviour (Deno import of tesseract/unpdf) is not verified.

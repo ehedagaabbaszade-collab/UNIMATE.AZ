@@ -246,14 +246,14 @@ describe("profiles locale and goals", () => {
 });
 
 describe("faculties and majors are admin-managed only (no fabricated structure)", () => {
-  it("none seeded; students and moderators denied, admin may insert", async () => {
-    expect((await raw("select (select count(*) from public.faculties)::int f, (select count(*) from public.majors)::int m"))[0]).toEqual({ f: 0, m: 0 });
+  it("only the DİM college structure is seeded (55 faculties, 479 vocational majors); students and moderators denied, admin may insert", async () => {
+    expect((await raw("select (select count(*) from public.faculties)::int f, (select count(*) from public.majors)::int m"))[0]).toEqual({ f: 55, m: 479 });
     const uni = (await raw("select id from public.universities limit 1"))[0]!.id;
     for (const u of [A, MOD]) {
       await expect(run(u, "insert into public.faculties (university_id, name) values ($1, 'Test Faculty')", [uni])).rejects.toThrow(/row-level security/);
     }
     await run(ids.admin, "insert into public.faculties (university_id, name) values ($1, 'Test Faculty')", [uni]);
-    expect((await select(db, "authenticated", A, "select name from public.faculties")).map((r) => r.name)).toEqual(["Test Faculty"]);
+    expect((await select(db, "authenticated", A, "select name from public.faculties where name = 'Test Faculty'")).map((r) => r.name)).toEqual(["Test Faculty"]);
   });
 });
 

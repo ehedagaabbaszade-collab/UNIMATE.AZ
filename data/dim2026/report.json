@@ -1,0 +1,297 @@
+{
+ "flagged": [],
+ "unknown_chars": {
+  "orphan:9 7 7 2 2 2 3 9 7 2 0 0 6 0 1 1 2 6": 1,
+  "orphan:www.dim.gov.az": 1,
+  "orphan:facebook.com/stateexamcenter": 1,
+  "orphan:youtube.com/stateexamcenter": 1,
+  "orphan:instagram.com/dimgovaz": 1,
+  "orphan:threads.net/@dimgovaz": 1,
+  "orphan:twitter.com/stateexamcenter": 1,
+  "orphan:t.me/stateexamcenter": 1,
+  "orphan:linkedin.com/company/stateexamcenter": 1,
+  "orphan:tiktok.com/@dim.gov.az": 1,
+  "orphan:Kodu Adı Təh- Plan Təhsil": 1,
+  "orphan:sil- haqqı": 1,
+  "orphan:alma (manat-": 1,
+  "orphan:for- la)": 1,
+  "orphan:ması": 1,
+  "orphan:Qeyd 1. \"Təhsil haqqı\" sütununda qarşısında \"DH\" q": 1,
+  "orphan:ixtisaslarda təhsil dövlət hesabınadır.": 1,
+  "orphan:Qeyd 2. \"Təhsilalma forması\" sütununda \"Ə\" göstəri": 1,
+  "orphan:təhsilalma forması əyanidir, \"Q\" göstərilibsə, təh": 1,
+  "orphan:forması qiyabidir.": 1
+ },
+ "headings": [
+  {
+   "page": 5,
+   "text": "Azərbaycan Dövlət İqtisad Universitetinin nəzdində Azərbaycan Maliyyə-İqtisad Kolleci"
+  },
+  {
+   "page": 5,
+   "text": "Bakı Dövlət Universitetinin nəzdində İqtisadiyyat və Humanitar Kolleci"
+  },
+  {
+   "page": 5,
+   "text": "Azərbaycan Dövlət İqtisad Universitetinin nəzdində Qida Sənayesi Kolleci"
+  },
+  {
+   "page": 5,
+   "text": "Azərbaycan Dövlət İqtisad Universitetinin nəzdində Sosial-İqtisadi Kollec"
+  },
+  {
+   "page": 6,
+   "text": "Azərbaycan Dövlət Neft və Sənaye Universitetinin nəzdində Sənaye və Texnologiya Kolleci"
+  },
+  {
+   "page": 6,
+   "text": "Azərbaycan Dövlət Pedaqoji Universiteti nəzdində Azərbaycan Dövlət Pedaqoji Kolleci"
+  },
+  {
+   "page": 6,
+   "text": "Azərbaycan Texniki Universitetinin nəzdində Bakı Dövlət Rabitə və Nəqliyyat Kolleci"
+  },
+  {
+   "page": 7,
+   "text": "1 nömrəli Bakı Tibb Kolleci"
+  },
+  {
+   "page": 7,
+   "text": "2 nömrəli Bakı Baza Tibb Kolleci"
+  },
+  {
+   "page": 7,
+   "text": "Azərbaycan Dövlət Mədəniyyət və İncəsənət Universitetinin nəzdində Humanitar Kollec"
+  },
+  {
+   "page": 7,
+   "text": "Azərbaycan Dövlət Rəssamlıq Akademiyası nəzdində İncəsənət Kolleci"
+  },
+  {
+   "page": 7,
+   "text": "Azərbaycan Milli Konservatoriyası nəzdində Musiqi Kolleci"
+  },
+  {
+   "page": 8,
+   "text": "Azərbaycan Texniki Universitetinin nəzdində Bakı Texniki Kolleci"
+  },
+  {
+   "page": 8,
+   "text": "Azərbaycan Dövlət Neft və Sənaye Universitetinin nəzdində Bakı Neft-Energetika Kolleci"
+  },
+  {
+   "page": 8,
+   "text": "Azərbaycan Memarlıq və İnşaat Universitetinin nəzdində İnşaat Kolleci"
+  },
+  {
+   "page": 9,
+   "text": "Azərbaycan Dövlət Dəniz Akademiyasının nəzdində Azərbaycan Dənizçilik Kolleci"
+  },
+  {
+   "page": 9,
+   "text": "Naxçıvan Tibb Kolleci"
+  },
+  {
+   "page": 9,
+   "text": "Naxçıvan Dövlət Texniki Kolleci"
+  },
+  {
+   "page": 9,
+   "text": "Naxçıvan Musiqi Kolleci"
+  },
+  {
+   "page": 9,
+   "text": "Gəncə Tibb Kolleci"
+  },
+  {
+   "page": 9,
+   "text": "Gəncə Dövlət Universitetinin nəzdində Regional Kollec"
+  },
+  {
+   "page": 9,
+   "text": "Qazax Dövlət Sosial-İqtisadi Kolleci"
+  },
+  {
+   "page": 10,
+   "text": "Tovuz Dövlət Sosial-İqtisadi Kolleci"
+  },
+  {
+   "page": 10,
+   "text": "Ə.Əliyev adına Sumqayıt Tibb Kolleci"
+  },
+  {
+   "page": 10,
+   "text": "Sumqayıt Dövlət Universitetinin nəzdində Sumqayıt Dövlət Texniki Kolleci"
+  },
+  {
+   "page": 10,
+   "text": "Azərbaycan Milli Konservatoriyası nəzdində Sumqayıt Musiqi Kolleci"
+  },
+  {
+   "page": 10,
+   "text": "Quba Dövlət Sosial-İqtisadi Kolleci"
+  },
+  {
+   "page": 11,
+   "text": "Quba Tibb Kolleci"
+  },
+  {
+   "page": 11,
+   "text": "Şamaxı Dövlət Regional Kolleci"
+  },
+  {
+   "page": 11,
+   "text": "Mingəçevir Tibb Kolleci"
+  },
+  {
+   "page": 11,
+   "text": "Mingəçevir Turizm Kolleci"
+  },
+  {
+   "page": 11,
+   "text": "Şəki Tibb Kolleci"
+  },
+  {
+   "page": 11,
+   "text": "Şəki Dövlət Regional Kolleci"
+  },
+  {
+   "page": 12,
+   "text": "Zaqatala Dövlət İdarəetmə və Texnologiya Kolleci"
+  },
+  {
+   "page": 12,
+   "text": "Şuşa Humanitar Kolleci"
+  },
+  {
+   "page": 12,
+   "text": "Ağdam Dövlət Sosial-İqtisadi Kolleci"
+  },
+  {
+   "page": 12,
+   "text": "Ağdam Musiqi Kolleci"
+  },
+  {
+   "page": 12,
+   "text": "Ağdaş Dövlət Humanitar Kolleci"
+  },
+  {
+   "page": 12,
+   "text": "Ağcabədi Pedaqoji Kolleci"
+  },
+  {
+   "page": 13,
+   "text": "Şirvan Dövlət İqtisadiyyat və Humanitar Kolleci"
+  },
+  {
+   "page": 13,
+   "text": "Bərdə Dövlət İdarəetmə və Texnologiya Kolleci"
+  },
+  {
+   "page": 13,
+   "text": "Sabirabad Dövlət Sosial-İqtisadi Kolleci"
+  },
+  {
+   "page": 13,
+   "text": "Göyçay Dövlət İdarəetmə və Texnologiya Kolleci"
+  },
+  {
+   "page": 13,
+   "text": "Lənkəran Tibb Kolleci"
+  },
+  {
+   "page": 14,
+   "text": "Lənkəran Dövlət Universitetinin nəzdində Sosial və Aqrar-Texnoloji Kollec"
+  },
+  {
+   "page": 14,
+   "text": "Astara Pedaqoji Kolleci"
+  },
+  {
+   "page": 14,
+   "text": "İsmayıllı Dövlət Humanitar və Texnologiya Kolleci"
+  },
+  {
+   "page": 14,
+   "text": "Saatlı Tibb Kolleci"
+  },
+  {
+   "page": 14,
+   "text": "Cəlilabad Tibb Kolleci"
+  },
+  {
+   "page": 15,
+   "text": "Masallı Dövlət Regional Kolleci"
+  },
+  {
+   "page": 15,
+   "text": "Azərbaycan Dövlət Aqrar Universitetinin nəzdində Gəncə Dövlət Aqrar Kolleci"
+  },
+  {
+   "page": 15,
+   "text": "Qərbi Kaspi Kolleci"
+  },
+  {
+   "page": 15,
+   "text": "Bakı Biznes və Kooperasiya Kolleci"
+  },
+  {
+   "page": 15,
+   "text": "Odlar Yurdu Kolleci"
+  },
+  {
+   "page": 15,
+   "text": "Bakı Avrasiya Kolleci"
+  },
+  {
+   "page": 17,
+   "text": "(012) 562 75 71 (012) 408 77 57"
+  }
+ ],
+ "page_counts": {
+  "5": {
+   "six_digit_numbers_in_text": 60,
+   "rows_parsed": 60
+  },
+  "6": {
+   "six_digit_numbers_in_text": 63,
+   "rows_parsed": 63
+  },
+  "7": {
+   "six_digit_numbers_in_text": 62,
+   "rows_parsed": 62
+  },
+  "8": {
+   "six_digit_numbers_in_text": 64,
+   "rows_parsed": 64
+  },
+  "9": {
+   "six_digit_numbers_in_text": 70,
+   "rows_parsed": 70
+  },
+  "10": {
+   "six_digit_numbers_in_text": 64,
+   "rows_parsed": 64
+  },
+  "11": {
+   "six_digit_numbers_in_text": 80,
+   "rows_parsed": 80
+  },
+  "12": {
+   "six_digit_numbers_in_text": 70,
+   "rows_parsed": 70
+  },
+  "13": {
+   "six_digit_numbers_in_text": 85,
+   "rows_parsed": 85
+  },
+  "14": {
+   "six_digit_numbers_in_text": 80,
+   "rows_parsed": 80
+  },
+  "15": {
+   "six_digit_numbers_in_text": 85,
+   "rows_parsed": 85
+  }
+ }
+}

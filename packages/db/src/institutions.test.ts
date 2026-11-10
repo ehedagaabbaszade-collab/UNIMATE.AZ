@@ -17,7 +17,9 @@ describe("institutions directory (universities + colleges)", () => {
     // 38 colleges come from the official edu.gov.az list; user-supplied extras are tracked separately and flagged unverified.
     expect(rows.filter((r) => r.institution_type === "college" && r.source === "edu.gov.az").length).toBe(38);
     expect(rows.filter((r) => r.source === "user_supplied_unverified").length).toBe(24);
-    expect(rows.filter((r) => r.institution_type === "college").length).toBe(52);
+    // +12 colleges that DİM 2026/2027 lists but the directory lacked (source dim.gov.az, migration …5100)
+    expect(rows.filter((r) => r.source === "dim.gov.az").length).toBe(12);
+    expect(rows.filter((r) => r.institution_type === "college").length).toBe(64);
   });
 
   it("includes well-known state and private institutions with exact Azerbaijani spelling", async () => {
@@ -36,11 +38,13 @@ describe("institutions directory (universities + colleges)", () => {
       expect(names.has(n), n).toBe(true);
   });
 
-  it("has no duplicates and invents no faculties", async () => {
+  it("has no duplicates; the only faculties are the one-per-college DİM entries", async () => {
     const dup = await db.query("select name from public.universities group by name having count(*) > 1");
     expect(dup.rows).toHaveLength(0);
     const f = await db.query("select count(*)::int as n from public.faculties");
-    expect((f.rows[0] as any).n).toBe(0);
+    expect((f.rows[0] as any).n).toBe(55);
+    const other = await db.query("select count(*)::int as n from public.faculties where name <> 'Orta ixtisas təhsili'");
+    expect((other.rows[0] as any).n).toBe(0);
   });
 
   it("every college parent names an institution that exists in the directory", async () => {

@@ -25,7 +25,7 @@ describe("admin.* i18n parity (az, tr, en, ru)", () => {
     for (const l of ["az", "tr", "ru"] as const) {
       const m = adminOf(l);
       const same = [...m].filter(([k, v]) => v === en.get(k) && /[A-Za-z]{5,}/.test(v));
-      expect(same.length, `${l}: ${same.map(([k]) => k).join(", ")}`).toBeLessThan(12); // cognates (Admin, Status, Model, Prompt…) are legitimately identical
+      expect(same.length, `${l}: ${same.map(([k]) => k).join(", ")}`).toBeLessThan(20); // cognates and names (Admin, Status, Model, Prompt, Anthropic, Premium, endonyms like English/Türkçe) are legitimately identical
     }
   });
 });
@@ -68,6 +68,17 @@ describe("every admin key used in source exists", () => {
       "admin.moderation.visibility.": ["public", "private"],
       "admin.career.kind.": ["internship", "junior_job", "scholarship", "exchange", "competition", "hackathon", "career_event"],
       "admin.career.status.": ["draft", "published", "archived"],
+      "admin.ai.kind.": ["openai", "anthropic"],
+      "admin.ai.tier.": ["small", "standard", "premium"],
+      "admin.ai.task.": ["extract_cleanup", "summarize", "rag", "chat", "quiz", "flashcards", "exam_simulation", "embed", "cv_feedback", "interview_prep"],
+      "admin.ai.scope.": ["global", "plan", "user"],
+      "admin.ai.period.": ["day", "month"],
+      "admin.cost.group.": ["model", "provider", "task", "plan"],
+      "admin.versions.change.": ["added", "removed", "changed"],
+      "admin.versions.entity.": ["providers", "models", "routes", "budgets"],
+      "admin.content.locale.": ["az", "tr", "en", "ru"],
+      "admin.jobs.kind.": ["extract_text", "chunk", "embed", "summarize", "generate_quiz", "generate_flashcards"],
+      "admin.jobs.state.": ["queued", "running", "succeeded", "failed", "dead"],
     };
     const used = new Set<string>();
     for (const f of files) for (const m of readFileSync(f, "utf8").matchAll(/`(admin\.[A-Za-z0-9_.]+\.)\$\{/g)) used.add(m[1]!);

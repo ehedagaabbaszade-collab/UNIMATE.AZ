@@ -1,10 +1,12 @@
+import { admin2Tr } from "./admin2.tr";
 import type { AdminMessages } from "./admin.types";
 
 /** Yönetim konsolu metinleri (apps/admin). Anahtarlar admin.en.ts ile aynıdır. Ana dili konuşan biri tarafından gözden geçirilmelidir. */
 export const adminTr = {
+  ...admin2Tr,
   title: "Yönetim",
   mfaNote: "Öneri: personel hesabınızı iki adımlı doğrulama (TOTP) ve benzersiz bir parola ile koruyun.",
-  nav: { main: "Yönetim gezinmesi", dashboard: "Genel bakış", users: "Kullanıcılar", academic: "Akademik veriler", moderation: "Moderasyon", career: "Kariyer", subscriptions: "Abonelikler", prompts: "Promptlar", signOut: "Çıkış yap" },
+  nav: { main: "Yönetim gezinmesi", dashboard: "Genel bakış", users: "Kullanıcılar", academic: "Akademik veriler", moderation: "Moderasyon", career: "Kariyer", subscriptions: "Abonelikler", prompts: "Promptlar", aiModels: "AI modelleri", aiRoutes: "AI rotaları", aiBudgets: "AI bütçeleri", aiVersions: "Yapılandırma sürümleri", aiCost: "AI maliyeti", analytics: "Analitik", audit: "Denetim günlüğü", config: "Sistem ayarları", content: "Şablonlar ve içerik", jobs: "İşleme görevleri", signOut: "Çıkış yap" },
   role: { student: "Öğrenci", moderator: "Moderatör", admin: "Yönetici", super_admin: "Süper yönetici" },
   denied: { title: "Erişim reddedildi", body: "Bu hesap UNIMATE personeline ait değil ya da rolü bu sayfaya izin vermiyor. Hiçbir veri gösterilmez.", home: "Genel bakışa dön", signOut: "Çıkış yap ve başka bir hesap kullan" },
   signIn: { title: "Personel girişi", body: "UNIMATE personel hesabınızla giriş yapın. Erişim, girişten sonra sunucuda denetlenir." },

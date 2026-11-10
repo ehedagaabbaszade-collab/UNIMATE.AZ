@@ -34,6 +34,17 @@ export const NAV: readonly NavItem[] = [
   { href: "/career", key: "admin.nav.career", icon: "career", min: "admin" },
   { href: "/subscriptions", key: "admin.nav.subscriptions", icon: "rewards", min: "admin" },
   { href: "/prompts", key: "admin.nav.prompts", icon: "ai-chat", min: "admin" },
+  // Part 2. All admin+: the AI/config RPCs authorize with is_admin() (admin_revert_config needs admin, not super_admin).
+  { href: "/ai/models", key: "admin.nav.aiModels", icon: "ai-study", min: "admin" },
+  { href: "/ai/routes", key: "admin.nav.aiRoutes", icon: "tasks", min: "admin" },
+  { href: "/ai/budgets", key: "admin.nav.aiBudgets", icon: "gpa", min: "admin" },
+  { href: "/ai/versions", key: "admin.nav.aiVersions", icon: "saved", min: "admin" },
+  { href: "/ai/cost", key: "admin.nav.aiCost", icon: "xp", min: "admin" },
+  { href: "/analytics", key: "admin.nav.analytics", icon: "leaderboard", min: "admin" },
+  { href: "/audit", key: "admin.nav.audit", icon: "locked", min: "admin" },
+  { href: "/config", key: "admin.nav.config", icon: "settings", min: "admin" },
+  { href: "/content", key: "admin.nav.content", icon: "announcement", min: "admin" },
+  { href: "/jobs", key: "admin.nav.jobs", icon: "pending", min: "admin" },
 ];
 
 export const navFor = (role: AppRole | null | undefined): NavItem[] => NAV.filter((n) => atLeast(role, n.min));

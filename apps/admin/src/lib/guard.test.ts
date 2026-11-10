@@ -97,7 +97,7 @@ describe("every console page is guarded with its own route", () => {
     }
   };
   walk(root);
-  it("finds the eight console pages", () => expect(pages.length).toBe(8));
+  it("finds the console pages", () => expect(pages.length).toBe(18));
   for (const f of pages) {
     const rel = path.relative(root, path.dirname(f)).replaceAll("\\", "/");
     const route = rel === "" ? "/" : `/${rel.replace(/\/\[.*$/, "")}`;

@@ -1,8 +1,10 @@
+import { admin2En } from "./admin2.en";
 /** Admin console strings (apps/admin). English is the source; az/tr/ru must have exactly the same keys. */
 export const adminEn = {
+  ...admin2En,
   title: "Administration",
   mfaNote: "Recommended: protect your staff account with two-step verification (TOTP) and a unique password.",
-  nav: { main: "Admin navigation", dashboard: "Overview", users: "Users", academic: "Academic data", moderation: "Moderation", career: "Career", subscriptions: "Subscriptions", prompts: "Prompts", signOut: "Sign out" },
+  nav: { main: "Admin navigation", dashboard: "Overview", users: "Users", academic: "Academic data", moderation: "Moderation", career: "Career", subscriptions: "Subscriptions", prompts: "Prompts", aiModels: "AI models", aiRoutes: "AI routes", aiBudgets: "AI budgets", aiVersions: "Config versions", aiCost: "AI cost", analytics: "Analytics", audit: "Audit log", config: "System config", content: "Templates and content", jobs: "Processing jobs", signOut: "Sign out" },
   role: { student: "Student", moderator: "Moderator", admin: "Admin", super_admin: "Super admin" },
   denied: { title: "Access denied", body: "This account is not part of the UNIMATE staff, or its role does not allow this page. No data is shown.", home: "Back to overview", signOut: "Sign out and use another account" },
   signIn: { title: "Staff sign-in", body: "Sign in with your UNIMATE staff account. Access is checked on the server after sign-in." },

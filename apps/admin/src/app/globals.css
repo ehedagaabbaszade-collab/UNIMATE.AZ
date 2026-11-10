@@ -121,3 +121,23 @@
 .checks label { display: inline-flex; align-items: center; gap: var(--space-2); min-height: 44px; }
 .shell__main { padding-bottom: 0; }
 @media (min-width: 900px) { .mobilenav { display: none; } }
+
+/* ---- Admin part 2: charts, meters, drawer ---- */
+.legend { gap: var(--space-4); font-size: var(--text-sm); margin-top: var(--space-2); }
+.legend__swatch { display: inline-block; width: 12px; height: 12px; border-radius: 3px; }
+.chart__table { margin-top: var(--space-3); }
+.chart__table summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font-weight: 600; }
+.barlist { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+.barlist li { display: grid; grid-template-columns: minmax(80px, 28%) 1fr auto; gap: var(--space-3); align-items: center; font-size: var(--text-sm); }
+.barlist__track { height: 10px; border-radius: 99px; background: var(--surface-3); overflow: hidden; }
+.barlist__fill { display: block; height: 100%; background: var(--primary); border-radius: 99px; }
+.barlist__value { font-variant-numeric: tabular-nums; text-align: end; }
+.meter { position: relative; height: 12px; border-radius: 99px; background: var(--surface-3); overflow: hidden; min-width: 120px; }
+.meter__fill { display: block; height: 100%; border-radius: 99px; }
+.meter__fill[data-tone="success"] { background: var(--accent); }
+.meter__fill[data-tone="warning"] { background: var(--warning); }
+.meter__fill[data-tone="danger"] { background: var(--danger); }
+.json-box { max-height: 50vh; overflow: auto; padding: var(--space-3); border-radius: var(--radius-md); background: var(--surface-2); border: 1px solid var(--border); font-size: var(--text-xs); white-space: pre-wrap; overflow-wrap: anywhere; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: var(--text-xs); }
+.matrix td, .matrix th { text-align: center; }
+.matrix td:first-child, .matrix th:first-child { text-align: start; }

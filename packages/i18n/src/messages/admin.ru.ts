@@ -1,10 +1,12 @@
+import { admin2Ru } from "./admin2.ru";
 import type { AdminMessages } from "./admin.types";
 
 /** Тексты консоли администратора (apps/admin). Ключи совпадают с admin.en.ts. Нужна проверка носителем языка. */
 export const adminRu = {
+  ...admin2Ru,
   title: "Администрирование",
   mfaNote: "Рекомендуется: защитите аккаунт сотрудника двухэтапной проверкой (TOTP) и уникальным паролем.",
-  nav: { main: "Навигация администратора", dashboard: "Обзор", users: "Пользователи", academic: "Академические данные", moderation: "Модерация", career: "Карьера", subscriptions: "Подписки", prompts: "Промпты", signOut: "Выйти" },
+  nav: { main: "Навигация администратора", dashboard: "Обзор", users: "Пользователи", academic: "Академические данные", moderation: "Модерация", career: "Карьера", subscriptions: "Подписки", prompts: "Промпты", aiModels: "Модели ИИ", aiRoutes: "Маршруты ИИ", aiBudgets: "Бюджеты ИИ", aiVersions: "Версии конфигурации", aiCost: "Стоимость ИИ", analytics: "Аналитика", audit: "Журнал аудита", config: "Настройки системы", content: "Шаблоны и контент", jobs: "Задачи обработки", signOut: "Выйти" },
   role: { student: "Студент", moderator: "Модератор", admin: "Администратор", super_admin: "Суперадминистратор" },
   denied: { title: "Доступ запрещён", body: "Этот аккаунт не входит в штат UNIMATE, либо его роль не допускает эту страницу. Данные не показываются.", home: "Вернуться к обзору", signOut: "Выйти и использовать другой аккаунт" },
   signIn: { title: "Вход для сотрудников", body: "Войдите с аккаунтом сотрудника UNIMATE. Доступ проверяется на сервере после входа." },

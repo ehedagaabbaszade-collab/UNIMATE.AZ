@@ -1,10 +1,12 @@
+import { admin2Az } from "./admin2.az";
 import type { AdminMessages } from "./admin.types";
 
 /** Admin konsolu mətnləri (apps/admin). Açarlar admin.en.ts ilə eynidir. Yerli danışan tərəfindən yoxlanılmalıdır. */
 export const adminAz = {
+  ...admin2Az,
   title: "İdarəetmə",
   mfaNote: "Tövsiyə: işçi hesabınızı iki mərhələli doğrulama (TOTP) və unikal parol ilə qoruyun.",
-  nav: { main: "İdarəetmə naviqasiyası", dashboard: "İcmal", users: "İstifadəçilər", academic: "Akademik məlumatlar", moderation: "Moderasiya", career: "Karyera", subscriptions: "Abunəliklər", prompts: "Promptlar", signOut: "Çıxış" },
+  nav: { main: "İdarəetmə naviqasiyası", dashboard: "İcmal", users: "İstifadəçilər", academic: "Akademik məlumatlar", moderation: "Moderasiya", career: "Karyera", subscriptions: "Abunəliklər", prompts: "Promptlar", aiModels: "AI modelləri", aiRoutes: "AI marşrutları", aiBudgets: "AI büdcələri", aiVersions: "Konfiqurasiya versiyaları", aiCost: "AI xərci", analytics: "Analitika", audit: "Audit jurnalı", config: "Sistem ayarları", content: "Şablonlar və məzmun", jobs: "Emal işləri", signOut: "Çıxış" },
   role: { student: "Tələbə", moderator: "Moderator", admin: "Admin", super_admin: "Super admin" },
   denied: { title: "Giriş qadağandır", body: "Bu hesab UNIMATE işçi heyətinə aid deyil və ya rolu bu səhifəyə icazə vermir. Heç bir məlumat göstərilmir.", home: "İcmala qayıt", signOut: "Çıx və başqa hesabdan istifadə et" },
   signIn: { title: "İşçi girişi", body: "UNIMATE işçi hesabınızla daxil olun. Giriş sonrası icazə serverdə yoxlanılır." },

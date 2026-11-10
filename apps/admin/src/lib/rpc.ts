@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { RpcError, toRpcError } from "./errors";
+import { AI_PLANS, AI_TASKS, AI_TIERS } from "./ai-config";
 import { APP_ROLES } from "./guard";
 
 /**
@@ -154,6 +155,83 @@ export type OpportunityRow = z.infer<typeof opportunityRow>;
 export const promptRow = z.object({ id: z.string(), name: z.string(), version: num, template: z.string(), model: nullableStr, is_active: z.boolean(), created_at: z.string() });
 export type PromptRow = z.infer<typeof promptRow>;
 
+// ---- part 2 rows
+export const providerRow = z.object({ id: z.string(), name: z.string(), kind: z.enum(["openai", "anthropic"]), enabled: z.boolean(), base_url_label: nullableStr, updated_at: z.string() });
+export type ProviderRow = z.infer<typeof providerRow>;
+export const modelRow = z.object({
+  id: z.string(),
+  provider_id: z.string(),
+  model: z.string(),
+  tier: z.enum(AI_TIERS),
+  input_micro_usd_per_mtok: num,
+  output_micro_usd_per_mtok: num,
+  cached_input_micro_usd_per_mtok: num,
+  enabled: z.boolean(),
+  approved_fallback: z.boolean(),
+  max_output_tokens: num,
+});
+export type ModelRow = z.infer<typeof modelRow>;
+export const routeRow = z.object({ id: z.string(), task: z.enum(AI_TASKS), plan: z.enum(AI_PLANS), primary_model_id: z.string(), fallback_model_ids: z.array(z.string()), rate_limit_per_min: num });
+export type RouteRow = z.infer<typeof routeRow>;
+export const budgetRow = z.object({ id: z.string(), scope: z.enum(["user", "plan", "global"]), key: z.string(), period: z.enum(["day", "month"]), hard_limit_micro_usd: num });
+export type BudgetRow = z.infer<typeof budgetRow>;
+export const configVersionRow = z.object({
+  version: num,
+  snapshot: z.record(z.string(), z.array(z.record(z.string(), z.unknown()))),
+  action: z.string(),
+  actor_id: nullableStr,
+  reason: nullableStr,
+  created_at: z.string(),
+});
+export type ConfigVersionRow = z.infer<typeof configVersionRow>;
+export const costBucketRow = z.object({ bucket: z.string(), requests: num, input_tokens: num, output_tokens: num, cached_input_tokens: num, cost_micro_usd: num });
+export type CostBucketRow = z.infer<typeof costBucketRow>;
+export const topSpenderRow = z.object({ user_id: z.string(), requests: num, cost_micro_usd: num });
+export type TopSpenderRow = z.infer<typeof topSpenderRow>;
+export const utilisationRow = z.object({
+  scope: z.enum(["user", "plan", "global"]),
+  key: z.string(),
+  period: z.enum(["day", "month"]),
+  period_start: z.string(),
+  hard_limit_micro_usd: num,
+  spent_micro_usd: num,
+  reserved_micro_usd: num,
+  utilisation_pct: z.coerce.number().nullable(),
+});
+export type UtilisationRow = z.infer<typeof utilisationRow>;
+export const failureRateRow = z.object({ task: z.string(), requests: num, failed_billable: num, failed_unbilled: num, fallback_used: num });
+export type FailureRateRow = z.infer<typeof failureRateRow>;
+export const stuckRow = z.object({ request_id: z.string(), user_id: z.string(), task: nullableStr, estimate_micro_usd: num, age_minutes: num });
+export type StuckRow = z.infer<typeof stuckRow>;
+export const activeUsersRow = z.object({ day: z.string(), dau: num, wau: num });
+export const learningRow = z.object({ day: z.string(), quizzes_taken: num, flashcards_reviewed: num, study_minutes: num, documents_uploaded: num });
+export const cohortRow = z.object({ cohort_week: z.string(), cohort_size: num, week_offset: num, active: num });
+export type CohortRow = z.infer<typeof cohortRow>;
+export const auditRow = z.object({ id: num, actor_id: nullableStr, action: z.string(), entity_type: nullableStr, entity_id: nullableStr, metadata: z.record(z.string(), z.unknown()), created_at: z.string() });
+export type AuditRow = z.infer<typeof auditRow>;
+export const configRow = z.object({ key: z.string(), value: z.unknown(), updated_at: z.string() });
+export type ConfigRow = z.infer<typeof configRow>;
+export const configHistoryRow = z.object({ id: num, key: z.string(), value: z.unknown(), action: z.enum(["insert", "update", "delete"]), reason: nullableStr, actor_id: nullableStr, created_at: z.string() });
+export type ConfigHistoryRow = z.infer<typeof configHistoryRow>;
+export const templateRow = z.object({ key: z.string(), locale: z.string(), title: z.string(), body: nullableStr, updated_at: z.string() });
+export type TemplateRow = z.infer<typeof templateRow>;
+export const templateVersionRow = z.object({ id: num, key: z.string(), locale: z.string(), title: z.string(), body: nullableStr, reason: nullableStr, actor_id: nullableStr, created_at: z.string() });
+export type TemplateVersionRow = z.infer<typeof templateVersionRow>;
+export const contentRow = z.object({ key: z.string(), locale: z.string(), body: z.unknown(), version: num, updated_at: z.string() });
+export type ContentRow = z.infer<typeof contentRow>;
+export const contentVersionRow = z.object({ id: num, key: z.string(), locale: z.string(), version: num, body: z.unknown(), reason: nullableStr, actor_id: nullableStr, created_at: z.string() });
+export type ContentVersionRow = z.infer<typeof contentVersionRow>;
+export const jobFailureRow = z.object({ id: z.string(), document_id: z.string(), kind: z.string(), state: z.enum(["failed", "dead"]), attempts: num, max_attempts: num, last_error: z.string(), updated_at: z.string(), total: num });
+export type JobFailureRow = z.infer<typeof jobFailureRow>;
+export interface AuditFilter {
+  actor: string;
+  action: string;
+  entityType: string;
+  entityId: string;
+  from: string;
+  to: string;
+}
+
 /** Runs `sb.rpc` and validates the payload. */
 export async function rpc<T>(sb: SupabaseClient, fn: string, args: Record<string, unknown>, schema: z.ZodType<T>): Promise<T> {
   const { data, error } = await sb.rpc(fn, args);
@@ -301,6 +379,79 @@ export function createAdminApi(sb: SupabaseClient) {
     createPrompt: (v: { name: string; template: string; model: string | null; activate: boolean; reason: string }) =>
       rpc(sb, "admin_create_prompt_version", { p_name: v.name, p_template: v.template, p_model: v.model, p_activate: v.activate, p_reason: v.reason }, idRpc),
     activatePrompt: (id: string) => rpc(sb, "admin_activate_prompt_version", { p_id: id }, voidRpc),
+    // ---- AI config (reads: admin-only RLS; every write is a reason-carrying audited RPC)
+    providers: async () => (await readPage(sb.from("ai_providers").select("id,name,kind,enabled,base_url_label,updated_at", { count: "exact" }).order("name").range(0, 199), providerRow)).rows,
+    models: async () =>
+      (await readPage(sb.from("ai_models").select("id,provider_id,model,tier,input_micro_usd_per_mtok,output_micro_usd_per_mtok,cached_input_micro_usd_per_mtok,enabled,approved_fallback,max_output_tokens", { count: "exact" }).order("model").range(0, 499), modelRow)).rows,
+    routes: async () => (await readPage(sb.from("ai_task_routes").select("id,task,plan,primary_model_id,fallback_model_ids,rate_limit_per_min", { count: "exact" }).range(0, 199), routeRow)).rows,
+    budgets: async () => (await readPage(sb.from("ai_budgets").select("id,scope,key,period,hard_limit_micro_usd", { count: "exact" }).order("scope").order("key").range(0, 499), budgetRow)).rows,
+    setProvider: (v: { name: string; kind: string; enabled: boolean; baseUrlLabel: string | null; reason: string }) =>
+      rpc(sb, "admin_ai_set_provider", { p_name: v.name, p_kind: v.kind, p_enabled: v.enabled, p_base_url_label: v.baseUrlLabel, p_reason: v.reason }, idRpc),
+    setModel: (v: { providerId: string; model: string; tier: string; input: number; output: number; cached: number; maxOutputTokens: number; enabled: boolean; approvedFallback: boolean; reason: string }) =>
+      rpc(
+        sb,
+        "admin_ai_set_model",
+        { p_provider_id: v.providerId, p_model: v.model, p_tier: v.tier, p_input: v.input, p_output: v.output, p_cached: v.cached, p_max_output_tokens: v.maxOutputTokens, p_enabled: v.enabled, p_approved_fallback: v.approvedFallback, p_reason: v.reason },
+        idRpc,
+      ),
+    setRoute: (v: { task: string; plan: string; primary: string; fallbacks: string[]; rateLimit: number; reason: string }) =>
+      rpc(sb, "admin_ai_set_route", { p_task: v.task, p_plan: v.plan, p_primary_model_id: v.primary, p_fallback_model_ids: v.fallbacks, p_rate_limit_per_min: v.rateLimit, p_reason: v.reason }, idRpc),
+    deleteRoute: (task: string, plan: string, reason: string) => rpc(sb, "admin_ai_delete_route", { p_task: task, p_plan: plan, p_reason: reason }, boolRpc),
+    setBudget: (v: { scope: string; key: string; period: string; limit: number; reason: string }) =>
+      rpc(sb, "admin_ai_set_budget", { p_scope: v.scope, p_key: v.key, p_period: v.period, p_hard_limit_micro_usd: v.limit, p_reason: v.reason }, idRpc),
+    deleteBudget: (scope: string, key: string, period: string, reason: string) => rpc(sb, "admin_ai_delete_budget", { p_scope: scope, p_key: key, p_period: period, p_reason: reason }, boolRpc),
+    /** One extra row is fetched so the UI can diff each version against the one before it. */
+    configVersions: (page: number) => {
+      const { from, to } = range(page);
+      return readPage(sb.from("config_versions").select("version,snapshot,action,actor_id,reason,created_at", { count: "exact" }).order("version", { ascending: false }).range(from, to + 1), configVersionRow);
+    },
+    revertConfig: (version: number, reason: string) => rpc(sb, "admin_revert_config", { p_version: version, p_reason: reason }, num),
+    // ---- AI cost (aggregates only; ids are opaque)
+    costBreakdown: (days: number, group: "day" | "model" | "provider" | "task" | "plan") => rpc(sb, "admin_ai_cost_breakdown", { p_days: days, p_group: group }, z.array(costBucketRow)),
+    topSpenders: (days: number) => rpc(sb, "admin_ai_top_spenders", { p_days: days, p_limit: 10 }, z.array(topSpenderRow)),
+    budgetUtilisation: () => rpc(sb, "admin_ai_budget_utilisation", {}, z.array(utilisationRow)),
+    failureRates: (days: number) => rpc(sb, "admin_ai_failure_rates", { p_days: days }, z.array(failureRateRow)),
+    stuckReservations: (minutes: number) => rpc(sb, "admin_ai_stuck_reservations", { p_minutes: minutes }, z.array(stuckRow)),
+    sweepReservations: (minutes: number, reason: string) => rpc(sb, "admin_ai_sweep_reservations", { p_minutes: minutes, p_reason: reason }, num),
+    // ---- analytics (aggregates only)
+    activeUsers: (days: number) => rpc(sb, "admin_active_users", { p_days: days }, z.array(activeUsersRow)),
+    learningMetrics: (days: number) => rpc(sb, "admin_learning_metrics", { p_days: days }, z.array(learningRow)),
+    retention: (weeks: number) => rpc(sb, "admin_retention_cohorts", { p_weeks: weeks }, z.array(cohortRow)),
+    // ---- audit log (append-only; admin RLS select)
+    auditLogs: (f: AuditFilter, page: number) => {
+      const { from, to } = range(page);
+      let q = sb.from("audit_logs").select("id,actor_id,action,entity_type,entity_id,metadata,created_at", { count: "exact" });
+      if (f.actor) q = q.eq("actor_id", f.actor);
+      if (f.action) q = q.ilike("action", `${likeEscape(f.action)}%`);
+      if (f.entityType) q = q.eq("entity_type", f.entityType);
+      if (f.entityId) q = q.eq("entity_id", f.entityId);
+      if (f.from) q = q.gte("created_at", f.from);
+      if (f.to) q = q.lt("created_at", f.to);
+      return readPage(q.order("id", { ascending: false }).range(from, to), auditRow);
+    },
+    // ---- system config
+    systemConfig: async () => (await readPage(sb.from("system_config").select("key,value,updated_at", { count: "exact" }).order("key").range(0, 199), configRow)).rows,
+    systemConfigHistory: (key: string, page: number) => {
+      const { from, to } = range(page);
+      return readPage(sb.from("system_config_versions").select("id,key,value,action,reason,actor_id,created_at", { count: "exact" }).eq("key", key).order("id", { ascending: false }).range(from, to), configHistoryRow);
+    },
+    setSystemConfig: (key: string, value: unknown, reason: string) => rpc(sb, "admin_set_system_config", { p_key: key, p_value: value, p_reason: reason }, num),
+    revertSystemConfig: (versionId: number, reason: string) => rpc(sb, "admin_revert_system_config", { p_version_id: versionId, p_reason: reason }, num),
+    // ---- notification templates + system content
+    templates: async () => (await readPage(sb.from("notification_templates").select("key,locale,title,body,updated_at", { count: "exact" }).order("key").range(0, 999), templateRow)).rows,
+    templateVersions: async (key: string, locale: string) =>
+      (await readPage(sb.from("notification_template_versions").select("id,key,locale,title,body,reason,actor_id,created_at", { count: "exact" }).eq("key", key).eq("locale", locale).order("id", { ascending: false }).range(0, 19), templateVersionRow)).rows,
+    saveTemplate: (v: { key: string; locale: string; title: string; body: string | null; reason: string }) =>
+      rpc(sb, "admin_set_notification_template", { p_key: v.key, p_locale: v.locale, p_title: v.title, p_body: v.body, p_reason: v.reason }, idRpc),
+    revertTemplate: (versionId: number, reason: string) => rpc(sb, "admin_revert_notification_template", { p_version_id: versionId, p_reason: reason }, idRpc),
+    contents: async () => (await readPage(sb.from("system_content").select("key,locale,body,version,updated_at", { count: "exact" }).order("key").range(0, 999), contentRow)).rows,
+    contentVersions: async (key: string, locale: string) =>
+      (await readPage(sb.from("system_content_versions").select("id,key,locale,version,body,reason,actor_id,created_at", { count: "exact" }).eq("key", key).eq("locale", locale).order("version", { ascending: false }).range(0, 19), contentVersionRow)).rows,
+    saveContent: (v: { key: string; locale: string; body: unknown; reason: string }) => rpc(sb, "admin_set_system_content", { p_key: v.key, p_locale: v.locale, p_body: v.body, p_reason: v.reason }, num),
+    revertContent: (key: string, locale: string, version: number, reason: string) => rpc(sb, "admin_revert_system_content", { p_key: key, p_locale: locale, p_version: version, p_reason: reason }, num),
+    // ---- document processing
+    processingFailures: (state: "failed" | "dead" | null, page: number) => rpcPage(sb, "admin_processing_failures", { p_state: state, ...off(page) }, jobFailureRow),
+    requeueJob: (id: string, reason: string) => rpc(sb, "admin_requeue_job", { p_job_id: id, p_reason: reason }, boolRpc),
   };
 }
 export type AdminApi = ReturnType<typeof createAdminApi>;

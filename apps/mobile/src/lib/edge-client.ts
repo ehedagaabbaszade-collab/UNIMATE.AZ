@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import { askResultSchema, callEdge, flashcardsResultSchema, processResponseSchema, quizResultSchema, summaryResultSchema, type EdgeResult } from "./edge";
+import { askResultSchema, callEdge, flashcardsResultSchema, processResponseSchema, importResourceResponseSchema, resourceUrlResponseSchema, quizResultSchema, summaryResultSchema, type EdgeResult } from "./edge";
 import { getSupabaseEnv } from "./env";
 import { requireSupabase } from "./supabase";
 
@@ -25,3 +25,5 @@ export const generateQuizMaterial = (documentId: string, count?: number, languag
   call("generate-study-material", { documentId, type: "quiz", ...(count ? { count } : {}), ...(language ? { language } : {}) }, quizResultSchema);
 export const generateFlashcardMaterial = (documentId: string, count?: number, language?: string) =>
   call("generate-study-material", { documentId, type: "flashcards", ...(count ? { count } : {}), ...(language ? { language } : {}) }, flashcardsResultSchema);
+export const importResource = (resourceId: string) => call("import-resource", { resourceId }, importResourceResponseSchema);
+export const resourceUrl = (resourceId: string) => call("resource-url", { resourceId }, resourceUrlResponseSchema);

@@ -6,6 +6,8 @@ import type { MessageKey } from "@unimate/i18n";
 // answer is parsed, never trusted: anything that does not match is surfaced as "bad_response".
 
 export const processResponseSchema = z.object({ jobId: z.string(), created: z.boolean() });
+export const importResourceResponseSchema = z.object({ documentId: z.string().uuid(), jobId: z.string(), created: z.boolean() });
+export const resourceUrlResponseSchema = z.object({ url: z.string().url(), expiresIn: z.number(), mimeType: z.string().nullable(), filename: z.string().nullable() });
 
 export const citationSchema = z.object({
   chunk_id: z.string().uuid(),
@@ -109,7 +111,7 @@ export interface EdgeDeps {
 
 export async function callEdge<S extends z.ZodType>(
   deps: EdgeDeps,
-  name: "process-document" | "ask-document" | "generate-study-material",
+  name: "process-document" | "ask-document" | "generate-study-material" | "import-resource" | "resource-url",
   body: Record<string, unknown>,
   schema: S,
 ): Promise<EdgeResult<z.infer<S>>> {

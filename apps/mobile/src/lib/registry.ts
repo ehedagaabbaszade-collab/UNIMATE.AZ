@@ -44,6 +44,17 @@ export const MODULES: readonly ModuleEntry[] = [
     tileOrder: 1,
     hero: { order: 1, bodyKey: "mobile.home.heroAiBody", ctaKey: "mobile.home.heroAiCta" },
   },
+  {
+    id: "notes",
+    href: "/notes",
+    tabRoute: "notes",
+    icon: "notes",
+    module: "notes",
+    labelKey: "brand.module.notes",
+    tabOrder: 2,
+    tabPriority: 2,
+    tileOrder: 5,
+  },
   { id: "quiz", href: "/quizzes", icon: "quiz", tileColors: ["#7C3AED", "#4F46E5"], labelKey: "mobile.quizzes.title", tileOrder: 2 },
   { id: "flashcards", href: "/flashcards", icon: "flashcard", tileColors: ["#0E7490", "#06B6DA"], labelKey: "nav.flashcards", tileOrder: 3 },
   {

@@ -15,6 +15,7 @@ import { LocaleSwitcher } from "./prefs";
 const NAV = [
   { href: "/dashboard", key: "nav.dashboard", icon: "home", mobile: true },
   { href: "/documents", key: "nav.documents", icon: "ai-study", mobile: true },
+  { href: "/notes", key: "brand.module.notes", icon: "notes", mobile: false },
   { href: "/flashcards", key: "nav.flashcards", icon: "flashcard", mobile: false },
   { href: "/planner", key: "nav.planner", icon: "planner", mobile: true },
   { href: "/gamification", key: "brand.module.gamification", icon: "gamification", mobile: false },

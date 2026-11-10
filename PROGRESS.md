@@ -16,7 +16,8 @@ Repo: 545 vitest tests passing (46 files); `npm run typecheck` clean in all work
 | Institutions directory (sign-up/onboarding select, grouped universities vs colleges, Azerbaijani sort) | T | 22 ministry + 8 private + 13 other-body + 38 ministry colleges from edu.gov.az/Wikipedia; 24 user-supplied entries flagged `source=user_supplied_unverified` for admin verification; production web build OK |
 | Admin app | N | stub only; depends on admin ops migration |
 | Mobile (Expo) | N | stub only; starts after backend |
-| Campus / Notes marketplace / Career UI | N | tables+RLS exist; no UI |
+| Notes library (migration 4200: private `resources` bucket, create_resource, moderation, copyright hold, search, ratings/saves, contributor, shared quizzes/decks; mobile tab + web pages) | T on PGlite / U screens + edge | `import-resource` and `resource-url` edge functions untested (no Deno); pipeline orchestration tested; screens typecheck/build only |
+| Campus / Career UI | N | tables+RLS exist; no UI |
 | Payments | N | by design: entitlements + admin grant only, no checkout |
 | E2E/Playwright, load tests, CI/CD | N | |
 

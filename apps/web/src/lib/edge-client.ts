@@ -1,7 +1,7 @@
 "use client";
 
 import { z } from "zod";
-import { callEdge, askResultSchema, flashcardsResultSchema, processResponseSchema, quizResultSchema, summaryResultSchema, type EdgeResult } from "./edge";
+import { callEdge, askResultSchema, flashcardsResultSchema, processResponseSchema, importResourceResponseSchema, resourceUrlResponseSchema, quizResultSchema, summaryResultSchema, type EdgeResult } from "./edge";
 import { getBrowserClient } from "./supabase/browser";
 import { BackendNotConfiguredError, getSupabaseEnv } from "./supabase/env";
 
@@ -27,3 +27,5 @@ export const generateQuizMaterial = (documentId: string, count?: number, languag
   call("generate-study-material", { documentId, type: "quiz", ...(count ? { count } : {}), ...(language ? { language } : {}) }, quizResultSchema);
 export const generateFlashcardMaterial = (documentId: string, count?: number, language?: string) =>
   call("generate-study-material", { documentId, type: "flashcards", ...(count ? { count } : {}), ...(language ? { language } : {}) }, flashcardsResultSchema);
+export const importResource = (resourceId: string) => call("import-resource", { resourceId }, importResourceResponseSchema);
+export const resourceUrl = (resourceId: string) => call("resource-url", { resourceId }, resourceUrlResponseSchema);

@@ -31,7 +31,7 @@ describe("schema shape", () => {
        where n.nspname = 'public' and c.relkind in ('r', 'p') order by 1`,
     );
     console.info(`public tables: ${tables.length}`);
-    expect(tables.length).toBe(64); // +achievements, user_achievements, challenges, user_challenge_progress (…4000); +quiz_first_attempts (…3800); +8 AI cost tables (…1900); +3 i18n (…3300); +question_keys (…3500)
+    expect(tables.length).toBe(69); // +shared_quizzes, shared_quiz_questions, shared_quiz_keys, shared_decks, shared_deck_cards (…4200); +achievements, user_achievements, challenges, user_challenge_progress (…4000); +quiz_first_attempts (…3800); +8 AI cost tables (…1900); +3 i18n (…3300); +question_keys (…3500)
     expect(tables.filter((t) => !t.relrowsecurity).map((t) => t.relname)).toEqual([]);
     expect(tables.filter((t) => t.policies === 0).map((t) => t.relname)).toEqual([]);
   });

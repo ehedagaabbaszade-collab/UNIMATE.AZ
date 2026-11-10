@@ -147,7 +147,7 @@ export function classifyFailure(e: unknown): Failure {
 
 const LEGACY_TASK: Record<RouteTask, AiTask> = {
   extract_cleanup: "ocr_cleanup", summarize: "summarize", rag: "chat", chat: "chat", quiz: "quiz",
-  flashcards: "flashcards", exam_simulation: "quiz", embed: "embed",
+  flashcards: "flashcards", exam_simulation: "quiz", embed: "embed", cv_feedback: "cv_feedback", interview_prep: "interview_prep",
 };
 /** Deliberately pessimistic (3 chars/token) so the reservation covers real usage; the excess is released at settle. */
 export const approxTokens = (chars: number): number => Math.ceil(chars / 3);

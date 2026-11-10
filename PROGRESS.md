@@ -17,7 +17,8 @@ Repo: 545 vitest tests passing (46 files); `npm run typecheck` clean in all work
 | Admin app | N | stub only; depends on admin ops migration |
 | Mobile (Expo) | N | stub only; starts after backend |
 | Notes library (migration 4200: private `resources` bucket, create_resource, moderation, copyright hold, search, ratings/saves, contributor, shared quizzes/decks; mobile tab + web pages) | T on PGlite / U screens + edge | `import-resource` and `resource-url` edge functions untested (no Deno); pipeline orchestration tested; screens typecheck/build only |
-| Campus / Career UI | N | tables+RLS exist; no UI |
+| Career (migrations 4300/4310: organizations, opportunities, self-tracking, CV documents, `cv_feedback`/`interview_prep` AI tasks; admin RPCs; az/tr-aware search; CV completeness, skill gap; mobile tab + web pages; CV print/PDF) | T on PGlite / U screens + edge | no listings exist until an admin creates them; applications are external; `cv-feedback`/`interview-prep` edge functions untested (no Deno) and answer ai_not_configured until routes are set; `expo-print` export unverified on a device; admin UI not built (RPCs only) |
+| Campus UI | N | tables+RLS exist; no UI |
 | Payments | N | by design: entitlements + admin grant only, no checkout |
 | E2E/Playwright, load tests, CI/CD | N | |
 

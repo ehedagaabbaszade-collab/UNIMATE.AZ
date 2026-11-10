@@ -14,3 +14,6 @@ export * from "./gamification/level";
 export * from "./gamification/progress";
 export * from "./study/srs";
 export * from "./notes/notes";
+export * from "./career/career";
+export * from "./career/ai";
+export * from "./career/cv-html";

@@ -55,6 +55,18 @@ export const MODULES: readonly ModuleEntry[] = [
     tabPriority: 2,
     tileOrder: 5,
   },
+  {
+    id: "career",
+    href: "/career",
+    tabRoute: "career",
+    icon: "career",
+    module: "career",
+    labelKey: "brand.module.career",
+    // Lowest tab priority: the bar keeps AI Study, Notes and Planner; Career is a Home tile (its tab file stays hidden).
+    tabOrder: 5,
+    tabPriority: 10,
+    tileOrder: 6,
+  },
   { id: "quiz", href: "/quizzes", icon: "quiz", tileColors: ["#7C3AED", "#4F46E5"], labelKey: "mobile.quizzes.title", tileOrder: 2 },
   { id: "flashcards", href: "/flashcards", icon: "flashcard", tileColors: ["#0E7490", "#06B6DA"], labelKey: "nav.flashcards", tileOrder: 3 },
   {

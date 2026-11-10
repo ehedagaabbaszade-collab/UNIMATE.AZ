@@ -35,7 +35,7 @@ Code: `packages/core/src/ai/config.ts` (pure `resolveRoute`, cost math, `parseAi
 | - | - |
 | `ai_providers` | name, kind (`openai`/`anthropic`), enabled, `base_url_label` (a label, never a URL with credentials) |
 | `ai_models` | provider, model, tier, input / output / cached-input price in micro-USD per 1M tokens (1 USD/MTok = 1,000,000), enabled, `approved_fallback`, `max_output_tokens` |
-| `ai_task_routes` | (task, plan) -> primary model + ordered fallback models + `rate_limit_per_min`. Tasks: `extract_cleanup summarize rag chat quiz flashcards exam_simulation embed`; plans `free plus pro` |
+| `ai_task_routes` | (task, plan) -> primary model + ordered fallback models + `rate_limit_per_min`. Tasks: `extract_cleanup summarize rag chat quiz flashcards exam_simulation embed cv_feedback interview_prep`; plans `free plus pro` |
 | `ai_budgets` | scope `user` (key = user id, or `*` = default per user) / `plan` (`free plus pro`) / `global` (`*`), period `day`/`month`, `hard_limit_micro_usd` |
 | `config_versions` | full snapshot after every admin write; `admin_revert_config(version, reason)` restores one (validated, audited, recorded as a new version) |
 
@@ -72,3 +72,6 @@ To replace a provider, add the new models, point the routes at them, then disabl
 3. Upload a document containing prompt-injection text; confirm it is ignored.
 4. Check `ai_usage` costs against the provider dashboard; adjust prices with `admin_set_ai_model`.
 5. Confirm quotas stop FREE users at the documented limits.
+
+### Career tasks (`cv_feedback`, `interview_prep`)
+Added by migration `20260101004300` with NO route rows: until an admin calls `admin_set_ai_route` for them (per plan), the `cv-feedback` and `interview-prep` edge functions answer `503 ai_not_configured` before reading any user data or spending quota. CV text is sent without name, e-mail, phone or links.

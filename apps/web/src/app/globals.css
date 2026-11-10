@@ -175,3 +175,11 @@
 .bell:hover { background: var(--surface-2); }
 .bell:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 .bell__dot { position: absolute; top: 9px; right: 10px; width: 10px; height: 10px; border-radius: 50%; background: var(--danger); box-shadow: 0 0 0 2px var(--nav-bg, var(--surface)); }
+
+/* CV print page (features/career/CvPrint): only the CV prints, everything else is hidden. */
+@media print {
+  body:has(.cv-print-area) * { visibility: hidden !important; }
+  .cv-print-area, .cv-print-area * { visibility: visible !important; }
+  .cv-print-area { position: absolute; inset: 0 auto auto 0; width: 100%; background: #fff; color: #000; }
+  @page { margin: 16mm; }
+}

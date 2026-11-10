@@ -6,7 +6,7 @@ export interface TokenUsage {
   /** Prompt tokens served from the provider's cache (billed at the cached price). Adapters leave it unset when unknown. */
   cachedInputTokens?: number;
 }
-export type AiTask = "chat" | "summarize" | "quiz" | "flashcards" | "ocr_cleanup" | "embed";
+export type AiTask = "chat" | "summarize" | "quiz" | "flashcards" | "ocr_cleanup" | "embed" | "cv_feedback" | "interview_prep";
 export type ModelTier = "small" | "standard" | "premium";
 
 export interface GenerateRequest {
@@ -51,10 +51,10 @@ export class ProviderNotConfiguredError extends Error {
  * Assumption: paid plans get stronger tiers on reasoning-heavy tasks.
  */
 export const MODEL_ROUTING: Record<PlanId, Record<AiTask, ModelTier>> = {
-  FREE: { chat: "small", summarize: "small", quiz: "small", flashcards: "small", ocr_cleanup: "small", embed: "small" },
-  PLUS: { chat: "standard", summarize: "standard", quiz: "standard", flashcards: "small", ocr_cleanup: "small", embed: "small" },
-  PRO: { chat: "premium", summarize: "standard", quiz: "premium", flashcards: "standard", ocr_cleanup: "small", embed: "small" },
-  GROUP: { chat: "standard", summarize: "standard", quiz: "standard", flashcards: "standard", ocr_cleanup: "small", embed: "small" },
+  FREE: { chat: "small", summarize: "small", quiz: "small", flashcards: "small", ocr_cleanup: "small", embed: "small", cv_feedback: "small", interview_prep: "small" },
+  PLUS: { chat: "standard", summarize: "standard", quiz: "standard", flashcards: "small", ocr_cleanup: "small", embed: "small", cv_feedback: "standard", interview_prep: "standard" },
+  PRO: { chat: "premium", summarize: "standard", quiz: "premium", flashcards: "standard", ocr_cleanup: "small", embed: "small", cv_feedback: "standard", interview_prep: "standard" },
+  GROUP: { chat: "standard", summarize: "standard", quiz: "standard", flashcards: "standard", ocr_cleanup: "small", embed: "small", cv_feedback: "standard", interview_prep: "standard" },
 };
 
 export function routeModel(plan: PlanId, task: AiTask): ModelTier {

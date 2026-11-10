@@ -6,7 +6,7 @@ import type { AiTask, ModelTier } from "./provider";
  * it; nothing here reads the environment and nothing defaults to a model: no route means `ai_not_configured`.
  * Prices are integer micro-USD per 1,000,000 tokens (1 USD/MTok = 1_000_000).
  */
-export const ROUTE_TASKS = ["extract_cleanup", "summarize", "rag", "chat", "quiz", "flashcards", "exam_simulation", "embed"] as const;
+export const ROUTE_TASKS = ["extract_cleanup", "summarize", "rag", "chat", "quiz", "flashcards", "exam_simulation", "embed", "cv_feedback", "interview_prep"] as const;
 export type RouteTask = (typeof ROUTE_TASKS)[number];
 export const ROUTE_PLANS = ["free", "plus", "pro"] as const;
 export type RoutePlan = (typeof ROUTE_PLANS)[number];

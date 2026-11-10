@@ -17,6 +17,7 @@ import {
   BudgetExceededError,
   RateLimitedError,
   SqlAiLedger,
+  SqlCareerStore,
   parseAllowedOrigin,
   publicError,
   tesseractLangPathFromEnv,
@@ -131,6 +132,12 @@ export const ocrLangPath = (): string | undefined => tesseractLangPathFromEnv(De
 export function aiConfig() {
   const provider = createProviderFromEnv(Deno.env.toObject());
   return { provider, guard: new GuardedProvider({ ledger: new SqlAiLedger(executor), provider }) };
+}
+
+/** Career AI (cv-feedback, interview-prep): same guarded provider, plus the CV/listing/cache store. */
+export function careerDeps() {
+  const { guard } = aiConfig();
+  return { repo: repository(), store: new SqlCareerStore(executor), guard };
 }
 
 /** Maps pipeline errors to HTTP. Internal details are never returned. */

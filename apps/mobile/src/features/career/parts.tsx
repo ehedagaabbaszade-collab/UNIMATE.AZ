@@ -1,9 +1,9 @@
 import { deadlineView, todayInBaku, type OpportunityKind, type OpportunityListItem, type TrackStatus } from "@unimate/core";
 import type { IconName } from "@unimate/ui/icons";
 import { useI18n } from "@unimate/i18n/react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { Icon } from "../../components/Icon";
-import { AppText, Badge, Card, type BadgeTone } from "../../components/ui";
+import { AppText, Badge, Card, type BadgeTone, PressableScale } from "../../components/ui";
 import { useTheme } from "../../theme/ThemeProvider";
 
 export const KIND_ICON: Record<OpportunityKind, IconName> = {
@@ -36,7 +36,7 @@ export function OpportunityCard({ item, onPress }: { item: OpportunityListItem; 
   const { t } = useI18n();
   const { theme } = useTheme();
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`${item.title}, ${item.organizationName}`}>
+    <PressableScale onPress={onPress} accessibilityRole="button" accessibilityLabel={`${item.title}, ${item.organizationName}`}>
       <Card>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           <Icon name={KIND_ICON[item.kind]} size="sm" color={theme.active} />
@@ -58,6 +58,6 @@ export function OpportunityCard({ item, onPress }: { item: OpportunityListItem; 
         ) : null}
         <DeadlineLabel deadline={item.deadline} />
       </Card>
-    </Pressable>
+    </PressableScale>
   );
 }

@@ -4,10 +4,10 @@ import * as Sharing from "expo-sharing";
 import { File, Paths } from "expo-file-system";
 import { useFocusEffect, useRouter, type Href } from "expo-router";
 import { useCallback, useRef, useState } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { LanguageSelector } from "../../components/LanguageSelector";
 import { ModuleIcon } from "../../components/Icon";
-import { AppText, Badge, Button, Card, Dialog, Input, Notice, Screen, Segmented, useToast } from "../../components/ui";
+import { AppText, Badge, Button, Card, Dialog, Input, Notice, Screen, Segmented, useToast, PressableScale } from "../../components/ui";
 import { LEGAL_LABEL, LEGAL_SLUGS } from "../../lib/legal";
 import { fieldErrors, profileNameSchema } from "../../lib/schemas";
 import { unwrap, useAsync } from "../../lib/use-async";
@@ -146,9 +146,9 @@ export function ProfileScreen() {
       <Card>
         <AppText variant="heading">{t("settings.privacy")}</AppText>
         {LEGAL_SLUGS.map((s) => (
-          <Pressable key={s} onPress={() => router.push(`/legal/${s}` as Href)} accessibilityRole="link" style={{ minHeight: 44, justifyContent: "center" }}>
+          <PressableScale key={s} onPress={() => router.push(`/legal/${s}` as Href)} accessibilityRole="link" style={{ minHeight: 44, justifyContent: "center" }}>
             <AppText style={{ color: theme.active, fontWeight: "600" }}>{t(`legal.${LEGAL_LABEL[s]}`)}</AppText>
-          </Pressable>
+          </PressableScale>
         ))}
       </Card>
 

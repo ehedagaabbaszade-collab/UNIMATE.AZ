@@ -1,8 +1,8 @@
 import { useI18n } from "@unimate/i18n/react";
 import * as Crypto from "expo-crypto";
 import { useState } from "react";
-import { Pressable, View } from "react-native";
-import { AppText, Button, Card, EmptyState, Skeleton, useToast } from "../../components/ui";
+import { View } from "react-native";
+import { AppText, Button, Card, EmptyState, Skeleton, useToast, PressableScale } from "../../components/ui";
 import { buildAnswers, parseOptions, parseSubmitResult, type QuizQuestion, type SubmitResult } from "../../lib/quiz";
 import { unwrap, useAsync } from "../../lib/use-async";
 import { useUser } from "../../state/session";
@@ -101,9 +101,9 @@ export function QuizTaker({ quizId, onExit }: { quizId: string; onExit: () => vo
         {q.options.map((o, i) => {
           const on = choice === i;
           return (
-            <Pressable key={i} onPress={() => setChoices((c) => ({ ...c, [q.id]: i }))} accessibilityRole="radio" accessibilityState={{ checked: on }} style={{ minHeight: MIN_TOUCH + 4, padding: 12, borderRadius: radii.md, borderWidth: 1.5, borderColor: on ? theme.primary : theme.border, backgroundColor: on ? theme.primarySoft : theme.card, justifyContent: "center" }}>
+            <PressableScale key={i} onPress={() => setChoices((c) => ({ ...c, [q.id]: i }))} accessibilityRole="radio" accessibilityState={{ checked: on }} style={{ minHeight: MIN_TOUCH + 4, padding: 12, borderRadius: radii.md, borderWidth: 1.5, borderColor: on ? theme.primary : theme.border, backgroundColor: on ? theme.primarySoft : theme.card, justifyContent: "center" }}>
               <AppText>{o}</AppText>
-            </Pressable>
+            </PressableScale>
           );
         })}
       </View>

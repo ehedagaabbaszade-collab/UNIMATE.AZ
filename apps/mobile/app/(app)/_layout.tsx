@@ -4,7 +4,7 @@ import { kv, onboardingSkipKey } from "../../src/lib/storage";
 import { useSession } from "../../src/state/session";
 import { useTheme } from "../../src/theme/ThemeProvider";
 
-export const unstable_settings = { initialRouteName: "(tabs)" };
+export const unstable_settings = { anchor: "(tabs)" };
 
 /** Signed-in area. A new account without an institution is sent to onboarding once (it can be skipped). */
 export default function AppLayout() {
@@ -23,5 +23,11 @@ export default function AppLayout() {
   const needsOnboarding = !!state.profile && !state.profile.university_id && skipped === false;
   if (needsOnboarding && pathname !== "/onboarding") return <Redirect href="/onboarding" />;
 
-  return <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.bg } }} />;
+  return (
+    <Stack screenOptions={{ headerShown: false, animation: "slide_from_right", fullScreenGestureEnabled: true, gestureEnabled: true, contentStyle: { backgroundColor: theme.bg } }}>
+      <Stack.Screen name="more" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
+      <Stack.Screen name="notifications" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
+      <Stack.Screen name="focus" options={{ animation: "fade_from_bottom" }} />
+    </Stack>
+  );
 }

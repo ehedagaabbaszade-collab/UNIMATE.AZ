@@ -2,9 +2,10 @@ import { CV_LANGUAGES, CV_MAX_DOCUMENTS, OPPORTUNITY_KINDS, OPPORTUNITY_PAGE_SIZ
 import { useI18n } from "@unimate/i18n/react";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Linking, Pressable, View } from "react-native";
+import { Linking, View } from "react-native";
 import { Icon, ModuleIcon } from "../../components/Icon";
-import { AppText, Badge, Button, Card, EmptyState, ErrorState, Input, Screen, Segmented, Skeleton, useOnline, useToast } from "../../components/ui";
+import { WorkAzSection } from "./WorkAzSection";
+import { AppText, Badge, Button, Card, EmptyState, ErrorState, Input, Screen, Segmented, Skeleton, useOnline, useToast, PressableScale } from "../../components/ui";
 import { useAsync } from "../../lib/use-async";
 import { useUser } from "../../state/session";
 import { InterviewPanel } from "./InterviewPanel";
@@ -60,6 +61,15 @@ function Feed() {
   const filtered = JSON.stringify(f) !== JSON.stringify(DEFAULT_FILTERS);
   return (
     <View style={{ gap: 12 }}>
+      <WorkAzSection />
+      <PressableScale onPress={() => router.push("/colleges" as never)} accessibilityRole="button" accessibilityLabel={t("colleges.title")}>
+        <Card>
+          <AppText variant="heading">{t("colleges.title")} {"›"}</AppText>
+          <AppText variant="caption" muted>
+            {t("colleges.subtitle")}
+          </AppText>
+        </Card>
+      </PressableScale>
       <Input label={t("career.search.label")} placeholder={t("career.search.placeholder")} value={f.q} onChangeText={(v) => set("q", v)} returnKeyType="search" autoCorrect={false} />
       <Segmented
         label={t("career.tabs.opportunities")}
@@ -67,10 +77,10 @@ function Feed() {
         onChange={(v) => set("kind", v)}
         options={[{ value: "", label: t("career.kind.all") }, ...OPPORTUNITY_KINDS.map((k) => ({ value: k, label: t(`career.kind.${k}`) }))]}
       />
-      <Pressable onPress={() => setShowFilters((s) => !s)} accessibilityRole="button" accessibilityState={{ expanded: showFilters }} accessibilityLabel={t("career.filters.workMode")} style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 44 }}>
+      <PressableScale onPress={() => setShowFilters((s) => !s)} accessibilityRole="button" accessibilityState={{ expanded: showFilters }} accessibilityLabel={t("career.filters.workMode")} style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 44 }}>
         <Icon name="search" size="sm" />
         <AppText variant="label">{t("career.filters.location")} · {t("career.filters.closing")} · {t("career.filters.skills")}</AppText>
-      </Pressable>
+      </PressableScale>
       {showFilters ? (
         <Card>
           <Input label={t("career.filters.location")} placeholder={t("career.filters.locationPlaceholder")} value={f.location} onChangeText={(v) => set("location", v)} autoCorrect={false} />
@@ -276,7 +286,7 @@ function CvList() {
   const list = cvs.data ?? [];
   return (
     <View style={{ gap: 12 }}>
-      <Button title={t("career.cv.create")} icon={<Icon name="add" size="sm" color="#FFFFFF" />} loading={busy} disabled={list.length >= CV_MAX_DOCUMENTS} onPress={() => void create()} />
+      <Button title={t("career.cv.create")} icon={<Icon name="add" size="sm" />} loading={busy} disabled={list.length >= CV_MAX_DOCUMENTS} onPress={() => void create()} />
       {list.length >= CV_MAX_DOCUMENTS ? (
         <AppText variant="caption" muted>
           {t("career.cv.limit")}
@@ -286,7 +296,7 @@ function CvList() {
         <EmptyState title={t("career.empty.cvs")} description={t("career.empty.cvsBody")} />
       ) : (
         list.map((c) => (
-          <Pressable key={c.id} accessibilityRole="button" accessibilityLabel={c.title} onPress={() => router.push({ pathname: "/career/cv/[id]", params: { id: c.id } })}>
+          <PressableScale key={c.id} accessibilityRole="button" accessibilityLabel={c.title} onPress={() => router.push({ pathname: "/career/cv/[id]", params: { id: c.id } })}>
             <Card>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <Icon name="cv" size="sm" />
@@ -298,7 +308,7 @@ function CvList() {
                 {date(c.updatedAt)}
               </AppText>
             </Card>
-          </Pressable>
+          </PressableScale>
         ))
       )}
     </View>

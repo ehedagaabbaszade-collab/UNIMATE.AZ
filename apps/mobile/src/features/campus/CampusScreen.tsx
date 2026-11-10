@@ -2,9 +2,9 @@ import { CAMPUS_LIMITS, CREATABLE_COMMUNITY_KINDS, COMMUNITY_KINDS, campusTextPr
 import { useI18n } from "@unimate/i18n/react";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { Icon } from "../../components/Icon";
-import { AppText, Button, Card, EmptyState, ErrorState, Input, Screen, Segmented, Skeleton, useOnline, useToast } from "../../components/ui";
+import { AppText, Button, Card, EmptyState, ErrorState, Input, Screen, Segmented, Skeleton, useOnline, useToast, PressableScale } from "../../components/ui";
 import { useAsync } from "../../lib/use-async";
 import { useUser } from "../../state/session";
 import { useTheme } from "../../theme/ThemeProvider";
@@ -442,7 +442,7 @@ function SearchResults({ q }: { q: string }) {
   if (res.error && !res.data) return <ErrorState title={t("campus.loadFailed")} action={<Button title={t("common.retry")} onPress={res.reload} />} />;
   if (empty) return <EmptyState title={t("campus.search.empty")} />;
   const row = (key: string, title: string, sub: string, href: string, icon: "group" | "post" | "profile") => (
-    <Pressable key={key} onPress={() => router.push(href)} accessibilityRole="button" accessibilityLabel={`${title}. ${sub}`}>
+    <PressableScale key={key} onPress={() => router.push(href)} accessibilityRole="button" accessibilityLabel={`${title}. ${sub}`}>
       <Card>
         <View style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
           <Icon name={icon} size="sm" color={theme.active} />
@@ -456,7 +456,7 @@ function SearchResults({ q }: { q: string }) {
           </View>
         </View>
       </Card>
-    </Pressable>
+    </PressableScale>
   );
   return (
     <View style={{ gap: 10 }}>
@@ -492,12 +492,12 @@ export function CampusScreen() {
           </AppText>
           <AppText muted>{t("campus.subtitle")}</AppText>
         </View>
-        <Pressable onPress={() => router.push(`/campus/user/${user.id}`)} accessibilityRole="button" accessibilityLabel={t("campus.profile.title")} hitSlop={8} style={{ minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center" }}>
+        <PressableScale onPress={() => router.push(`/campus/user/${user.id}`)} accessibilityRole="button" accessibilityLabel={t("campus.profile.title")} hitSlop={8} style={{ minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center" }}>
           <Icon name="profile" size="md" />
-        </Pressable>
-        <Pressable onPress={() => router.push("/notifications")} accessibilityRole="button" accessibilityLabel={t("notifications.bell")} hitSlop={8} style={{ minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center" }}>
+        </PressableScale>
+        <PressableScale onPress={() => router.push("/notifications")} accessibilityRole="button" accessibilityLabel={t("notifications.bell")} hitSlop={8} style={{ minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center" }}>
           <Icon name="notifications" size="md" />
-        </Pressable>
+        </PressableScale>
       </View>
       <Input label={t("campus.search.label")} placeholder={t("campus.search.placeholder")} value={q} onChangeText={setQ} returnKeyType="search" autoCorrect={false} hint={q.length > 0 && q.trim().length < 2 ? t("campus.search.hint") : undefined} />
       {searching ? (

@@ -4,11 +4,12 @@ import type { IconName } from "@unimate/ui/icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter, type Href } from "expo-router";
 import { useCallback, useRef, useState } from "react";
-import { FlatList, Pressable, View, useWindowDimensions } from "react-native";
+import { Animated, FlatList, Pressable, View, useWindowDimensions } from "react-native";
+import { useReducedMotion } from "../../../src/lib/motion";
 import { BrandHeader } from "../../../src/components/Brand";
 import { Icon, ModuleIcon } from "../../../src/components/Icon";
 import { ProgressRing } from "../../../src/components/ProgressRing";
-import { AppText, Badge, Card, EmptyState, Screen, Skeleton } from "../../../src/components/ui";
+import { AppText, Badge, Card, EmptyState, PressableScale, Reveal, Screen, Skeleton, SkeletonCard } from "../../../src/components/ui";
 import { useSchedule } from "../../../src/features/planner/useSchedule";
 import { heroModules, tileLayout, type ModuleEntry } from "../../../src/lib/registry";
 import { upcomingItems } from "../../../src/lib/schedule";
@@ -36,10 +37,13 @@ function HeroCarousel({ items }: { items: ModuleEntry[] }) {
   const cardW = width - spacing.lg * 2;
   const [page, setPage] = useState(0);
   const listRef = useRef<FlatList<ModuleEntry>>(null);
+  const reduced = useReducedMotion();
+  const scrollX = useRef(new Animated.Value(0)).current;
+  const step = cardW + spacing.md;
   if (items.length === 0) return null;
   return (
     <View style={{ gap: spacing.sm }}>
-      <FlatList
+      <Animated.FlatList
         ref={listRef}
         data={items}
         horizontal
@@ -49,9 +53,16 @@ function HeroCarousel({ items }: { items: ModuleEntry[] }) {
         showsHorizontalScrollIndicator={false}
         keyExtractor={(m) => m.id}
         ItemSeparatorComponent={() => <View style={{ width: spacing.md }} />}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], { useNativeDriver: true })}
+        scrollEventThrottle={16}
         onMomentumScrollEnd={(e) => setPage(Math.round(e.nativeEvent.contentOffset.x / (cardW + spacing.md)))}
         accessibilityLabel={t("mobile.home.modules")}
-        renderItem={({ item, index }) => (
+        renderItem={({ item, index }) => {
+          const range = [(index - 1) * step, index * step, (index + 1) * step];
+          const cardStyle = reduced ? null : { opacity: scrollX.interpolate({ inputRange: range, outputRange: [0.65, 1, 0.65], extrapolate: "clamp" }), transform: [{ scale: scrollX.interpolate({ inputRange: range, outputRange: [0.94, 1, 0.94], extrapolate: "clamp" }) }] };
+          const iconStyle = reduced ? null : { transform: [{ translateX: scrollX.interpolate({ inputRange: range, outputRange: [48, 0, -48], extrapolate: "clamp" }) }] };
+          return (
+          <Animated.View style={cardStyle}>
           <LinearGradient colors={[...theme.gradient]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: cardW, borderRadius: radii.xl, padding: spacing.lg, flexDirection: "row", gap: spacing.md, overflow: "hidden", borderWidth: 1, borderColor: "rgba(255,255,255,0.25)" }} accessibilityLabel={t("mobile.home.heroPage", { a: index + 1, b: items.length })}>
             <View style={{ flex: 1, gap: spacing.sm }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
@@ -61,20 +72,22 @@ function HeroCarousel({ items }: { items: ModuleEntry[] }) {
                 </AppText>
               </View>
               <AppText style={{ color: "#EEF0FF" }}>{t(item.hero!.bodyKey)}</AppText>
-              <Pressable onPress={() => go(router, item.href)} accessibilityRole="button" accessibilityLabel={`${t(item.labelKey)}: ${t(item.hero!.ctaKey)}`} style={{ alignSelf: "flex-start", minHeight: MIN_TOUCH, borderRadius: radii.pill, backgroundColor: "#FFFFFF", paddingHorizontal: spacing.lg, justifyContent: "center", flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+              <PressableScale onPress={() => go(router, item.href)} accessibilityRole="button" accessibilityLabel={`${t(item.labelKey)}: ${t(item.hero!.ctaKey)}`} style={{ alignSelf: "flex-start", minHeight: MIN_TOUCH, borderRadius: radii.pill, backgroundColor: "#FFFFFF", paddingHorizontal: spacing.lg, justifyContent: "center", flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
                 <AppText variant="label" style={{ color: "#3B2FC9", fontWeight: "800" }}>
                   {t(item.hero!.ctaKey)}
                 </AppText>
                 <AppText variant="label" style={{ color: "#3B2FC9", fontWeight: "800" }}>
                   {"→"}
                 </AppText>
-              </Pressable>
+              </PressableScale>
             </View>
-            <View style={{ alignSelf: "center" }}>
+            <Animated.View style={[{ alignSelf: "center" }, iconStyle]}>
               <ModuleIcon icon={item.icon} {...(item.module ? { module: item.module } : {})} size={72} />
-            </View>
+            </Animated.View>
           </LinearGradient>
-        )}
+          </Animated.View>
+          );
+        }}
       />
       {items.length > 1 ? (
         <View style={{ flexDirection: "row", justifyContent: "center", gap: 8 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
@@ -97,20 +110,20 @@ function TileGrid({ items, hasMore }: { items: ModuleEntry[]; hasMore: boolean }
   return (
     <View accessibilityRole="menu" accessibilityLabel={t("mobile.home.modules")} style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.md }}>
       {items.map((m, i) => (
-        <Pressable key={m.id} onPress={() => go(router, m.href)} accessibilityRole="button" accessibilityLabel={t(m.labelKey)} style={{ ...box, backgroundColor: i === 0 ? theme.primarySoft : theme.card }}>
+        <PressableScale key={m.id} onPress={() => go(router, m.href)} accessibilityRole="button" accessibilityLabel={t(m.labelKey)} style={{ ...box, backgroundColor: i === 0 ? theme.primarySoft : theme.card }}>
           <ModuleIcon icon={m.icon} {...(m.module ? { module: m.module } : {})} {...(m.tileColors ? { colors: m.tileColors } : {})} size={40} />
           <AppText variant="label" numberOfLines={2} style={{ textAlign: "center" }}>
             {t(m.labelKey)}
           </AppText>
-        </Pressable>
+        </PressableScale>
       ))}
       {hasMore ? (
-        <Pressable onPress={() => router.push("/more")} accessibilityRole="button" accessibilityLabel={t("nav.more")} style={{ ...box, backgroundColor: theme.card }}>
-          <ModuleIcon icon="more" colors={["#475569", "#334155"]} size={40} />
+        <PressableScale onPress={() => router.push("/more")} accessibilityRole="button" accessibilityLabel={t("nav.more")} style={{ ...box, backgroundColor: theme.card }}>
+          <ModuleIcon icon="more" size={40} />
           <AppText variant="label" style={{ textAlign: "center" }}>
             {t("nav.more")}
           </AppText>
-        </Pressable>
+        </PressableScale>
       ) : null}
     </View>
   );
@@ -172,10 +185,15 @@ export default function Home() {
         <AppText muted>{t("mobile.home.subtitle")}</AppText>
       </View>
 
-      <HeroCarousel items={heroModules()} />
-      <TileGrid items={layout.tiles} hasMore={layout.overflow.length > 0} />
+      <Reveal index={1}>
+        <HeroCarousel items={heroModules()} />
+      </Reveal>
+      <Reveal index={2}>
+        <TileGrid items={layout.tiles} hasMore={layout.overflow.length > 0} />
+      </Reveal>
 
-      <Pressable onPress={() => go(router, "/gamification")} accessibilityRole="button" accessibilityLabel={t("brand.module.gamification")}>
+      <Reveal index={3}>
+      <PressableScale scaleTo={0.985} onPress={() => go(router, "/gamification")} accessibilityRole="button" accessibilityLabel={t("brand.module.gamification")}>
         <Card accessibilityRole="summary">
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
             <AppText variant="heading">{t("mobile.home.progressTitle")}</AppText>
@@ -190,7 +208,7 @@ export default function Home() {
             <Skeleton height={96} />
           ) : progress ? (
             <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.lg }}>
-              <ProgressRing fraction={progress.level_progress} track={theme.cardStrong} from="#22D3EE" to="#A855F7" label={t("gamification.levelProgress")}>
+              <ProgressRing fraction={progress.level_progress} track={theme.cardStrong} from="#06B6DA" to="#4F46E5" label={t("gamification.levelProgress")}>
                 {percent(progress.level_progress, { maximumFractionDigits: 0 })}
               </ProgressRing>
               <View style={{ flex: 1, gap: spacing.sm }}>
@@ -212,7 +230,8 @@ export default function Home() {
             <AppText muted>{t("dashboard.loadFailed")}</AppText>
           )}
         </Card>
-      </Pressable>
+      </PressableScale>
+      </Reveal>
 
       <View style={{ gap: spacing.sm }}>
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
@@ -226,15 +245,16 @@ export default function Home() {
           </Pressable>
         </View>
         {schedule.loading && !schedule.data ? (
-          <Skeleton height={64} />
+          <SkeletonCard lines={1} />
         ) : upcoming.length === 0 ? (
           <EmptyState title={t("dashboard.nothingUpcoming")} />
         ) : (
-          upcoming.map((u) => {
+          upcoming.map((u, ui) => {
             const isToday = localDay(new Date(u.at)) === today;
             const overdue = new Date(u.at).getTime() < now.getTime();
             return (
-              <Card key={`${u.kind}-${u.id}`} style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
+              <Reveal key={`${u.kind}-${u.id}`} index={4 + ui}>
+              <Card style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
                 <Icon name={u.kind === "exam" ? "exams" : "tasks"} color={theme.active} />
                 <View style={{ flex: 1 }}>
                   <AppText style={{ fontWeight: "600" }}>{u.title}</AppText>
@@ -244,6 +264,7 @@ export default function Home() {
                 </View>
                 {overdue && u.kind === "task" ? <Badge tone="danger">{t("planner.overdue")}</Badge> : isToday ? <Badge tone="warning">{t("mobile.home.dueToday")}</Badge> : u.kind === "exam" ? <Badge tone="warning">{t("planner.tabs.exams")}</Badge> : null}
               </Card>
+              </Reveal>
             );
           })
         )}

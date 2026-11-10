@@ -3,9 +3,9 @@ import { CAMPUS_LIMITS, campusTextProblem } from "@unimate/core";
 import { useI18n } from "@unimate/i18n/react";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Pressable, Share, View } from "react-native";
+import { Share, View } from "react-native";
 import { Icon } from "../../components/Icon";
-import { AppText, Badge, Button, Card, Dialog, EmptyState, ErrorState, Input, Screen, ScreenHeader, Segmented, Skeleton, useOnline, useToast } from "../../components/ui";
+import { AppText, Badge, Button, Card, Dialog, EmptyState, ErrorState, Input, Screen, ScreenHeader, Segmented, Skeleton, useOnline, useToast, PressableScale } from "../../components/ui";
 import { useAsync } from "../../lib/use-async";
 import { useUser } from "../../state/session";
 import { communityFeed, communityMembers, getCommunity, inviteCode, joinCommunity, leaveCommunity, listEvents, react, updateCommunity } from "./api";
@@ -160,9 +160,9 @@ export function CommunityScreen({ id }: { id: string }) {
           {!d.my_status ? <Button small title={t(d.visibility === "public" ? "campus.communities.join" : "campus.communities.requestJoin")} loading={busy} onPress={() => void join()} /> : null}
           {member && d.my_role !== "owner" ? <Button small variant="ghost" title={t("campus.communities.leave")} onPress={() => setConfirmLeave(true)} /> : null}
           {d.can_moderate ? (
-            <Pressable onPress={() => router.push(`/campus/moderation/${id}`)} accessibilityRole="button" style={{ minHeight: 36, justifyContent: "center" }}>
+            <PressableScale onPress={() => router.push(`/campus/moderation/${id}`)} accessibilityRole="button" style={{ minHeight: 36, justifyContent: "center" }}>
               <Badge tone="warning">{`${t("campus.community.moderate")}${d.pending_requests ? ` (${d.pending_requests})` : ""}`}</Badge>
-            </Pressable>
+            </PressableScale>
           ) : null}
           {!d.can_moderate ? <Button small variant="ghost" title={t("campus.safety.report")} onPress={() => setReport(true)} /> : null}
         </View>
@@ -212,7 +212,7 @@ export function CommunityScreen({ id }: { id: string }) {
         ) : (
           <View style={{ gap: 8 }}>
             {(members.data ?? []).map((m) => (
-              <Pressable key={m.user_id} onPress={() => router.push(`/campus/user/${m.user_id}`)} accessibilityRole="button" accessibilityLabel={`${m.display_name ?? m.username ?? ""}, ${t(`campus.community.role.${m.role}`)}`}>
+              <PressableScale key={m.user_id} onPress={() => router.push(`/campus/user/${m.user_id}`)} accessibilityRole="button" accessibilityLabel={`${m.display_name ?? m.username ?? ""}, ${t(`campus.community.role.${m.role}`)}`}>
                 <Card>
                   <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                     <AppText variant="label" style={{ flex: 1 }}>
@@ -221,7 +221,7 @@ export function CommunityScreen({ id }: { id: string }) {
                     {m.role !== "member" ? <Badge tone="info">{t(`campus.community.role.${m.role}`)}</Badge> : null}
                   </View>
                 </Card>
-              </Pressable>
+              </PressableScale>
             ))}
           </View>
         )

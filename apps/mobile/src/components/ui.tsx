@@ -2,11 +2,14 @@ import { useT } from "@unimate/i18n/react";
 import NetInfo from "@react-native-community/netinfo";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { cloneElement, createContext, isValidElement, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from "react";
 import {
   ActivityIndicator,
   Animated,
+  LayoutAnimation,
   Modal,
+  Platform,
+  UIManager,
   Pressable,
   ScrollView,
   Text,
@@ -21,14 +24,18 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../theme/ThemeProvider";
 import { MIN_TOUCH, fontSizes, radii, spacing } from "../theme/tokens";
+import { easings, haptic, useEnter, usePressScale, useReducedMotion } from "../lib/motion";
+import { GlassSurface, TabInsetContext } from "./Glass";
 import { Icon } from "./Icon";
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 // ------------------------------------------------------------------ text
 type Variant = "display" | "title" | "heading" | "body" | "caption" | "label";
 const VARIANTS: Record<Variant, TextStyle> = {
-  display: { fontSize: fontSizes.xxl, fontWeight: "800" },
-  title: { fontSize: fontSizes.xl, fontWeight: "700" },
-  heading: { fontSize: fontSizes.lg, fontWeight: "700" },
+  display: { fontSize: fontSizes.xxl, fontWeight: "700", letterSpacing: -0.6 },
+  title: { fontSize: fontSizes.xl, fontWeight: "700", letterSpacing: -0.3 },
+  heading: { fontSize: fontSizes.lg, fontWeight: "600", letterSpacing: -0.2 },
   body: { fontSize: fontSizes.base, fontWeight: "400", lineHeight: 22 },
   caption: { fontSize: fontSizes.sm, fontWeight: "400" },
   label: { fontSize: fontSizes.sm, fontWeight: "600" },
@@ -44,19 +51,23 @@ export function AppText({ variant = "body", muted, style, ...rest }: TextProps &
 /** Gradient background + safe areas + optional scrolling. `tabBar` adds bottom space for the floating tab bar. */
 export function Screen({ children, scroll = true, padded = true, style }: { children: ReactNode; scroll?: boolean; padded?: boolean; style?: StyleProp<ViewStyle> }) {
   const { theme } = useTheme();
-  const body = { padding: padded ? spacing.lg : 0, gap: spacing.lg } as const;
+  const inset = useContext(TabInsetContext);
+  const enter = useEnter(0, 10);
+  const body = { padding: padded ? spacing.lg : 0, gap: spacing.lg, paddingBottom: (padded ? spacing.lg : 0) + inset } as const;
   return (
     <LinearGradient colors={theme.bgGradient} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={{ flex: 1 }}>
       <StatusBar style={theme.mode === "dark" ? "light" : "dark"} />
       <SafeAreaView style={{ flex: 1 }} edges={["top", "left", "right"]}>
         <OfflineBanner />
-        {scroll ? (
-          <ScrollView contentContainerStyle={[body, style]} keyboardShouldPersistTaps="handled" contentInsetAdjustmentBehavior="automatic">
-            {children}
-          </ScrollView>
-        ) : (
-          <View style={[{ flex: 1 }, body, style]}>{children}</View>
-        )}
+        <Animated.View style={[{ flex: 1 }, enter]}>
+          {scroll ? (
+            <ScrollView contentContainerStyle={[body, style]} keyboardShouldPersistTaps="handled" contentInsetAdjustmentBehavior="automatic">
+              {children}
+            </ScrollView>
+          ) : (
+            <View style={[{ flex: 1 }, body, style]}>{children}</View>
+          )}
+        </Animated.View>
       </SafeAreaView>
     </LinearGradient>
   );
@@ -64,18 +75,10 @@ export function Screen({ children, scroll = true, padded = true, style }: { chil
 
 // ------------------------------------------------------------------ card (glass)
 export function Card({ children, style, strong, ...rest }: { children: ReactNode; style?: StyleProp<ViewStyle>; strong?: boolean } & Omit<React.ComponentProps<typeof View>, "style">) {
-  const { theme } = useTheme();
   return (
-    <View
-      {...rest}
-      style={[
-        { backgroundColor: strong ? theme.cardStrong : theme.card, borderColor: theme.cardBorder, borderWidth: 1, borderRadius: radii.lg, padding: spacing.lg, gap: spacing.sm },
-        theme.mode === "light" ? { shadowColor: "#10182B", shadowOpacity: 0.06, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 1 } : null,
-        style,
-      ]}
-    >
+    <GlassSurface {...rest} strong={!!strong} style={[{ padding: spacing.lg, gap: spacing.sm }, style]}>
       {children}
-    </View>
+    </GlassSurface>
   );
 }
 
@@ -103,17 +106,21 @@ export function Button({
   style?: StyleProp<ViewStyle>;
 }) {
   const { theme } = useTheme();
+  const press = usePressScale(0.96);
   const inactive = disabled || loading;
   const bg = variant === "primary" ? theme.primary : variant === "danger" ? theme.dangerSoft : variant === "secondary" ? theme.cardStrong : "transparent";
   const fg = variant === "primary" ? theme.onPrimary : variant === "danger" ? theme.danger : theme.text;
   return (
-    <Pressable
-      onPress={inactive ? undefined : onPress}
+    <AnimatedPressable
+      onPress={inactive ? undefined : () => { haptic.tap(); onPress?.(); }}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? title}
       accessibilityState={{ disabled: !!inactive, busy: !!loading }}
       style={({ pressed }) => [
         {
+          transform: [{ scale: press.scale }],
           minHeight: small ? 36 : MIN_TOUCH + 4,
           paddingHorizontal: small ? spacing.md : spacing.lg,
           borderRadius: radii.pill,
@@ -129,12 +136,34 @@ export function Button({
         style,
       ]}
     >
-      {loading ? <ActivityIndicator color={fg} /> : icon}
+      {loading ? <ActivityIndicator color={fg} /> : isValidElement(icon) ? cloneElement(icon as ReactElement<{ color?: string }>, { color: fg }) : icon}
       <Text maxFontSizeMultiplier={1.5} style={{ color: fg, fontSize: small ? fontSizes.sm : fontSizes.base, fontWeight: "700", flexShrink: 1, textAlign: "center" }}>
         {title}
       </Text>
-    </Pressable>
+    </AnimatedPressable>
   );
+}
+
+/** Pressable with a spring scale + light haptic: for tiles, cards and rows. Drop-in for Pressable (no render-function style). */
+export function PressableScale({ children, style, onPress, scaleTo = 0.97, ...rest }: Omit<React.ComponentProps<typeof Pressable>, "style" | "children"> & { children: ReactNode; style?: StyleProp<ViewStyle>; scaleTo?: number }) {
+  const press = usePressScale(scaleTo);
+  return (
+    <AnimatedPressable
+      {...rest}
+      onPress={onPress ? (e) => { haptic.tap(); onPress(e); } : undefined}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
+      style={[style, { transform: [{ scale: press.scale }] }]}
+    >
+      {children}
+    </AnimatedPressable>
+  );
+}
+
+/** Fades and rises its children in on mount; `index` staggers siblings (capped so long lists stay snappy). */
+export function Reveal({ children, index = 0, style }: { children: ReactNode; index?: number; style?: StyleProp<ViewStyle> }) {
+  const enter = useEnter(Math.min(index, 8) * 60, 16);
+  return <Animated.View style={[style, enter]}>{children}</Animated.View>;
 }
 
 // ------------------------------------------------------------------ input
@@ -207,7 +236,10 @@ export function Segmented<T extends string>({ options, value, onChange, label }:
         return (
           <Pressable
             key={o.value}
-            onPress={() => onChange(o.value)}
+            onPress={() => {
+              if (!on) haptic.select();
+              onChange(o.value);
+            }}
             accessibilityRole="tab"
             accessibilityState={{ selected: on }}
             style={{ minHeight: 40, paddingHorizontal: spacing.md, justifyContent: "center", borderRadius: radii.pill, backgroundColor: on ? theme.primary : theme.cardStrong, borderWidth: 1, borderColor: on ? theme.primary : theme.border }}
@@ -225,13 +257,74 @@ export function Segmented<T extends string>({ options, value, onChange, label }:
 // ------------------------------------------------------------------ states
 export function Skeleton({ height = 24, width, radius = radii.md }: { height?: number; width?: number | `${number}%`; radius?: number }) {
   const { theme } = useTheme();
-  const v = useRef(new Animated.Value(0.4)).current;
+  const reduced = useReducedMotion();
+  const [w, setW] = useState(0);
+  const v = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    const loop = Animated.loop(Animated.sequence([Animated.timing(v, { toValue: 0.9, duration: 700, useNativeDriver: true }), Animated.timing(v, { toValue: 0.4, duration: 700, useNativeDriver: true })]));
+    if (reduced || w === 0) return;
+    const loop = Animated.loop(Animated.timing(v, { toValue: 1, duration: 1300, easing: easings.inOut, useNativeDriver: true }));
     loop.start();
     return () => loop.stop();
-  }, [v]);
-  return <Animated.View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={{ height, width: width ?? "100%", borderRadius: radius, backgroundColor: theme.cardStrong, opacity: v }} />;
+  }, [v, reduced, w]);
+  const sweep = Math.max(80, w * 0.6);
+  const dark = theme.mode === "dark";
+  return (
+    <View
+      importantForAccessibility="no-hide-descendants"
+      accessibilityElementsHidden
+      onLayout={(e) => setW(e.nativeEvent.layout.width)}
+      style={{ height, width: width ?? "100%", borderRadius: radius, backgroundColor: theme.cardStrong, overflow: "hidden" }}
+    >
+      {reduced || w === 0 ? null : (
+        <Animated.View style={{ position: "absolute", top: 0, bottom: 0, width: sweep, transform: [{ translateX: v.interpolate({ inputRange: [0, 1], outputRange: [-sweep, w] }) }] }}>
+          <LinearGradient colors={dark ? ["rgba(255,255,255,0)", "rgba(255,255,255,0.14)", "rgba(255,255,255,0)"] : ["rgba(255,255,255,0)", "rgba(255,255,255,0.8)", "rgba(255,255,255,0)"]} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={{ flex: 1 }} />
+        </Animated.View>
+      )}
+    </View>
+  );
+}
+
+/** Card-shaped loading placeholder: title line + body lines. */
+export function SkeletonCard({ lines = 2 }: { lines?: number }) {
+  return (
+    <Card accessibilityLabel="" style={{ gap: spacing.sm }}>
+      <Skeleton height={18} width="55%" radius={9} />
+      {Array.from({ length: lines }, (_, i) => (
+        <Skeleton key={i} height={12} width={i === lines - 1 ? "70%" : "100%"} radius={6} />
+      ))}
+    </Card>
+  );
+}
+
+if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) UIManager.setLayoutAnimationEnabledExperimental(true);
+
+/**
+ * Expandable card: header always visible, body animates open with LayoutAnimation (layout + opacity, no native module).
+ * Reduced motion swaps instantly. Header is a button with expanded state for screen readers.
+ */
+export function ExpandCard({ header, children, defaultOpen = false, label }: { header: ReactNode; children: ReactNode; defaultOpen?: boolean; label: string }) {
+  const reduced = useReducedMotion();
+  const [open, setOpen] = useState(defaultOpen);
+  const fade = useRef(new Animated.Value(defaultOpen ? 1 : 0)).current;
+  const toggle = () => {
+    haptic.select();
+    if (!reduced) LayoutAnimation.configureNext(LayoutAnimation.create(260, LayoutAnimation.Types.easeInEaseOut, LayoutAnimation.Properties.opacity));
+    const next = !open;
+    setOpen(next);
+    if (reduced) fade.setValue(next ? 1 : 0);
+    else Animated.timing(fade, { toValue: next ? 1 : 0, duration: 240, useNativeDriver: true }).start();
+  };
+  return (
+    <Card>
+      <Pressable onPress={toggle} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ expanded: open }} style={{ minHeight: MIN_TOUCH, flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+        <View style={{ flex: 1 }}>{header}</View>
+        <AppText variant="heading" style={{ transform: [{ rotate: open ? "90deg" : "0deg" }] }}>
+          {"›"}
+        </AppText>
+      </Pressable>
+      {open ? <Animated.View style={{ opacity: fade, gap: spacing.sm }}>{children}</Animated.View> : null}
+    </Card>
+  );
 }
 
 export function EmptyState({ title, description, action }: { title: string; description?: string | undefined; action?: ReactNode }) {

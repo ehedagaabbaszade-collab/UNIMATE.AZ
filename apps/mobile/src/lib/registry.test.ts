@@ -20,19 +20,19 @@ describe("module registry", () => {
     }
   });
   it("derives tabs, tiles and heroes in order, and adding an entry makes it appear everywhere", () => {
-    expect(tabModules().map((m) => m.tabRoute)).toEqual(["study", "notes", "campus"]);
+    expect(tabModules().map((m) => m.tabRoute)).toEqual(["study", "campus", "career"]);
     expect(tileLayout().tiles.map((m) => m.id)[0]).toBe("aiStudy");
     const extra: ModuleEntry = { id: "jobs2", href: "/jobs2", tabRoute: "jobs2", icon: "career", module: "career", labelKey: "brand.module.career", tabOrder: 4, tabPriority: 0, tileOrder: 11, hero: { order: 3, bodyKey: "mobile.home.heroAiBody", ctaKey: "mobile.home.heroAiCta" } };
     const all = [...MODULES, extra];
-    expect(tabModules(all).map((m) => m.id)).toEqual(["aiStudy", "notes", "jobs2"]); // capped at 3 module tabs, by priority
+    expect(tabModules(all).map((m) => m.id)).toEqual(["aiStudy", "campus", "jobs2"]); // capped at 3 module tabs, by priority
     expect(tileLayout(all).tiles.length + tileLayout(all).overflow.length).toBe(tileLayout().tiles.length + 1);
     expect(heroModules(all).at(-1)?.id).toBe("jobs2");
   });
-  it("Campus is a bottom tab (AI Study, Notes, Campus) with its own tab file; Planner and Career give way and are declared hidden", () => {
+  it("The bar is AI Study, Campus, Career (mockup); Notes and Planner are stack screens, not tabs", () => {
     const campus = MODULES.find((m) => m.id === "campus")!;
     expect(campus).toMatchObject({ href: "/campus", tabRoute: "campus", icon: "campus", module: "campus", labelKey: "brand.module.campus" });
-    expect(tabModules().map((m) => m.id)).toEqual(["aiStudy", "notes", "campus"]);
-    expect(overflowTabModules().map((m) => m.id)).toEqual(["career", "planner"]);
+    expect(tabModules().map((m) => m.id)).toEqual(["aiStudy", "campus", "career"]);
+    expect(overflowTabModules()).toEqual([]);
     expect(tileLayout().tiles.some((m) => m.id === "planner")).toBe(true); // Planner stays one tap away on the Home grid
     expect(tabModules().length + 2).toBe(5); // Home + 3 modules + Profile
   });

@@ -2,10 +2,10 @@ import { NOTE_KINDS, NOTE_PAGE_SIZE, NOTE_SORTS, courseLabel, noteStatusView, ty
 import { useI18n } from "@unimate/i18n/react";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { Icon, ModuleIcon } from "../../components/Icon";
 import { PickerField } from "../../components/PickerField";
-import { AppText, Badge, Button, Card, EmptyState, ErrorState, Input, Screen, Segmented, Skeleton, useOnline } from "../../components/ui";
+import { AppText, Badge, Button, Card, EmptyState, ErrorState, Input, Screen, Segmented, Skeleton, useOnline, PressableScale } from "../../components/ui";
 import { useAsync } from "../../lib/use-async";
 import { useUser } from "../../state/session";
 import { listCourses, listMyUploads, listSaved, searchNotes, type Course } from "./api";
@@ -113,7 +113,7 @@ function Mine() {
       {mine.data.map((u) => {
         const view = noteStatusView(u.status, u.takedownHold);
         return (
-          <Pressable key={u.id} accessibilityRole="button" accessibilityLabel={u.title} onPress={() => router.push({ pathname: "/notes/[id]", params: { id: u.id } })}>
+          <PressableScale key={u.id} accessibilityRole="button" accessibilityLabel={u.title} onPress={() => router.push({ pathname: "/notes/[id]", params: { id: u.id } })}>
             <Card>
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                 <Badge tone={view === "published" ? "success" : view === "removed" ? "danger" : "warning"}>{t(`notes.status.${view}`)}</Badge>
@@ -128,7 +128,7 @@ function Mine() {
                 </AppText>
               ) : null}
             </Card>
-          </Pressable>
+          </PressableScale>
         );
       })}
     </View>
@@ -169,7 +169,7 @@ export function NotesScreen() {
           <AppText muted>{t("notes.subtitle")}</AppText>
         </View>
       </View>
-      <Button title={t("notes.uploadCta")} icon={<Icon name="upload" size="sm" color="#FFFFFF" />} onPress={() => router.push("/notes/upload")} />
+      <Button title={t("notes.uploadCta")} icon={<Icon name="upload" size="sm" />} onPress={() => router.push("/notes/upload")} />
       <Segmented
         label={t("notes.tabs.label")}
         value={tab}

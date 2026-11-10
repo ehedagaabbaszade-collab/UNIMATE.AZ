@@ -29,7 +29,9 @@
         "monochromeImage": "./assets/adaptive-icon-monochrome.png",
         "backgroundColor": "#10182B"
       },
-      "permissions": ["android.permission.POST_NOTIFICATIONS"]
+      "permissions": [
+        "android.permission.POST_NOTIFICATIONS"
+      ]
     },
     "plugins": [
       "expo-router",
@@ -42,13 +44,32 @@
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#F1F5FF",
-          "dark": { "image": "./assets/splash-icon-dark.png", "backgroundColor": "#0A0F2E" }
+          "dark": {
+            "image": "./assets/splash-icon-dark.png",
+            "backgroundColor": "#0A0F2E"
+          }
         }
       ],
-      ["expo-notifications", { "icon": "./assets/notification-icon.png", "color": "#4F46E5" }],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#4F46E5"
+        }
+      ],
       "expo-document-picker",
-      ["expo-image-picker", { "photosPermission": "Choose a photo to add to your study materials.", "cameraPermission": false, "microphonePermission": false }]
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Choose a photo to add to your study materials.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ],
+      "./plugins/with-focus-lock"
     ],
-    "experiments": { "typedRoutes": false }
+    "experiments": {
+      "typedRoutes": false
+    }
   }
 }

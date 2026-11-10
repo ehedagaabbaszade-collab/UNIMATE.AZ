@@ -90,7 +90,7 @@ export function OpportunityDetailScreen({ id }: { id: string }) {
             {`${t("career.detail.deadline")}: ${o.deadline}`}
           </AppText>
         ) : null}
-        {url ? <Button title={t("career.detail.applyCta")} icon={<Icon name="jobs" size="sm" color="#FFFFFF" />} onPress={() => void Linking.openURL(url)} /> : <AppText muted>{t("career.detail.linkBlocked")}</AppText>}
+        {url ? <Button title={t("career.detail.applyCta")} icon={<Icon name="jobs" size="sm" />} onPress={() => void Linking.openURL(url)} /> : <AppText muted>{t("career.detail.linkBlocked")}</AppText>}
         <AppText variant="caption" muted>
           {t("career.detail.applyNote")}
         </AppText>

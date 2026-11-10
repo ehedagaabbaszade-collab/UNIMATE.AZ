@@ -17,18 +17,18 @@ import * as Print from "expo-print";
 import { useRouter } from "expo-router";
 import * as Sharing from "expo-sharing";
 import { useEffect, useState } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { EdgeNotice } from "../../components/EdgeNotice";
 import { Icon } from "../../components/Icon";
 import { PickerField } from "../../components/PickerField";
 import { ProgressRing } from "../../components/ProgressRing";
-import { AppText, Badge, Button, Card, Dialog, EmptyState, ErrorState, Input, Screen, ScreenHeader, Segmented, Skeleton, useToast } from "../../components/ui";
+import { AppText, Badge, Button, Card, Dialog, EmptyState, ErrorState, Input, Screen, ScreenHeader, Segmented, Skeleton, useToast, PressableScale } from "../../components/ui";
 import type { EdgeError } from "../../lib/edge";
 import { cvFeedback } from "../../lib/edge-client";
 import { useAsync } from "../../lib/use-async";
 import { useTheme } from "../../theme/ThemeProvider";
 import { useUser } from "../../state/session";
-import { deleteCv, getCv, myTracking, saveCv } from "./api";
+import { createCv, deleteCv, getCv, myTracking, saveCv } from "./api";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- CV JSON is schema-less in the editor
 type Obj = Record<string, any>;
@@ -71,10 +71,10 @@ function Entries({ title, items, fields, make, onChange, rev }: { title: string;
         <View key={`${rev}-${i}`} style={{ gap: 8, paddingTop: 8, borderTopWidth: i ? 1 : 0, borderTopColor: theme.border }}>
           {fields.map((f) =>
             f.kind === "bool" ? (
-              <Pressable key={f.key} onPress={() => set(i, f.key, !it[f.key])} accessibilityRole="checkbox" accessibilityState={{ checked: !!it[f.key] }} accessibilityLabel={t(f.label)} style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 44 }}>
+              <PressableScale key={f.key} onPress={() => set(i, f.key, !it[f.key])} accessibilityRole="checkbox" accessibilityState={{ checked: !!it[f.key] }} accessibilityLabel={t(f.label)} style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 44 }}>
                 <Icon name={it[f.key] ? "check" : "add"} size="sm" color={it[f.key] ? theme.success : theme.textMuted} />
                 <AppText>{t(f.label)}</AppText>
-              </Pressable>
+              </PressableScale>
             ) : f.kind === "csv" || f.kind === "lines" ? (
               <ListField key={`${rev}-${i}-${f.key}`} label={t(f.label)} value={it[f.key] ?? []} parse={f.kind === "csv" ? csv : lines} join={f.kind === "csv" ? ", " : "\n"} multiline={f.kind === "lines"} onChange={(v) => set(i, f.key, v)} />
             ) : (
@@ -213,7 +213,7 @@ export function CvEditorScreen({ id }: { id: string }) {
   const { theme } = useTheme();
   const router = useRouter();
   const { toast } = useToast();
-  const { supabase: sb } = useUser();
+  const { user, supabase: sb } = useUser();
   const doc = useAsync(() => getCv(sb, id), [sb, id]);
   const [draft, setDraft] = useState<CvDocumentInput | null>(null);
   const [dirty, setDirty] = useState(false);
@@ -290,6 +290,13 @@ export function CvEditorScreen({ id }: { id: string }) {
     } finally {
       setExporting(false);
     }
+  };
+  const duplicate = async () => {
+    const res = await createCv(sb, user.id, { title: `${draft.title} (2)`.slice(0, 120), language: draft.language, template: draft.template, data: draft.data });
+    if (res.ok) {
+      toast(t("career.cv.duplicated"), "success");
+      router.replace(`/career/cv/${res.id}` as never);
+    } else toast(res.error === "limit" ? t("career.cv.limit") : t("career.cv.saveFailed"), "error");
   };
   const remove = async () => {
     setConfirmDelete(false);
@@ -369,6 +376,7 @@ export function CvEditorScreen({ id }: { id: string }) {
 
       <FeedbackPanel cvId={id} language={draft.language} ensureSaved={save} />
 
+      <Button title={t("career.cv.duplicate")} variant="secondary" onPress={() => void duplicate()} />
       <Button title={t("career.cv.delete")} variant="danger" onPress={() => setConfirmDelete(true)} />
       <Dialog
         open={confirmDelete}

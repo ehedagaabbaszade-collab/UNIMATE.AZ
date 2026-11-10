@@ -1,7 +1,8 @@
+import { zonedParts } from "@unimate/i18n";
 import type { ExamRow, TaskRow, TimetableRow } from "./db";
 
 /** ISO weekday: Monday = 1 ... Sunday = 7 (matches timetable_entries.weekday). */
-export const isoWeekday = (d: Date): number => ((d.getDay() + 6) % 7) + 1;
+export const isoWeekday = (d: Date): number => zonedParts(d).isoWeekday;
 
 export const hhmm = (t: string): string => t.slice(0, 5);
 

@@ -1,8 +1,8 @@
 import { courseLabel, type NoteListItem } from "@unimate/core";
 import { useI18n } from "@unimate/i18n/react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { Icon } from "../../components/Icon";
-import { AppText, Badge, Card } from "../../components/ui";
+import { AppText, Badge, Card, PressableScale } from "../../components/ui";
 import { useTheme } from "../../theme/ThemeProvider";
 
 /** Read-only star row. */
@@ -32,7 +32,7 @@ export function StarInput({ value, onChange, disabled }: { value: number; onChan
   return (
     <View style={{ flexDirection: "row", gap: 6 }} accessibilityRole="radiogroup">
       {[1, 2, 3, 4, 5].map((i) => (
-        <Pressable
+        <PressableScale
           key={i}
           disabled={disabled}
           onPress={() => onChange(i)}
@@ -43,21 +43,22 @@ export function StarInput({ value, onChange, disabled }: { value: number; onChan
           style={{ minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center" }}
         >
           <Icon name="rating" size="lg" color={i <= value ? theme.warning : theme.textMuted} />
-        </Pressable>
+        </PressableScale>
       ))}
     </View>
   );
 }
 
 export function NoteCard({ item, onPress }: { item: NoteListItem; onPress: () => void }) {
+  const { theme } = useTheme();
   const { t, date } = useI18n();
   const course = courseLabel({ code: item.courseCode, title: item.courseTitle });
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={item.title}>
+    <PressableScale onPress={onPress} accessibilityRole="button" accessibilityLabel={item.title}>
       <Card>
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
           <Badge tone="info">{t(`notes.kind.${item.kind}`)}</Badge>
-          {item.saved ? <Icon name="saved" size="sm" color="#F7C265" label={t("notes.tabs.saved")} /> : null}
+          {item.saved ? <Icon name="saved" size="sm" color={theme.warning} label={t("notes.tabs.saved")} /> : null}
         </View>
         <AppText variant="heading">{item.title}</AppText>
         {course ? (
@@ -70,6 +71,6 @@ export function NoteCard({ item, onPress }: { item: NoteListItem; onPress: () =>
           {[t("notes.by", { name: item.uploaderName ?? t("notes.anonymous") }), date(item.createdAt)].join(" · ")}
         </AppText>
       </Card>
-    </Pressable>
+    </PressableScale>
   );
 }

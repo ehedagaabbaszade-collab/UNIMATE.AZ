@@ -1,7 +1,8 @@
 import { notificationHref, parseNotifications, type NotificationItem } from "@unimate/core";
+import { PressableScale } from "../../src/components/ui";
 import { useI18n } from "@unimate/i18n/react";
 import { useRouter } from "expo-router";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { Icon } from "../../src/components/Icon";
 import { AppText, Button, Card, EmptyState, ErrorState, Screen, ScreenHeader, Skeleton } from "../../src/components/ui";
 import { unwrap, useAsync } from "../../src/lib/use-async";
@@ -40,7 +41,7 @@ export default function NotificationsRoute() {
       ) : (
         <View style={{ gap: 10 }}>
           {list.data?.map((n: NotificationItem) => (
-            <Pressable key={n.id} disabled={!!n.read_at && !notificationHref(n)} onPress={() => { if (!n.read_at) void markOne(n.id); const href = notificationHref(n); if (href) router.push(href); }} accessibilityRole={n.read_at && !notificationHref(n) ? "text" : "button"} accessibilityLabel={`${n.title ?? ""}. ${n.body ?? ""}`}>
+            <PressableScale key={n.id} disabled={!!n.read_at && !notificationHref(n)} onPress={() => { if (!n.read_at) void markOne(n.id); const href = notificationHref(n); if (href) router.push(href); }} accessibilityRole={n.read_at && !notificationHref(n) ? "text" : "button"} accessibilityLabel={`${n.title ?? ""}. ${n.body ?? ""}`}>
             <Card>
               <View style={{ flexDirection: "row", gap: 8, alignItems: "center", justifyContent: "space-between" }}>
                 {n.kind === "achievement" ? <Icon name="achievements" size="sm" color={theme.warning} /> : null}
@@ -52,7 +53,7 @@ export default function NotificationsRoute() {
                 {dateTime(n.created_at)}
               </AppText>
             </Card>
-            </Pressable>
+            </PressableScale>
           ))}
         </View>
       )}

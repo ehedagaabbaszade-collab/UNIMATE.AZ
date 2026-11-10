@@ -186,7 +186,7 @@ describe("CV html export", () => {
       certificates: [{ name: evil }],
       languages: [{ name: evil, level: evil }],
     });
-    for (const template of ["classic", "modern", "compact"] as const) {
+    for (const template of ["classic", "modern", "compact", "minimal", "executive", "corporate", "creative", "ats"] as const) {
       const html = renderCvBodyHtml(cv, { template, labels });
       expect(html).not.toContain("<script>");
       expect(html).toContain("&lt;script&gt;");

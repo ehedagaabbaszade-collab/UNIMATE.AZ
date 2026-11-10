@@ -44,7 +44,7 @@ function AchievementTile({ a, width }: { a: AchievementItem; width: number }) {
       accessibilityLabel={`${name}. ${desc}. ${done ? t("gamification.unlockedOn", { date: date(a.unlocked_at!) }) : t("gamification.locked")}`}
       style={{ width, borderRadius: radii.lg, borderWidth: 1, borderColor: done ? theme.active : theme.cardBorder, backgroundColor: theme.card, padding: spacing.sm, alignItems: "center", gap: 6, opacity: done ? 1 : 0.72 }}
     >
-      {done ? <ModuleIcon icon={iconFor(a.icon)} colors={["#B45309", "#C2410C"]} size={44} /> : <ModuleIcon icon="locked" colors={["#475569", "#334155"]} size={44} />}
+      {done ? <ModuleIcon icon={iconFor(a.icon)} size={44} /> : <ModuleIcon icon="locked" size={44} />}
       <AppText variant="label" numberOfLines={2} style={{ textAlign: "center" }}>
         {name}
       </AppText>
@@ -129,7 +129,7 @@ export function GamificationScreen() {
       ) : (
         <View style={{ gap: spacing.lg }}>
           <Card style={{ flexDirection: "row", alignItems: "center", gap: spacing.lg }}>
-            <ProgressRing fraction={p.level_progress} track={theme.cardStrong} from="#22D3EE" to="#A855F7" label={t("gamification.levelProgress")}>
+            <ProgressRing fraction={p.level_progress} track={theme.cardStrong} from="#06B6DA" to="#4F46E5" label={t("gamification.levelProgress")}>
               {percent(p.level_progress, { maximumFractionDigits: 0 })}
             </ProgressRing>
             <View style={{ flex: 1, gap: 6 }}>

@@ -47,12 +47,9 @@ export const MODULES: readonly ModuleEntry[] = [
   {
     id: "notes",
     href: "/notes",
-    tabRoute: "notes",
     icon: "notes",
     module: "notes",
     labelKey: "brand.module.notes",
-    tabOrder: 2,
-    tabPriority: 2,
     tileOrder: 5,
   },
   {
@@ -62,9 +59,9 @@ export const MODULES: readonly ModuleEntry[] = [
     icon: "campus",
     module: "campus",
     labelKey: "brand.module.campus",
-    // Third module tab: AI Study, Notes and Campus fill the bar; Planner moves to the Home grid (it already has a tile).
-    tabOrder: 3,
-    tabPriority: 3,
+    // Bar per the approved mockup: AI Study (Öyrən), Campus, Career. Notes and Planner are Home tiles opened as stack screens.
+    tabOrder: 2,
+    tabPriority: 2,
   },
   {
     id: "career",
@@ -73,9 +70,8 @@ export const MODULES: readonly ModuleEntry[] = [
     icon: "career",
     module: "career",
     labelKey: "brand.module.career",
-    // Lowest tab priority: the bar keeps AI Study, Notes and Planner; Career is a Home tile (its tab file stays hidden).
-    tabOrder: 5,
-    tabPriority: 10,
+    tabOrder: 3,
+    tabPriority: 3,
     tileOrder: 6,
   },
   { id: "quiz", href: "/quizzes", icon: "quiz", tileColors: ["#7C3AED", "#4F46E5"], labelKey: "mobile.quizzes.title", tileOrder: 2 },
@@ -83,12 +79,9 @@ export const MODULES: readonly ModuleEntry[] = [
   {
     id: "planner",
     href: "/planner",
-    tabRoute: "planner",
     icon: "planner",
     module: "planner",
     labelKey: "brand.module.planner",
-    tabOrder: 4,
-    tabPriority: 9,
     tileOrder: 4,
     hero: { order: 2, bodyKey: "mobile.home.heroPlannerBody", ctaKey: "mobile.home.heroPlannerCta" },
   },

@@ -1,5 +1,6 @@
 import { useI18n } from "@unimate/i18n/react";
 import { useRouter } from "expo-router";
+import { formatLocalDateTime } from "../../lib/datetime";
 import { useState } from "react";
 import { View } from "react-native";
 import { Icon } from "../../components/Icon";
@@ -11,13 +12,8 @@ import { addEventToPlanner, cancelEvent, editEvent, getEvent, moderateEvent, myC
 import { EventForm } from "./CampusScreen";
 import { LanguageTag, RichText, useCampusError } from "./parts";
 
-/** "YYYY-MM-DD HH:MM" in the device time zone, the format EventForm expects. */
-const toLocalInput = (iso: string | null): string => {
-  if (!iso) return "";
-  const d = new Date(iso);
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
-};
+/** "YYYY-MM-DD HH:MM" in the app time zone (Asia/Baku), the format EventForm expects. */
+const toLocalInput = (iso: string | null): string => (iso ? formatLocalDateTime(new Date(iso)) : "");
 
 export function EventDetailScreen({ id }: { id: string }) {
   const { t, dateTime } = useI18n();

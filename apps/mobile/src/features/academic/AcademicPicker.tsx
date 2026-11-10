@@ -1,5 +1,5 @@
 import { useT } from "@unimate/i18n/react";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { View } from "react-native";
 import { PickerField, type PickerSection } from "../../components/PickerField";
 import type { Faculty, Major, University } from "../../lib/db";
@@ -23,6 +23,13 @@ export function AcademicPicker({ value, onChange, showMajor = true, errors }: { 
   const faculties = useAsync<Faculty[]>(async () => unwrap(await sb!.from("faculties").select("id,university_id,name").eq("university_id", value.universityId).order("name")), [value.universityId], !!sb && !!value.universityId);
   const majors = useAsync<Major[]>(async () => unwrap(await sb!.from("majors").select("id,faculty_id,name,degree_level").eq("faculty_id", value.facultyId).order("name")), [value.facultyId], !!sb && !!value.facultyId);
 
+  // Colleges have a single faculty ("Orta ixtisas təhsili"): select it automatically and hide the redundant step.
+  const onlyFaculty = faculties.data?.length === 1 ? faculties.data[0]!.id : null;
+  useEffect(() => {
+    if (onlyFaculty && value.facultyId !== onlyFaculty) onChange({ ...value, facultyId: onlyFaculty, majorId: "" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onlyFaculty]);
+
   const sections = useMemo<PickerSection[]>(() => {
     const g = groupInstitutions(unis.data ?? []);
     return [
@@ -43,7 +50,7 @@ export function AcademicPicker({ value, onChange, showMajor = true, errors }: { 
         hint={unis.data && unis.data.length === 0 ? t("auth.noUniversities") : t("auth.universityHint")}
         onChange={(id) => onChange({ universityId: id, facultyId: "", majorId: "" })}
       />
-      {showMajor && value.universityId ? (
+      {showMajor && value.universityId && !onlyFaculty ? (
         <PickerField
           label={t("auth.faculty")}
           sections={[{ data: (faculties.data ?? []).map((f) => ({ id: f.id, label: f.name })) }]}

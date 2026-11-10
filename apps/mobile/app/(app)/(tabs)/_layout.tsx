@@ -1,39 +1,53 @@
 import { useT } from "@unimate/i18n/react";
-import { Tabs } from "expo-router";
-import { Icon } from "../../../src/components/Icon";
+import { NativeTabs } from "expo-router/native-tabs";
 import { overflowTabModules, tabModules } from "../../../src/lib/registry";
 import { useTheme } from "../../../src/theme/ThemeProvider";
 
+/** Native tab symbols per tab route: SF Symbols on iOS, Material icons on Android. Unknown routes fall back to a dot. */
+const ICONS: Record<string, { sf: string; md: string }> = {
+  index: { sf: "house.fill", md: "home" },
+  study: { sf: "sparkles", md: "auto_awesome" },
+  notes: { sf: "doc.text.fill", md: "description" },
+  campus: { sf: "building.columns.fill", md: "school" },
+  career: { sf: "briefcase.fill", md: "work" },
+  planner: { sf: "calendar", md: "calendar_month" },
+  profile: { sf: "person.fill", md: "person" },
+};
+const iconFor = (route: string) => ICONS[route] ?? { sf: "circle.fill", md: "circle" };
+
 /**
- * Bottom tab bar, derived from the module registry (src/lib/registry.ts): Home first, Profile last, registered
- * modules in between. A module without a registry entry has no tab. Each registered `tabRoute` needs a matching
- * file in this folder.
+ * Bottom navigation: the system's native tab bar (UITabBarController via react-native-screens). On iOS 26 this is
+ * the real Liquid Glass tab bar rendered by the OS; on Android it is the Material 3 navigation bar; on older iOS it
+ * is the standard translucent tab bar. Tabs are still derived from the module registry (src/lib/registry.ts).
  */
 export default function TabsLayout() {
   const t = useT();
   const { theme } = useTheme();
   const modules = tabModules();
   const hidden = overflowTabModules();
+  const icon = (route: string) => {
+    const i = iconFor(route);
+    return <NativeTabs.Trigger.Icon sf={i.sf as never} md={i.md as never} />;
+  };
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: theme.active,
-        tabBarInactiveTintColor: theme.textMuted,
-        tabBarLabelStyle: { fontSize: 12, fontWeight: "600" },
-        tabBarAllowFontScaling: true,
-        tabBarStyle: { backgroundColor: theme.tabBar, borderTopColor: theme.border, borderTopWidth: 1, paddingTop: 6 },
-        sceneStyle: { backgroundColor: theme.bg },
-      }}
-    >
-      <Tabs.Screen name="index" options={{ title: t("nav.dashboard"), tabBarIcon: ({ color }) => <Icon name="home" color={String(color)} />, tabBarAccessibilityLabel: t("nav.dashboard") }} />
+    <NativeTabs tintColor={theme.active} iconColor={theme.textMuted} labelStyle={{ color: theme.textMuted }} backgroundColor={theme.mode === "dark" ? theme.bg : undefined}>
+      <NativeTabs.Trigger name="index">
+        <NativeTabs.Trigger.Label>{t("nav.dashboard")}</NativeTabs.Trigger.Label>
+        {icon("index")}
+      </NativeTabs.Trigger>
       {modules.map((m) => (
-        <Tabs.Screen key={m.id} name={m.tabRoute!} options={{ title: t(m.labelKey), tabBarIcon: ({ color }) => <Icon name={m.icon} color={String(color)} />, tabBarAccessibilityLabel: t(m.labelKey) }} />
+        <NativeTabs.Trigger key={m.id} name={m.tabRoute!}>
+          <NativeTabs.Trigger.Label>{t(m.labelKey)}</NativeTabs.Trigger.Label>
+          {icon(m.tabRoute!)}
+        </NativeTabs.Trigger>
       ))}
       {hidden.map((m) => (
-        <Tabs.Screen key={m.id} name={m.tabRoute!} options={{ href: null }} />
+        <NativeTabs.Trigger key={m.id} name={m.tabRoute!} hidden />
       ))}
-      <Tabs.Screen name="profile" options={{ title: t("brand.module.profile"), tabBarIcon: ({ color }) => <Icon name="profile" color={String(color)} />, tabBarAccessibilityLabel: t("brand.module.profile") }} />
-    </Tabs>
+      <NativeTabs.Trigger name="profile">
+        <NativeTabs.Trigger.Label>{t("brand.module.profile")}</NativeTabs.Trigger.Label>
+        {icon("profile")}
+      </NativeTabs.Trigger>
+    </NativeTabs>
   );
 }

@@ -14,6 +14,16 @@ const CSS: Record<CvTemplate, string> = {
     ".cv{font-family:Arial,Helvetica,sans-serif;color:#10182B;line-height:1.4;font-size:10.5pt}.cv h1{font-size:24pt;margin:0;color:#4F46E5}.cv .head{font-size:11pt;color:#555;margin:2pt 0 0}.cv h2{font-size:11pt;color:#4F46E5;margin:14pt 0 5pt;padding-left:6pt;border-left:3pt solid #7C3AED}.cv .row{display:flex;justify-content:space-between;gap:8pt}.cv .meta{color:#666}",
   compact:
     ".cv{font-family:Arial,Helvetica,sans-serif;color:#111;line-height:1.25;font-size:9.5pt}.cv h1{font-size:18pt;margin:0}.cv .head{font-size:9.5pt;color:#444;margin:1pt 0 0}.cv h2{font-size:10pt;margin:8pt 0 3pt;border-bottom:1px solid #999}.cv .row{display:flex;justify-content:space-between;gap:6pt}.cv .meta{color:#555}",
+  minimal:
+    ".cv{font-family:'Helvetica Neue',Arial,sans-serif;color:#222;line-height:1.5;font-size:10.5pt}.cv h1{font-size:20pt;font-weight:300;letter-spacing:.04em;margin:0}.cv .head{font-size:10.5pt;color:#666;margin:2pt 0 0}.cv h2{font-size:9.5pt;font-weight:600;text-transform:uppercase;letter-spacing:.16em;color:#888;margin:16pt 0 5pt}.cv .row{display:flex;justify-content:space-between;gap:8pt}.cv .meta{color:#777}",
+  executive:
+    ".cv{font-family:Georgia,'Times New Roman',serif;color:#14213D;line-height:1.4;font-size:11pt}.cv h1{font-size:24pt;margin:0;border-bottom:3px double #14213D;padding-bottom:4pt}.cv .head{font-size:11pt;color:#4a5568;margin:4pt 0 0;font-style:italic}.cv h2{font-size:11.5pt;text-transform:uppercase;letter-spacing:.1em;color:#14213D;border-bottom:1px solid #14213D;margin:14pt 0 5pt;padding-bottom:2pt}.cv .row{display:flex;justify-content:space-between;gap:8pt}.cv .meta{color:#555}",
+  corporate:
+    ".cv{font-family:Calibri,Arial,sans-serif;color:#1a202c;line-height:1.4;font-size:10.5pt}.cv h1{font-size:22pt;margin:0;color:#1F3A93}.cv .head{font-size:11pt;color:#4a5568;margin:2pt 0 0}.cv h2{font-size:11pt;text-transform:uppercase;letter-spacing:.05em;color:#fff;background:#1F3A93;padding:2pt 6pt;margin:12pt 0 5pt}.cv .row{display:flex;justify-content:space-between;gap:8pt}.cv .meta{color:#555}",
+  creative:
+    ".cv{font-family:'Trebuchet MS',Arial,sans-serif;color:#1b1b2f;line-height:1.4;font-size:10.5pt}.cv h1{font-size:26pt;margin:0;color:#7C3AED}.cv .head{font-size:11pt;color:#06B6DA;margin:2pt 0 0;font-weight:600}.cv h2{font-size:12pt;color:#4F46E5;border-left:5px solid #7C3AED;padding-left:6pt;margin:14pt 0 5pt}.cv .row{display:flex;justify-content:space-between;gap:8pt}.cv .meta{color:#666}",
+  ats:
+    ".cv{font-family:Arial,Helvetica,sans-serif;color:#000;line-height:1.35;font-size:10.5pt}.cv h1{font-size:18pt;margin:0}.cv .head{font-size:10.5pt;color:#000;margin:2pt 0 0}.cv h2{font-size:11pt;text-transform:uppercase;border-bottom:1px solid #000;margin:12pt 0 4pt;padding-bottom:1pt}.cv .row{display:block}.cv .meta{color:#000}",
 };
 
 const has = (s: string) => s.trim().length > 0;

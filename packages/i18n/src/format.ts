@@ -1,4 +1,6 @@
+import { fallbackList, fallbackRelativeTime } from "./intl-fallback";
 import { bcp47, type Locale } from "./locales";
+import { APP_TIMEZONE } from "./timezone";
 
 type DateInput = Date | string | number;
 const toDate = (d: DateInput) => (d instanceof Date ? d : new Date(d));
@@ -12,11 +14,11 @@ export const formatCurrency = (l: Locale, amount: number, currency = "AZN", opts
   new Intl.NumberFormat(bcp47(l), { style: "currency", currency, ...opts }).format(amount);
 
 export const formatDate = (l: Locale, d: DateInput, opts: Intl.DateTimeFormatOptions = { dateStyle: "medium" }) =>
-  new Intl.DateTimeFormat(bcp47(l), opts).format(toDate(d));
+  new Intl.DateTimeFormat(bcp47(l), { timeZone: APP_TIMEZONE, ...opts }).format(toDate(d));
 export const formatTime = (l: Locale, d: DateInput, opts: Intl.DateTimeFormatOptions = { timeStyle: "short" }) =>
-  new Intl.DateTimeFormat(bcp47(l), opts).format(toDate(d));
+  new Intl.DateTimeFormat(bcp47(l), { timeZone: APP_TIMEZONE, ...opts }).format(toDate(d));
 export const formatDateTime = (l: Locale, d: DateInput, opts: Intl.DateTimeFormatOptions = { dateStyle: "medium", timeStyle: "short" }) =>
-  new Intl.DateTimeFormat(bcp47(l), opts).format(toDate(d));
+  new Intl.DateTimeFormat(bcp47(l), { timeZone: APP_TIMEZONE, ...opts }).format(toDate(d));
 
 const UNITS: ReadonlyArray<[Intl.RelativeTimeFormatUnit, number]> = [
   ["year", 365 * 86400],
@@ -30,12 +32,13 @@ const UNITS: ReadonlyArray<[Intl.RelativeTimeFormatUnit, number]> = [
 /** "3 days ago" / "in 2 hours" in the locale, picking the largest sensible unit. `now` is injectable for tests. */
 export function formatRelativeTime(l: Locale, d: DateInput, now: DateInput = new Date()): string {
   const diffSec = (toDate(d).getTime() - toDate(now).getTime()) / 1000;
-  const rtf = new Intl.RelativeTimeFormat(bcp47(l), { numeric: "auto" });
+  const rtf = typeof Intl.RelativeTimeFormat === "function" ? new Intl.RelativeTimeFormat(bcp47(l), { numeric: "auto" }) : null;
+  const fmt = (v: number, unit: Intl.RelativeTimeFormatUnit) => (rtf ? rtf.format(v, unit) : fallbackRelativeTime(l, v, unit as Parameters<typeof fallbackRelativeTime>[2]));
   const abs = Math.abs(diffSec);
   for (const [unit, secs] of UNITS) {
-    if (abs >= secs || unit === "second") return rtf.format(Math.round(diffSec / secs), unit);
+    if (abs >= secs || unit === "second") return fmt(Math.round(diffSec / secs), unit);
   }
-  return rtf.format(0, "second");
+  return fmt(0, "second");
 }
 
 export const formatBytes = (l: Locale, bytes: number): string => {
@@ -43,4 +46,5 @@ export const formatBytes = (l: Locale, bytes: number): string => {
   if (bytes < 1024 * 1024) return `${formatNumber(l, bytes / 1024, { maximumFractionDigits: 0 })} KB`;
   return `${formatNumber(l, bytes / (1024 * 1024), { maximumFractionDigits: 1 })} MB`;
 };
-export const formatList = (l: Locale, items: string[]) => new Intl.ListFormat(bcp47(l), { style: "long", type: "conjunction" }).format(items);
+export const formatList = (l: Locale, items: string[]) =>
+  typeof Intl.ListFormat === "function" ? new Intl.ListFormat(bcp47(l), { style: "long", type: "conjunction" }).format(items) : fallbackList(l, items);

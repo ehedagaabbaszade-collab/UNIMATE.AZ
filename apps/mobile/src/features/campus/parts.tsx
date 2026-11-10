@@ -2,9 +2,9 @@ import { CAMPUS_LANGUAGES, REPORT_CATEGORIES, linkify, type CampusLanguage, type
 import { LOCALE_NAMES } from "@unimate/i18n";
 import { useI18n } from "@unimate/i18n/react";
 import { useState } from "react";
-import { Linking, Pressable, View } from "react-native";
+import { Linking, View } from "react-native";
 import { Icon } from "../../components/Icon";
-import { AppText, Badge, Button, Card, Dialog, Input, useToast } from "../../components/ui";
+import { AppText, Badge, Button, Card, Dialog, Input, useToast, PressableScale } from "../../components/ui";
 import { useUser } from "../../state/session";
 import { useTheme } from "../../theme/ThemeProvider";
 import { CampusApiError, blockUser, reportContent } from "./api";
@@ -24,7 +24,7 @@ export function Chips<T extends string>({ label, value, onChange, options }: { l
       {options.map((o) => {
         const on = o.value === value;
         return (
-          <Pressable
+          <PressableScale
             key={o.value}
             onPress={() => onChange(o.value)}
             accessibilityRole="radio"
@@ -34,7 +34,7 @@ export function Chips<T extends string>({ label, value, onChange, options }: { l
             <AppText variant="label" style={{ color: on ? theme.active : theme.text }}>
               {o.label}
             </AppText>
-          </Pressable>
+          </PressableScale>
         );
       })}
     </View>
@@ -80,39 +80,39 @@ export function PostCardView({ post, onOpen, onLike, onAuthor }: { post: PostCar
     <Card>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         <Icon name={post.kind === "question" ? "comment" : "post"} size="sm" color={theme.active} />
-        <Pressable disabled={!canOpenAuthor} onPress={onAuthor} accessibilityRole={canOpenAuthor ? "link" : "text"} hitSlop={6}>
+        <PressableScale disabled={!canOpenAuthor} onPress={onAuthor} accessibilityRole={canOpenAuthor ? "link" : "text"} hitSlop={6}>
           <AppText variant="label">{author}</AppText>
-        </Pressable>
+        </PressableScale>
         <AppText variant="caption" muted>
           · {post.community_name} · {dateTime(post.created_at)}
         </AppText>
       </View>
-      <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel={post.title}>
+      <PressableScale onPress={onOpen} accessibilityRole="button" accessibilityLabel={post.title}>
         <AppText variant="heading">{post.title}</AppText>
         {post.body ? (
           <AppText muted numberOfLines={4}>
             {post.body}
           </AppText>
         ) : null}
-      </Pressable>
+      </PressableScale>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         {post.kind === "question" ? <Badge tone="info">{t("campus.post.question")}</Badge> : null}
         {post.accepted_comment_id ? <Badge tone="success">{t("campus.post.accepted")}</Badge> : null}
         <LanguageTag language={post.language} />
       </View>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
-        <Pressable onPress={onLike} disabled={post.is_mine} accessibilityRole="button" accessibilityState={{ selected: post.my_liked, disabled: post.is_mine }} accessibilityLabel={`${post.my_liked ? t("campus.post.liked") : t("campus.post.like")}, ${t("campus.post.likes", { n: post.like_count })}`} style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 44 }}>
+        <PressableScale onPress={onLike} disabled={post.is_mine} accessibilityRole="button" accessibilityState={{ selected: post.my_liked, disabled: post.is_mine }} accessibilityLabel={`${post.my_liked ? t("campus.post.liked") : t("campus.post.like")}, ${t("campus.post.likes", { n: post.like_count })}`} style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 44 }}>
           <Icon name="reaction" size="sm" color={post.my_liked ? theme.danger : theme.textMuted} />
           <AppText variant="caption" muted>
             {post.like_count}
           </AppText>
-        </Pressable>
-        <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel={t(post.kind === "question" ? "campus.post.answers" : "campus.post.comments", { n: post.comment_count })} style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 44 }}>
+        </PressableScale>
+        <PressableScale onPress={onOpen} accessibilityRole="button" accessibilityLabel={t(post.kind === "question" ? "campus.post.answers" : "campus.post.comments", { n: post.comment_count })} style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 44 }}>
           <Icon name="comment" size="sm" color={theme.textMuted} />
           <AppText variant="caption" muted>
             {post.comment_count}
           </AppText>
-        </Pressable>
+        </PressableScale>
       </View>
     </Card>
   );
@@ -122,7 +122,7 @@ export function CommunityCardView({ c, onOpen }: { c: CommunityListItem; onOpen:
   const { t } = useI18n();
   const { theme } = useTheme();
   return (
-    <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel={`${c.name}, ${t(`campus.communities.kind.${c.kind}`)}, ${t("campus.communities.members", { n: c.member_count })}`}>
+    <PressableScale onPress={onOpen} accessibilityRole="button" accessibilityLabel={`${c.name}, ${t(`campus.communities.kind.${c.kind}`)}, ${t("campus.communities.members", { n: c.member_count })}`}>
       <Card>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           <Icon name="group" size="sm" color={theme.active} />
@@ -141,7 +141,7 @@ export function CommunityCardView({ c, onOpen }: { c: CommunityListItem; onOpen:
           {t("campus.communities.members", { n: c.member_count })}
         </AppText>
       </Card>
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -149,7 +149,7 @@ export function EventCardView({ e, onOpen }: { e: EventRow; onOpen: () => void }
   const { t, dateTime } = useI18n();
   const { theme } = useTheme();
   return (
-    <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel={`${e.title}, ${dateTime(e.starts_at)}`}>
+    <PressableScale onPress={onOpen} accessibilityRole="button" accessibilityLabel={`${e.title}, ${dateTime(e.starts_at)}`}>
       <Card>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           <Icon name="event" size="sm" color={theme.active} />
@@ -167,7 +167,7 @@ export function EventCardView({ e, onOpen }: { e: EventRow; onOpen: () => void }
           {[e.community_name, t("campus.events.goingCount", { n: e.going_count }), e.capacity != null && e.going_count >= e.capacity ? t("campus.events.full") : null].filter(Boolean).join(" · ")}
         </AppText>
       </Card>
-    </Pressable>
+    </PressableScale>
   );
 }
 

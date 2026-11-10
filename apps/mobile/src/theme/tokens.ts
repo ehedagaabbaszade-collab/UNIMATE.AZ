@@ -1,5 +1,3 @@
-import { BRAND_COLORS } from "@unimate/ui/icons";
-
 /**
  * Mobile design tokens as a plain TS object (no React, no react-native import: unit-testable).
  * Brand colours come from packages/ui (BRAND_COLORS); the semantic light values mirror packages/ui/src/styles.css.
@@ -41,40 +39,42 @@ export interface Palette {
   gradient: readonly [string, string, string];
 }
 
-const gradient = [BRAND_COLORS.indigo, BRAND_COLORS.purple, BRAND_COLORS.blue] as const;
+/** Official brand accents (indigo, purple, blue, cyan). Used for buttons, active states, progress and the hero banner only. */
+export const BRAND = { indigo: "#4F46E5", purple: "#7C3AED", blue: "#3882F6", cyan: "#06B6DA", lightText: "#F1F5FF" } as const;
+const brandGradient = [BRAND.indigo, BRAND.purple, BRAND.blue] as const;
 
 export const palettes: Readonly<Record<ThemeMode, Palette>> = {
   dark: {
     mode: "dark",
-    bgGradient: ["#0A0F2E", "#161650", "#32197A"],
-    bg: "#0A0F2E",
-    surface: "#141A44",
-    card: "rgba(255,255,255,0.07)",
-    cardBorder: "rgba(255,255,255,0.14)",
-    cardStrong: "rgba(255,255,255,0.12)",
-    text: "#FFFFFF",
-    textMuted: "#B9C1E3",
-    primary: "#5F54EA",
-    primarySoft: "rgba(124,58,237,0.28)",
+    bgGradient: ["#000000", "#040406", "#0A0A0F"],
+    bg: "#000000",
+    surface: "#0F0F12",
+    card: "rgba(255,255,255,0.055)",
+    cardBorder: "rgba(255,255,255,0.09)",
+    cardStrong: "rgba(255,255,255,0.10)",
+    text: "#F1F5FF",
+    textMuted: "#A1A1AA",
+    primary: "#4F46E5",
+    primarySoft: "rgba(79,70,229,0.24)",
     onPrimary: "#FFFFFF",
-    active: "#B79CFF",
-    border: "rgba(255,255,255,0.16)",
+    active: "#06B6DA",
+    border: "rgba(255,255,255,0.12)",
     danger: "#FF8597",
     dangerSoft: "rgba(255,107,129,0.18)",
     success: "#4FDDBA",
     successSoft: "rgba(33,201,168,0.18)",
     warning: "#F7C265",
     warningSoft: "rgba(247,194,101,0.18)",
-    info: "#7FB0FF",
-    inputBg: "rgba(255,255,255,0.08)",
-    overlay: "rgba(5,8,24,0.72)",
-    tabBar: "rgba(14,17,52,0.96)",
-    gradient,
+    info: "#3882F6",
+    inputBg: "rgba(255,255,255,0.07)",
+    overlay: "rgba(0,0,0,0.75)",
+    tabBar: "rgba(10,10,12,0.96)",
+    gradient: brandGradient,
   },
   light: {
     mode: "light",
-    bgGradient: ["#F1F5FF", "#EEF0FF", "#E6E4FF"],
-    bg: "#F1F5FF",
+    bgGradient: ["#F7F7F8", "#F2F2F4", "#ECECEF"],
+    bg: "#F7F7F8",
     surface: "#FFFFFF",
     card: "#FFFFFF",
     cardBorder: "#DDE2EE",
@@ -96,7 +96,7 @@ export const palettes: Readonly<Record<ThemeMode, Palette>> = {
     inputBg: "#FFFFFF",
     overlay: "rgba(16,24,43,0.5)",
     tabBar: "rgba(255,255,255,0.97)",
-    gradient,
+    gradient: brandGradient,
   },
 };
 

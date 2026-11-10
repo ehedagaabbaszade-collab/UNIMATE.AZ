@@ -8,6 +8,8 @@ export const kv: KvStore = {
   removeItem: (k) => AsyncStorage.removeItem(k),
 };
 
-export const KEYS = { theme: "um.theme", locale: "um.locale", reminders: "um.reminders" } as const;
+export const KEYS = { theme: "um.theme", locale: "um.locale", reminders: "um.reminders", focus: "um.focus" } as const;
+
+export const careerPrefsKey = (uid: string) => `um.careerPrefs.${uid}`;
 
 export const onboardingSkipKey = (uid: string) => `um.onboardingSkipped.${uid}`;

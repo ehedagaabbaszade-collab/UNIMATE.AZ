@@ -181,21 +181,21 @@ export function NoteDetailScreen({ id }: { id: string }) {
       </Card>
 
       <View style={{ gap: 10 }}>
-        <Button title={busy === "open" ? t("notes.detail.opening") : t("notes.detail.open")} icon={<Icon name="download" size="sm" color="#FFFFFF" />} loading={busy === "open"} onPress={() => void open()} />
+        <Button title={busy === "open" ? t("notes.detail.opening") : t("notes.detail.open")} icon={<Icon name="download" size="sm" />} loading={busy === "open"} onPress={() => void open()} />
         {canStudyWithAi(n.mimeType) ? (
-          <Button title={busy === "study" ? t("notes.detail.studying") : t("notes.detail.studyWithAi")} variant="secondary" icon={<Icon name="ai-study" size="sm" color="#FFFFFF" />} loading={busy === "study"} onPress={() => void study()} />
+          <Button title={busy === "study" ? t("notes.detail.studying") : t("notes.detail.studyWithAi")} variant="secondary" icon={<Icon name="ai-study" size="sm" />} loading={busy === "study"} onPress={() => void study()} />
         ) : (
           <AppText variant="caption" muted>
             {t("notes.detail.studyUnsupported")}
           </AppText>
         )}
         {n.status === "published" ? (
-          <Button title={saved ? t("notes.detail.unsave") : t("notes.detail.save")} variant="secondary" icon={<Icon name="saved" size="sm" color="#FFFFFF" />} loading={busy === "save"} onPress={() => void toggleSave()} />
+          <Button title={saved ? t("notes.detail.unsave") : t("notes.detail.save")} variant="secondary" icon={<Icon name="saved" size="sm" />} loading={busy === "save"} onPress={() => void toggleSave()} />
         ) : null}
         {mine ? (
           <Button title={t("notes.detail.delete")} variant="danger" onPress={confirmDelete} />
         ) : n.status === "published" ? (
-          <Button title={t("notes.detail.report")} variant="ghost" icon={<Icon name="report" size="sm" color="#FFFFFF" />} onPress={() => setReportOpen(true)} />
+          <Button title={t("notes.detail.report")} variant="ghost" icon={<Icon name="report" size="sm" />} onPress={() => setReportOpen(true)} />
         ) : null}
       </View>
 

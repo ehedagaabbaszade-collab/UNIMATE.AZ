@@ -1,6 +1,7 @@
 import { useI18n } from "@unimate/i18n/react";
+import { PressableScale } from "../../src/components/ui";
 import { useRouter, type Href } from "expo-router";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { ModuleIcon } from "../../src/components/Icon";
 import { AppText, Card, Screen, ScreenHeader } from "../../src/components/ui";
 import { tileLayout } from "../../src/lib/registry";
@@ -14,12 +15,12 @@ export default function More() {
       <ScreenHeader title={t("nav.more")} onBack={() => router.back()} />
       <View style={{ gap: 10 }}>
         {tileLayout().overflow.map((m) => (
-          <Pressable key={m.id} onPress={() => router.push(m.href as Href)} accessibilityRole="button" accessibilityLabel={t(m.labelKey)}>
+          <PressableScale key={m.id} onPress={() => router.push(m.href as Href)} accessibilityRole="button" accessibilityLabel={t(m.labelKey)}>
             <Card style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
               <ModuleIcon icon={m.icon} {...(m.module ? { module: m.module } : {})} {...(m.tileColors ? { colors: m.tileColors } : {})} size={40} />
               <AppText variant="heading">{t(m.labelKey)}</AppText>
             </Card>
-          </Pressable>
+          </PressableScale>
         ))}
       </View>
     </Screen>

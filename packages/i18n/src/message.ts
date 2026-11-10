@@ -1,3 +1,4 @@
+import { fallbackPluralCategory } from "./intl-fallback";
 import { bcp47, type Locale } from "./locales";
 
 /** Values accepted by message arguments. */
@@ -93,8 +94,9 @@ const rules = (l: Locale) => {
   return r;
 };
 
-/** Plural category for `n` in `locale` (one|few|many|other|zero|two). */
-export const pluralCategory = (locale: Locale, n: number): Intl.LDMLPluralRule => rules(locale).select(n);
+/** Plural category for `n` in `locale` (one|few|many|other|zero|two). Hermes has no Intl.PluralRules: CLDR fallback. */
+export const pluralCategory = (locale: Locale, n: number): Intl.LDMLPluralRule =>
+  typeof Intl !== "undefined" && typeof Intl.PluralRules === "function" ? rules(locale).select(n) : fallbackPluralCategory(locale, n);
 
 function render(nodes: Node[], locale: Locale, params: Params, hash: string | null): string {
   let out = "";

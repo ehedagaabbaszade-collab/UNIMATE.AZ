@@ -1,9 +1,9 @@
 import { isDue, type ReviewGrade } from "@unimate/core";
 import { useI18n } from "@unimate/i18n/react";
 import { useState } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { EdgeNotice } from "../../components/EdgeNotice";
-import { AppText, Button, EmptyState, Notice, Skeleton } from "../../components/ui";
+import { AppText, Button, EmptyState, Notice, Skeleton, PressableScale } from "../../components/ui";
 import type { FlashcardRow } from "../../lib/db";
 import type { EdgeError } from "../../lib/edge";
 import { generateFlashcardMaterial } from "../../lib/edge-client";
@@ -56,12 +56,12 @@ export function FlashcardStudy({ cards, onDone }: { cards: FlashcardRow[]; onDon
         {t("cards.dueNow", { n: queue.length })}
         {info ? ` · ${info}` : ""}
       </AppText>
-      <Pressable onPress={() => setFlipped((f) => !f)} accessibilityRole="button" accessibilityState={{ selected: flipped }} accessibilityLabel={`${flipped ? t("cards.back") : t("cards.front")}: ${flipped ? card.back : card.front}`} style={{ minHeight: 200, borderRadius: radii.xl, borderWidth: 1, borderColor: theme.cardBorder, backgroundColor: theme.cardStrong, padding: 20, justifyContent: "center", gap: 8 }}>
+      <PressableScale onPress={() => setFlipped((f) => !f)} accessibilityRole="button" accessibilityState={{ selected: flipped }} accessibilityLabel={`${flipped ? t("cards.back") : t("cards.front")}: ${flipped ? card.back : card.front}`} style={{ minHeight: 200, borderRadius: radii.xl, borderWidth: 1, borderColor: theme.cardBorder, backgroundColor: theme.cardStrong, padding: 20, justifyContent: "center", gap: 8 }}>
         <AppText variant="caption" muted>
           {flipped ? t("cards.back") : t("cards.front")}
         </AppText>
         <AppText variant="heading">{flipped ? card.back : card.front}</AppText>
-      </Pressable>
+      </PressableScale>
       {error ? <Notice text={t("cards.saveFailed")} /> : null}
       {flipped ? (
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>

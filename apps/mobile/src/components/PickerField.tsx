@@ -1,6 +1,7 @@
 import { useT } from "@unimate/i18n/react";
+import { PressableScale } from "./ui";
 import { useMemo, useState } from "react";
-import { Modal, Pressable, SectionList, TextInput, View } from "react-native";
+import { Modal, SectionList, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../theme/ThemeProvider";
 import { MIN_TOUCH, fontSizes, radii, spacing } from "../theme/tokens";
@@ -56,7 +57,7 @@ export function PickerField({
   return (
     <View style={{ gap: 6 }}>
       <AppText variant="label">{label}</AppText>
-      <Pressable
+      <PressableScale
         onPress={() => setOpen(true)}
         disabled={disabled || loading}
         accessibilityRole="button"
@@ -67,7 +68,7 @@ export function PickerField({
         <AppText numberOfLines={2} muted={!selected}>
           {loading ? t("common.loading") : (selected?.label ?? t("common.select"))}
         </AppText>
-      </Pressable>
+      </PressableScale>
       {error ? (
         <AppText variant="caption" style={{ color: theme.danger }}>
           {error}
@@ -116,7 +117,7 @@ export function PickerField({
               ) : null
             }
             renderItem={({ item }) => (
-              <Pressable
+              <PressableScale
                 onPress={() => {
                   onChange(item.id);
                   setOpen(false);
@@ -127,7 +128,7 @@ export function PickerField({
                 style={{ minHeight: MIN_TOUCH + 4, justifyContent: "center", paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: theme.border }}
               >
                 <AppText style={{ color: item.id === value ? theme.active : theme.text, fontWeight: item.id === value ? "700" : "400" }}>{item.label}</AppText>
-              </Pressable>
+              </PressableScale>
             )}
           />
           <View style={{ padding: spacing.lg }}>

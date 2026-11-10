@@ -1,4 +1,4 @@
-import { parseNotifications, type NotificationItem } from "@unimate/core";
+import { notificationHref, parseNotifications, type NotificationItem } from "@unimate/core";
 import { useI18n } from "@unimate/i18n/react";
 import { useRouter } from "expo-router";
 import { Pressable, View } from "react-native";
@@ -40,7 +40,7 @@ export default function NotificationsRoute() {
       ) : (
         <View style={{ gap: 10 }}>
           {list.data?.map((n: NotificationItem) => (
-            <Pressable key={n.id} disabled={!!n.read_at} onPress={() => void markOne(n.id)} accessibilityRole={n.read_at ? "text" : "button"} accessibilityLabel={`${n.title ?? ""}. ${n.body ?? ""}`}>
+            <Pressable key={n.id} disabled={!!n.read_at && !notificationHref(n)} onPress={() => { if (!n.read_at) void markOne(n.id); const href = notificationHref(n); if (href) router.push(href); }} accessibilityRole={n.read_at && !notificationHref(n) ? "text" : "button"} accessibilityLabel={`${n.title ?? ""}. ${n.body ?? ""}`}>
             <Card>
               <View style={{ flexDirection: "row", gap: 8, alignItems: "center", justifyContent: "space-between" }}>
                 {n.kind === "achievement" ? <Icon name="achievements" size="sm" color={theme.warning} /> : null}

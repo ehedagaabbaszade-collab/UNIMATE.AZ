@@ -1,8 +1,9 @@
 "use client";
 
-import { parseNotifications } from "@unimate/core";
+import { notificationHref, parseNotifications } from "@unimate/core";
 import { useI18n } from "@unimate/i18n/react";
 import { Button, Card, EmptyState, ErrorState, Icon, Skeleton } from "@unimate/ui";
+import Link from "next/link";
 import { getBrowserClient } from "@/lib/supabase/browser";
 import { unwrap, useAsync } from "@/lib/use-async";
 
@@ -42,6 +43,11 @@ export function NotificationsList() {
                   <span className="list-item__title" style={{ fontWeight: n.read_at ? 400 : 700 }}>
                     {n.kind === "achievement" ? <Icon name="achievements" size={18} /> : null} {n.title}
                   </span>
+                  {notificationHref(n) ? (
+                    <Link className="um-btn um-btn--secondary um-btn--sm" href={notificationHref(n)!} onClick={() => { if (!n.read_at) void mark([n.id]); }}>
+                      {t("notifications.open")}
+                    </Link>
+                  ) : null}
                   {!n.read_at ? (
                     <Button variant="ghost" size="sm" onClick={() => void mark([n.id])}>
                       {t("notifications.markRead")}

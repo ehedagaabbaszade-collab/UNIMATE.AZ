@@ -56,6 +56,17 @@ export const MODULES: readonly ModuleEntry[] = [
     tileOrder: 5,
   },
   {
+    id: "campus",
+    href: "/campus",
+    tabRoute: "campus",
+    icon: "campus",
+    module: "campus",
+    labelKey: "brand.module.campus",
+    // Third module tab: AI Study, Notes and Campus fill the bar; Planner moves to the Home grid (it already has a tile).
+    tabOrder: 3,
+    tabPriority: 3,
+  },
+  {
     id: "career",
     href: "/career",
     tabRoute: "career",

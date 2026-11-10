@@ -17,3 +17,4 @@ export * from "./notes/notes";
 export * from "./career/career";
 export * from "./career/ai";
 export * from "./career/cv-html";
+export * from "./campus/campus";

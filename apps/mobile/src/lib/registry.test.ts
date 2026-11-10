@@ -20,20 +20,21 @@ describe("module registry", () => {
     }
   });
   it("derives tabs, tiles and heroes in order, and adding an entry makes it appear everywhere", () => {
-    expect(tabModules().map((m) => m.tabRoute)).toEqual(["study", "notes", "planner"]);
+    expect(tabModules().map((m) => m.tabRoute)).toEqual(["study", "notes", "campus"]);
     expect(tileLayout().tiles.map((m) => m.id)[0]).toBe("aiStudy");
-    const campus: ModuleEntry = { id: "campus", href: "/campus", tabRoute: "campus", icon: "campus", module: "campus", labelKey: "brand.module.campus", tabOrder: 3, tabPriority: 3, tileOrder: 6, hero: { order: 3, bodyKey: "mobile.home.heroAiBody", ctaKey: "mobile.home.heroAiCta" } };
-    const all = [...MODULES, campus];
-    expect(tabModules(all).map((m) => m.id)).toEqual(["aiStudy", "notes", "campus"]);
-    expect(tileLayout(all).tiles.map((m) => m.id)).toContain("campus");
-    expect(heroModules(all).at(-1)?.id).toBe("campus");
+    const extra: ModuleEntry = { id: "jobs2", href: "/jobs2", tabRoute: "jobs2", icon: "career", module: "career", labelKey: "brand.module.career", tabOrder: 4, tabPriority: 0, tileOrder: 11, hero: { order: 3, bodyKey: "mobile.home.heroAiBody", ctaKey: "mobile.home.heroAiCta" } };
+    const all = [...MODULES, extra];
+    expect(tabModules(all).map((m) => m.id)).toEqual(["aiStudy", "notes", "jobs2"]); // capped at 3 module tabs, by priority
+    expect(tileLayout(all).tiles.length + tileLayout(all).overflow.length).toBe(tileLayout().tiles.length + 1);
+    expect(heroModules(all).at(-1)?.id).toBe("jobs2");
   });
-  it("keeps the bar at 5 tabs (Home + 3 modules + Profile): Planner gives way, and its file is declared hidden", () => {
-    const mk = (id: string, order: number, priority: number, tile: number): ModuleEntry => ({ id, href: `/${id}`, tabRoute: id, icon: "campus", module: "campus", labelKey: "brand.module.campus", tabOrder: order, tabPriority: priority, tileOrder: tile });
-    const all = [...MODULES, mk("campus", 3, 3, 6), mk("jobs2", 4, 4, 7)];
-    expect(tabModules(all).map((m) => m.id)).toEqual(["aiStudy", "notes", "campus"]);
-    expect(overflowTabModules(all).map((m) => m.id)).toEqual(["career", "planner", "jobs2"]);
-    expect(overflowTabModules().map((m) => m.id)).toEqual(["career"]); // Career: registered tab file, shown as a Home tile
+  it("Campus is a bottom tab (AI Study, Notes, Campus) with its own tab file; Planner and Career give way and are declared hidden", () => {
+    const campus = MODULES.find((m) => m.id === "campus")!;
+    expect(campus).toMatchObject({ href: "/campus", tabRoute: "campus", icon: "campus", module: "campus", labelKey: "brand.module.campus" });
+    expect(tabModules().map((m) => m.id)).toEqual(["aiStudy", "notes", "campus"]);
+    expect(overflowTabModules().map((m) => m.id)).toEqual(["career", "planner"]);
+    expect(tileLayout().tiles.some((m) => m.id === "planner")).toBe(true); // Planner stays one tap away on the Home grid
+    expect(tabModules().length + 2).toBe(5); // Home + 3 modules + Profile
   });
   it("Home grid is 3x3: more than 9 tiles become 8 plus an overflow list", () => {
     const extra = (n: number): ModuleEntry => ({ id: `x${n}`, href: `/x${n}`, icon: "campus", module: "campus", labelKey: "brand.module.campus", tileOrder: 20 + n });
@@ -43,8 +44,5 @@ describe("module registry", () => {
     expect(tiles).toHaveLength(8);
     expect(overflow).toHaveLength(4);
     expect(tileLayout(MODULES).tiles).toHaveLength(9); // exactly 9: no overflow
-  });
-  it("never lists planned modules before their screens exist", () => {
-    for (const id of ["campus"]) expect(MODULES.some((m) => m.id === id)).toBe(false);
   });
 });

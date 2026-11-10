@@ -76,6 +76,8 @@ const OVERRIDES: Record<string, Record<string, string>> = {
   config_versions: { action: "'seed'", snapshot: "'{}'::jsonb" },
   subscriptions: { plan: "'plus'", status: "'active'" },
   account_deletion_requests: { status: "'pending'" },
+  event_rsvps: { status: "'going'" },
+  campus_actions: { kind: "'seed'" },
   reactions: { post_id: "(select id from public.posts order by created_at limit 1)" },
 };
 // reports: exactly one target column may be set (num_nonnulls = 1); handled per pair in the seeder.

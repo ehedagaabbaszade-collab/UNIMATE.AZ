@@ -1,7 +1,7 @@
 # PROGRESS (updated 2026-11-10)
 
 Status legend: **T** implemented + tested (automated), **U** implemented, untested against live services, **N** not started.
-Repo: 545 vitest tests passing (46 files); `npm run typecheck` clean in all workspaces. No live Supabase, no AI key, no Deno, no device builds available here.
+**Final state (2026-11-10):** 129 test files / 1845 tests pass; `npm run typecheck` clean; `npm run lint` exit 0; web, admin and Android export builds OK. No live Supabase, no AI key, no Deno, no device builds available here. See docs/FINAL_DELIVERY_REPORT.md. (Older per-row counts below are historical.)
 
 | Module | Status | Notes |
 | - | - | - |
@@ -15,13 +15,15 @@ Repo: 545 vitest tests passing (46 files); `npm run typecheck` clean in all work
 | AI cost architecture (DB-backed routing/pricing, hard ceilings user/plan/global, reserve-settle idempotent billing, approved cheaper fallback, rate limits, admin cost views) | T on PGlite / U live | 806 repo tests pass; concurrency tests prove statement logic only (single-connection PGlite); GROUP plan has no route; adapters don't report cached tokens |
 | Institutions directory (sign-up/onboarding select, grouped universities vs colleges, Azerbaijani sort) | T | 22 ministry + 8 private + 13 other-body + 38 ministry colleges from edu.gov.az/Wikipedia; 24 user-supplied entries flagged `source=user_supplied_unverified` for admin verification; production web build OK |
 | Admin app, part 1 (apps/admin: staff sign-in, proxy + layout + per-page role guard, overview counters, users/roles/plan grants/suspend, academic data CRUD + institution verification, moderation queues, career listings, subscriptions + expiry sweeper, prompt versions; migration 4600) | T guard/schemas/RPC wrappers/i18n/no-secrets + 36 DB tests on PGlite / U screens | never run against a live Supabase; visual check at 1280/390 and light/dark not done (no browser); MFA not wired (docs/ADMIN.md). Part 2 (migration 4700; AI providers/models/routes/budgets/versions/cost, analytics, audit viewer, system config, templates/content, job monitor + requeue; reason-carrying wrapper RPCs) T 39 DB + vitest helpers/scans / U screens: no live Supabase, no browser check, az/tr/ru copy needs native review, system_config keys have no runtime consumer |
-| Mobile (Expo) | N | stub only; starts after backend |
+| Mobile (Expo) | U | Expo Router app with Campus, Notes, Career, gamification, planner, settings; typecheck, pure-logic tests and `expo export` (Android) pass; never run on a device or built with EAS; push delivery not built; planner dates typed text; see apps/mobile/README.md, docs/MOBILE_BUILD.md |
 | Notes library (migration 4200: private `resources` bucket, create_resource, moderation, copyright hold, search, ratings/saves, contributor, shared quizzes/decks; mobile tab + web pages) | T on PGlite / U screens + edge | `import-resource` and `resource-url` edge functions untested (no Deno); pipeline orchestration tested; screens typecheck/build only |
 | Career (migrations 4300/4310: organizations, opportunities, self-tracking, CV documents, `cv_feedback`/`interview_prep` AI tasks; admin RPCs; az/tr-aware search; CV completeness, skill gap; mobile tab + web pages; CV print/PDF) | T on PGlite / U screens + edge | no listings exist until an admin creates them; applications are external; `cv-feedback`/`interview-prep` edge functions untested (no Deno) and answer ai_not_configured until routes are set; `expo-print` export unverified on a device; admin UI not built (RPCs only) |
 | Campus (migration 4400: university/faculty/course/group communities, feeds with cursor paging, posts/comments (depth 3), reactions, Q&A accepted answer, anonymous questions, follows/blocks/reports, community moderation queue + tools, events with RSVP/capacity/planner task, study groups with invite codes, search, 7 notification templates az/tr/en/ru; mobile tab + routes, web pages) | T on PGlite (35 tests as `authenticated`) + core rules / U screens | no community, post or event exists until a student/directory entry creates it; the university community is created on first use (`ensure_university_community`); NOT built: followers/following lists, event reminder scheduler (`send_event_reminders` exists, nothing calls it), push delivery, native-speaker review of templates/UI strings; screens untested on a device; Planner left the mobile tab bar for Campus (still a Home tile) |
-| Campus UI | N | tables+RLS exist; no UI |
+| Campus UI | U | web pages and mobile tab/routes exist (see Campus row); untested on device/browser |
 | Payments | N | by design: entitlements + admin grant only, no checkout |
-| E2E/Playwright, load tests, CI/CD | N | |
+| Lint, critical-journey tests, perf smoke, CI workflow file, dependency audit | T | `.github/workflows/ci.yml` written, not enabled/pushed; see docs/PERFORMANCE.md, docs/DEPENDENCY_AUDIT.md |
+| E2E/Playwright, real load tests | N | |
+| Delivery docs (README, LOCAL_SETUP, DEPLOYMENT, MOBILE_BUILD, STORE_LISTING, RELEASE_CHECKLIST, BETA_GUIDE, FINAL_DELIVERY_REPORT) | written | none of the described live steps were run |
 
 ## Queued next (one agent at a time, in order)
 1. Finish backend gaps (account deletion, export, server-side XP, admin ops) -> verify -> commit.

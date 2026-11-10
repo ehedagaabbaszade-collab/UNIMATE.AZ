@@ -25,3 +25,8 @@ So the share is driven by (a) task size, (b) opus reviews of whole packages, (c)
 - Size patches to <=~100k tokens; split by package; run one agent at a time.
 - Don't run parallel agents near the 5-hour limit; resume paused agents with SendMessage rather than new cold agents.
 - Remaining reviewer budget: one milestone review of admin/mobile, one release security review.
+
+## Final state (2026-11-10)
+- Runtime AI routing is DB configuration (`ai_providers`, `ai_models`, `ai_task_routes`, `ai_budgets`, managed in the admin console with audited, revertable writes). No model has been chosen and no provider key is set, so production AI calls fail closed (`ai_not_configured`).
+- Ceilings: hard spend limits per user, per plan and global (day/month), reserved then settled atomically and idempotently per request id; fallback only to approved same-or-cheaper models; per-user rate limits. Locally tested on PGlite only, not under live concurrency or a real provider. Budget values are not chosen yet (planning budget 0-500 AZN).
+- Agent-cost workflow used for the build: project `CLAUDE.md` rules (small work in the main session, one subagent at a time, sonnet implementer with <=120-word reports, haiku for searches/test runs, opus reviewer only at milestones and security-critical diffs, scoped to a diff or named files). Token counts above are from that session; the delivery phase added no new measurements.

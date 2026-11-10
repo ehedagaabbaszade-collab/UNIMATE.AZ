@@ -62,7 +62,10 @@ grant execute on all functions in schema storage to anon, authenticated, service
 grant execute on all functions in schema auth to anon, authenticated, service_role;
 grant select on auth.users to service_role;
 
--- Same default privileges Supabase gives the API roles on public.
+`;
+
+/** Same default privileges Supabase (classic projects) gives the API roles on public. Newer hosted projects do NOT. */
+const DEFAULT_GRANTS = `
 alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
 alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
 alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
@@ -76,11 +79,15 @@ export function migrationFiles(): string[] {
     .sort();
 }
 
-export async function createTestDb(opts: { seed?: boolean } = {}): Promise<PGlite> {
+export async function createTestDb(
+  opts: { seed?: boolean; defaultGrants?: boolean; excludeMigrations?: string[] } = {},
+): Promise<PGlite> {
   const db = new PGlite({ extensions: { vector } });
   await db.waitReady;
   await db.exec(SUPABASE_STUBS);
+  if (opts.defaultGrants !== false) await db.exec(DEFAULT_GRANTS);
   for (const file of migrationFiles()) {
+    if (opts.excludeMigrations?.includes(file)) continue;
     const sql = readFileSync(path.join(supabaseDir, "migrations", file), "utf8");
     try {
       await db.exec(sql);

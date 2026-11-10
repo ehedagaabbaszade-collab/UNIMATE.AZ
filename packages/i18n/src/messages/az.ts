@@ -1,3 +1,4 @@
+import { adminAz } from "./admin.az";
 import type { Messages } from "./en";
 
 export const az = {
@@ -1129,4 +1130,5 @@ export const az = {
       pickImage: "Şəkil seç",
     },
   },
+  admin: adminAz,
 } satisfies Messages;

@@ -1,3 +1,4 @@
+import { adminEn } from "./admin.en";
 /** English is the source catalog: its shape defines `Messages`. Other catalogs must `satisfies Messages`. */
 export const en = {
   common: {
@@ -1128,6 +1129,7 @@ export const en = {
       pickImage: "Choose a photo",
     },
   },
+  admin: adminEn,
 } as const;
 
 type DeepString<T> = { [K in keyof T]: T[K] extends string ? string : DeepString<T[K]> };

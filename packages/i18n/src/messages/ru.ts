@@ -1,3 +1,4 @@
+import { adminRu } from "./admin.ru";
 import type { Messages } from "./en";
 
 export const ru = {
@@ -1129,4 +1130,5 @@ export const ru = {
       pickImage: "Выбрать фото",
     },
   },
+  admin: adminRu,
 } satisfies Messages;

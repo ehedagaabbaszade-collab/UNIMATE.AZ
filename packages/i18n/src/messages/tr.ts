@@ -1,3 +1,4 @@
+import { adminTr } from "./admin.tr";
 import type { Messages } from "./en";
 
 export const tr = {
@@ -1129,4 +1130,5 @@ export const tr = {
       pickImage: "Fotoğraf seç",
     },
   },
+  admin: adminTr,
 } satisfies Messages;

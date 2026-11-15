@@ -67,7 +67,9 @@
           "microphonePermission": false
         }
       ],
-      "./plugins/with-focus-lock"
+      "./plugins/with-focus-lock",
+      "expo-sharing",
+      "expo-status-bar"
     ],
     "experiments": {
       "typedRoutes": false

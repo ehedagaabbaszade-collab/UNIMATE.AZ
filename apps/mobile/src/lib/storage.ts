@@ -13,3 +13,8 @@ export const KEYS = { theme: "um.theme", locale: "um.locale", reminders: "um.rem
 export const careerPrefsKey = (uid: string) => `um.careerPrefs.${uid}`;
 
 export const onboardingSkipKey = (uid: string) => `um.onboardingSkipped.${uid}`;
+
+export const modeKey = (uid: string) => `um.mode.${uid}`;
+export const tourKey = (uid: string) => `um.tour.${uid}`;
+export const pinsKey = (uid: string) => `um.pins.${uid}`;
+export const examsKey = (uid: string) => `um.exams.${uid}`;

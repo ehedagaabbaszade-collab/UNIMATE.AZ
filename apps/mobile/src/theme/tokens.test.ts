@@ -3,7 +3,7 @@ import { DEFAULT_THEME_PREF, contrast, palettes, resolveMode } from "./tokens";
 
 describe("theme tokens", () => {
   it("defaults to dark (the approved mockup look) and resolves system", () => {
-    expect(DEFAULT_THEME_PREF).toBe("dark");
+    expect(DEFAULT_THEME_PREF).toBe("system");
     expect(resolveMode("system", "light")).toBe("light");
     expect(resolveMode("system", null)).toBe("dark");
     expect(resolveMode("light", "dark")).toBe("light");

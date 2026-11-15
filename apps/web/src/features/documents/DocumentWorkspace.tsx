@@ -2,10 +2,10 @@
 
 import { Badge, Button, EmptyState, ErrorState, Skeleton, Tabs } from "@unimate/ui";
 import Link from "next/link";
-import { useEffect } from "react";
 import { useI18n } from "@unimate/i18n/react";
 import type { DocumentRow } from "@/lib/db";
 import { getBrowserClient } from "@/lib/supabase/browser";
+import { useVisibleInterval } from "@/lib/use-visible-interval";
 import { unwrap, useAsync } from "@/lib/use-async";
 import { CardsView } from "../flashcards/CardsView";
 import { ChatPanel } from "./ChatPanel";
@@ -22,11 +22,7 @@ export function DocumentWorkspace({ documentId }: { documentId: string }) {
 
   const inFlight = doc.data ? isInFlight(doc.data.status) : false;
   const reload = doc.reload;
-  useEffect(() => {
-    if (!inFlight) return;
-    const id = setInterval(reload, 4000);
-    return () => clearInterval(id);
-  }, [inFlight, reload]);
+  useVisibleInterval(reload, 4000, inFlight);
 
   if (doc.loading && doc.data === undefined) return <Skeleton height={240} />;
   if (doc.error) return <ErrorState title={t("documents.loadFailed")} description={doc.error} action={<Button onClick={doc.reload}>{t("common.retry")}</Button>} />;

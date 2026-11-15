@@ -19,7 +19,8 @@
       "supportsTablet": false,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "CFBundleAllowMixedLocalizations": true
+        "CFBundleAllowMixedLocalizations": true,
+        "CADisableMinimumFrameDurationOnPhone": true
       }
     },
     "android": {

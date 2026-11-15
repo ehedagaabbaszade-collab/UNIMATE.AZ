@@ -14,17 +14,13 @@ export interface ModuleEntry {
   id: string;
   /** Expo Router path, e.g. "/study". */
   href: string;
-  /** Tab screen name inside app/(tabs) (without slashes). Present = shows in the bottom bar. */
+  /** Tab screen name inside app/(tabs) when it differs from `pin-<id>` (the pinned-tab file every module has). */
   tabRoute?: string;
   icon: IconName;
   /** Brand module gradient to use for the tile. Without it `tileColors` is used. */
   module?: ModuleName;
   tileColors?: readonly [string, string];
   labelKey: MessageKey;
-  /** Sort position in the tab bar (home is first and profile last, both fixed). */
-  tabOrder?: number;
-  /** Which module tabs survive when there are more than MAX_MODULE_TABS (lower = kept first). The rest stay reachable via tiles/hero. */
-  tabPriority?: number;
   /** Position in the Home grid. Absent = not a tile. */
   tileOrder?: number;
   /** Home hero carousel card. */
@@ -39,8 +35,6 @@ export const MODULES: readonly ModuleEntry[] = [
     icon: "ai-study",
     module: "ai-study",
     labelKey: "brand.module.aiStudy",
-    tabOrder: 1,
-    tabPriority: 1,
     tileOrder: 1,
     hero: { order: 1, bodyKey: "mobile.home.heroAiBody", ctaKey: "mobile.home.heroAiCta" },
   },
@@ -59,9 +53,6 @@ export const MODULES: readonly ModuleEntry[] = [
     icon: "campus",
     module: "campus",
     labelKey: "brand.module.campus",
-    // Bar per the approved mockup: AI Study (Öyrən), Campus, Career. Notes and Planner are Home tiles opened as stack screens.
-    tabOrder: 2,
-    tabPriority: 2,
   },
   {
     id: "career",
@@ -70,8 +61,6 @@ export const MODULES: readonly ModuleEntry[] = [
     icon: "career",
     module: "career",
     labelKey: "brand.module.career",
-    tabOrder: 3,
-    tabPriority: 3,
     tileOrder: 6,
   },
   { id: "quiz", href: "/quizzes", icon: "quiz", tileColors: ["#7C3AED", "#4F46E5"], labelKey: "mobile.quizzes.title", tileOrder: 2 },
@@ -85,27 +74,27 @@ export const MODULES: readonly ModuleEntry[] = [
     tileOrder: 4,
     hero: { order: 2, bodyKey: "mobile.home.heroPlannerBody", ctaKey: "mobile.home.heroPlannerCta" },
   },
+  // Azerbaijan-specific daily tools (device-local): absence limit + exam score targets, and an AZN budget.
+  { id: "courses", href: "/courses", icon: "timetable", tileColors: ["#4F46E5", "#7C3AED"], labelKey: "semester.title", tileOrder: 4.5 },
+  { id: "budget", href: "/budget", icon: "wallet", tileColors: ["#0F766E", "#0E7490"], labelKey: "budget.title", tileOrder: 5.5 },
   { id: "gamification", href: "/gamification", icon: "gamification", module: "gamification", labelKey: "brand.module.gamification", tileOrder: 8 },
-  { id: "focus", href: "/focus", icon: "pomodoro", tileColors: ["#B45309", "#C2410C"], labelKey: "nav.focus", tileOrder: 9 },
+  { id: "focus", href: "/focus", icon: "pomodoro", tileColors: ["#B45309", "#C2410C"], labelKey: "nav.focus", tileOrder: 5.2 },
   { id: "gpa", href: "/gpa", icon: "gpa", tileColors: ["#2563EB", "#4F46E5"], labelKey: "nav.gpa", tileOrder: 10 },
 ];
 
 const byOrder = <T,>(get: (m: ModuleEntry) => T | undefined) => (a: ModuleEntry, b: ModuleEntry) => Number(get(a)) - Number(get(b));
 
-/** The mockup's bar is Home + 3 modules + Profile = 5 tabs. */
-export const MAX_MODULE_TABS = 3;
+/** Bar: Home + up to MAX_PINS user-pinned modules + More. iOS shows at most 5 tabs before adding its own "More". */
+export const MAX_PINS = 3;
+export const DEFAULT_PINS: readonly string[] = ["aiStudy", "career", "campus"];
 /** The Home grid is 3x3: when more than 9 tiles are registered, 8 are shown plus a "more" tile. */
 export const MAX_TILES = 9;
 
-const allTabs = (mods: readonly ModuleEntry[]) => mods.filter((m) => m.tabRoute);
-/** Module tabs shown in the bar: the MAX_MODULE_TABS highest-priority ones, in tabOrder. */
-export const tabModules = (mods: readonly ModuleEntry[] = MODULES): ModuleEntry[] =>
-  [...allTabs(mods)].sort(byOrder((m) => m.tabPriority ?? 50)).slice(0, MAX_MODULE_TABS).sort(byOrder((m) => m.tabOrder));
-/** Tab files that exist but do not fit the bar: declared hidden (href: null) so Expo Router does not auto-add them. */
-export const overflowTabModules = (mods: readonly ModuleEntry[] = MODULES): ModuleEntry[] => {
-  const shown = new Set(tabModules(mods).map((m) => m.id));
-  return allTabs(mods).filter((m) => !shown.has(m.id));
-};
+/** Tab screen name in app/(app)/(tabs) for a module. */
+export const tabRouteOf = (m: ModuleEntry): string => m.tabRoute ?? `pin-${m.id}`;
+/** Pinned ids -> modules, in pin order; unknown ids are dropped and the list is capped. */
+export const pinnedModules = (ids: readonly string[], mods: readonly ModuleEntry[] = MODULES): ModuleEntry[] =>
+  ids.flatMap((id) => mods.find((m) => m.id === id) ?? []).slice(0, MAX_PINS);
 
 export const heroModules = (mods: readonly ModuleEntry[] = MODULES): ModuleEntry[] => mods.filter((m) => m.hero).sort((a, b) => a.hero!.order - b.hero!.order);
 

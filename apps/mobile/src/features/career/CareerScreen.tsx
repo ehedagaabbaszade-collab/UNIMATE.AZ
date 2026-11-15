@@ -3,9 +3,11 @@ import { useI18n } from "@unimate/i18n/react";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Linking, View } from "react-native";
-import { Icon, ModuleIcon } from "../../components/Icon";
+import { Icon } from "../../components/Icon";
 import { WorkAzSection } from "./WorkAzSection";
-import { AppText, Badge, Button, Card, EmptyState, ErrorState, Input, Screen, Segmented, Skeleton, useOnline, useToast, PressableScale } from "../../components/ui";
+import { AppText, Badge, Button, Card, EmptyState, ErrorState, HeroTitle, ListGroup, ListRow, Pill, Screen, SearchField, Segmented, Skeleton, useOnline, useToast, PressableScale, Input } from "../../components/ui";
+import { radii, spacing } from "../../theme/tokens";
+import { useTheme } from "../../theme/ThemeProvider";
 import { useAsync } from "../../lib/use-async";
 import { useUser } from "../../state/session";
 import { InterviewPanel } from "./InterviewPanel";
@@ -54,35 +56,28 @@ function Feed() {
   const { t } = useI18n();
   const router = useRouter();
   const online = useOnline();
+  const { theme } = useTheme();
   const [f, setF] = useState<OpportunityFilters>(DEFAULT_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
   const set = <K extends keyof OpportunityFilters>(k: K, v: OpportunityFilters[K]) => setF((p) => ({ ...p, [k]: v }));
   const feed = useFeed(f);
   const filtered = JSON.stringify(f) !== JSON.stringify(DEFAULT_FILTERS);
   return (
-    <View style={{ gap: 12 }}>
+    <View style={{ gap: spacing.lg }}>
       <WorkAzSection />
-      <PressableScale onPress={() => router.push("/colleges" as never)} accessibilityRole="button" accessibilityLabel={t("colleges.title")}>
-        <Card>
-          <AppText variant="heading">{t("colleges.title")} {"›"}</AppText>
-          <AppText variant="caption" muted>
-            {t("colleges.subtitle")}
-          </AppText>
-        </Card>
-      </PressableScale>
-      <Input label={t("career.search.label")} placeholder={t("career.search.placeholder")} value={f.q} onChangeText={(v) => set("q", v)} returnKeyType="search" autoCorrect={false} />
+      <ListGroup>
+        <ListRow icon="development" title={t("colleges.title")} subtitle={t("colleges.subtitle")} onPress={() => router.push("/colleges" as never)} />
+      </ListGroup>
+      <SearchField label={t("career.search.label")} placeholder={t("career.search.placeholder")} value={f.q} onChangeText={(v) => set("q", v)} returnKeyType="search" autoCorrect={false} />
       <Segmented
         label={t("career.tabs.opportunities")}
         value={f.kind}
         onChange={(v) => set("kind", v)}
         options={[{ value: "", label: t("career.kind.all") }, ...OPPORTUNITY_KINDS.map((k) => ({ value: k, label: t(`career.kind.${k}`) }))]}
       />
-      <PressableScale onPress={() => setShowFilters((s) => !s)} accessibilityRole="button" accessibilityState={{ expanded: showFilters }} accessibilityLabel={t("career.filters.workMode")} style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 44 }}>
-        <Icon name="search" size="sm" />
-        <AppText variant="label">{t("career.filters.location")} · {t("career.filters.closing")} · {t("career.filters.skills")}</AppText>
-      </PressableScale>
+      <Pill label={`${t("career.filters.title")}${filtered ? " •" : ""}`} tone={showFilters ? "accent" : "plain"} onPress={() => setShowFilters((s) => !s)} icon={<Icon name="development" size="sm" color={showFilters ? theme.onPrimary : theme.text} />} />
       {showFilters ? (
-        <Card>
+        <Card style={{ borderRadius: radii.xxl }}>
           <Input label={t("career.filters.location")} placeholder={t("career.filters.locationPlaceholder")} value={f.location} onChangeText={(v) => set("location", v)} autoCorrect={false} />
           <Input label={t("career.filters.skills")} placeholder={t("career.filters.skillsPlaceholder")} value={f.skills} onChangeText={(v) => set("skills", v)} autoCapitalize="none" autoCorrect={false} />
           <Segmented
@@ -239,7 +234,7 @@ function Tracker() {
   if (tracked.error && !tracked.data) return <ErrorState title={t("career.loadFailed")} description={tracked.error} action={<Button title={t("common.retry")} onPress={tracked.reload} />} />;
   const items = tracked.data ?? [];
   return (
-    <View style={{ gap: 12 }}>
+    <View style={{ gap: spacing.lg }}>
       <AppText muted>{t("career.tracker.intro")}</AppText>
       <SkillGapCard tracked={items} />
       {items.length === 0 ? (
@@ -285,7 +280,7 @@ function CvList() {
   if (cvs.error && !cvs.data) return <ErrorState title={t("career.loadFailed")} description={cvs.error} action={<Button title={t("common.retry")} onPress={cvs.reload} />} />;
   const list = cvs.data ?? [];
   return (
-    <View style={{ gap: 12 }}>
+    <View style={{ gap: spacing.lg }}>
       <Button title={t("career.cv.create")} icon={<Icon name="add" size="sm" />} loading={busy} disabled={list.length >= CV_MAX_DOCUMENTS} onPress={() => void create()} />
       {list.length >= CV_MAX_DOCUMENTS ? (
         <AppText variant="caption" muted>
@@ -318,28 +313,25 @@ function CvList() {
 export function CareerScreen() {
   const { t } = useI18n();
   const [tab, setTab] = useState<Tab>("opportunities");
+  const tabs: { value: Tab; label: string }[] = [
+    { value: "opportunities", label: t("career.tabs.opportunities") },
+    { value: "tracker", label: t("career.tabs.tracker") },
+    { value: "cv", label: t("career.tabs.cv") },
+    { value: "interview", label: t("career.tabs.interview") },
+  ];
   return (
-    <Screen>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <ModuleIcon icon="career" module="career" size={48} />
-        <View style={{ flex: 1 }}>
-          <AppText variant="display" accessibilityRole="header">
-            {t("career.title")}
-          </AppText>
-          <AppText muted>{t("career.subtitle")}</AppText>
-        </View>
+    <Screen ambient>
+      <View style={{ gap: spacing.sm }}>
+        <HeroTitle muted={t("mobile.career.heroMuted")} strong={t("mobile.career.heroStrong")} />
+        <AppText variant="caption" muted>
+          {t("career.subtitle")}
+        </AppText>
       </View>
-      <Segmented
-        label={t("career.tabs.label")}
-        value={tab}
-        onChange={setTab}
-        options={[
-          { value: "opportunities", label: t("career.tabs.opportunities") },
-          { value: "tracker", label: t("career.tabs.tracker") },
-          { value: "cv", label: t("career.tabs.cv") },
-          { value: "interview", label: t("career.tabs.interview") },
-        ]}
-      />
+      <View accessibilityRole="tablist" accessibilityLabel={t("career.tabs.label")} style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+        {tabs.map((o) => (
+          <Pill key={o.value} label={o.label} tone={o.value === tab ? "accent" : "plain"} onPress={() => setTab(o.value)} />
+        ))}
+      </View>
       {tab === "opportunities" ? <Feed /> : tab === "tracker" ? <Tracker /> : tab === "cv" ? <CvList /> : <InterviewPanel />}
     </Screen>
   );

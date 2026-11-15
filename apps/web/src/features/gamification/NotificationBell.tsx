@@ -7,9 +7,8 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getBrowserClient } from "@/lib/supabase/browser";
 
-/** Bell with an unread dot. The count is the server's unread_notification_count RPC, refreshed on navigation. */
-export function NotificationBell() {
-  const { t } = useI18n();
+/** Unread count from the server's unread_notification_count RPC, refreshed on navigation. Fetch once per shell. */
+export function useUnreadCount(): number {
   const pathname = usePathname();
   const [unread, setUnread] = useState(0);
   useEffect(() => {
@@ -23,6 +22,12 @@ export function NotificationBell() {
       cancelled = true;
     };
   }, [pathname]);
+  return unread;
+}
+
+/** Bell with an unread dot (presentational: the shell renders two, one per layout, from a single fetch). */
+export function NotificationBell({ unread }: { unread: number }) {
+  const { t } = useI18n();
   return (
     <Link href="/notifications" className="bell" aria-label={unread > 0 ? t("notifications.bellUnread", { n: unread }) : t("notifications.bell")}>
       <Icon name="notifications" size={22} />

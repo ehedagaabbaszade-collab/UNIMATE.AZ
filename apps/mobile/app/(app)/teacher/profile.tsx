@@ -1,5 +1,5 @@
 import { ProfileScreen } from "../../../src/features/profile/ProfileScreen";
 
-export default function Profile() {
+export default function TeacherProfile() {
   return <ProfileScreen />;
 }

@@ -31,6 +31,8 @@ const ALLOWED_TEXT = new Set([
   "PDF",
   "DOCX",
   "PPTX",
+  "Ctrl K", // keyboard key names, printed on the keys in every locale
+  "Esc",
 ]);
 const ALLOWED_WORDS = [...ALLOWED_TEXT].sort((a, b) => b.length - a.length);
 /** Letters left after removing allowlisted names ("© UNIMATE" is fine; "© UNIMATE students" is not). */

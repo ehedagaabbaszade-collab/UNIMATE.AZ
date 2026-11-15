@@ -157,6 +157,7 @@ export async function processDocument(
     deps.guard
       ? { guard: deps.guard, plan, requestBase: fence ? `job:${fence.jobId}:${fence.attempt ?? 0}` : `doc:${documentId}:${randomUUID()}` }
       : undefined,
+    "passage",
   );
   if (vectors.some((x) => x.length !== EMBEDDING_DIMS)) throw new PipelineError("embed_dims", "Bad embedding dimensions", false);
 

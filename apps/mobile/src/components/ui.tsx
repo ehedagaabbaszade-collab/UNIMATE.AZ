@@ -1,8 +1,11 @@
 import { useT } from "@unimate/i18n/react";
 import NetInfo from "@react-native-community/netinfo";
 import { LinearGradient } from "expo-linear-gradient";
+import { Stack } from "expo-router";
+import { HeaderHeightContext } from "expo-router/react-navigation";
 import { StatusBar } from "expo-status-bar";
-import { cloneElement, createContext, isValidElement, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from "react";
+import type { IconName } from "@unimate/ui/icons";
+import { Children, cloneElement, createContext, isValidElement, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -12,6 +15,7 @@ import {
   UIManager,
   Pressable,
   ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   View,
@@ -24,16 +28,20 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../theme/ThemeProvider";
 import { MIN_TOUCH, fontSizes, radii, spacing } from "../theme/tokens";
-import { easings, haptic, useEnter, usePressScale, useReducedMotion } from "../lib/motion";
-import { GlassSurface, TabInsetContext } from "./Glass";
+import RA, { FadeInDown, Keyframe, ReduceMotion } from "react-native-reanimated";
+import { AmbientBackground } from "./AmbientBackground";
+import { CSS_EASE_OUT, CSS_EASE_IN_OUT, EASE_OUT, easings, haptic, useReducedMotion } from "../lib/motion";
+import { TabInsetContext } from "./Glass";
 import { Icon } from "./Icon";
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+const RAPressable = RA.createAnimatedComponent(Pressable);
+/** Press feedback as a Reanimated CSS transition: scale on press-in, 120ms strong ease-out, UI thread. */
+const pressStyle = (pressed: boolean, to: number, reduced: boolean) => ({ transform: [{ scale: pressed && !reduced ? to : 1 }], transitionProperty: "transform", transitionDuration: 120, transitionTimingFunction: CSS_EASE_OUT }) as const;
 
 // ------------------------------------------------------------------ text
 type Variant = "display" | "title" | "heading" | "body" | "caption" | "label";
 const VARIANTS: Record<Variant, TextStyle> = {
-  display: { fontSize: fontSizes.xxl, fontWeight: "700", letterSpacing: -0.6 },
+  display: { fontSize: 34, fontWeight: "700", letterSpacing: -0.8 }, // iOS large title
   title: { fontSize: fontSizes.xl, fontWeight: "700", letterSpacing: -0.3 },
   heading: { fontSize: fontSizes.lg, fontWeight: "600", letterSpacing: -0.2 },
   body: { fontSize: fontSizes.base, fontWeight: "400", lineHeight: 22 },
@@ -49,25 +57,29 @@ export function AppText({ variant = "body", muted, style, ...rest }: TextProps &
 
 // ------------------------------------------------------------------ screen
 /** Gradient background + safe areas + optional scrolling. `tabBar` adds bottom space for the floating tab bar. */
-export function Screen({ children, scroll = true, padded = true, style }: { children: ReactNode; scroll?: boolean; padded?: boolean; style?: StyleProp<ViewStyle> }) {
+export function Screen({ children, scroll = true, padded = true, style, ambient = true }: { children: ReactNode; scroll?: boolean; padded?: boolean; style?: StyleProp<ViewStyle>; /** Brand-colour glow behind content (default on; pass false to opt out). */ ambient?: boolean }) {
   const { theme } = useTheme();
+  // Under a (transparent) native header: its height already includes the status-bar inset, so the SafeArea "top" edge must not be applied again.
+  const headerH = useContext(HeaderHeightContext) ?? 0;
+  const hasHeader = headerH > 0;
   const inset = useContext(TabInsetContext);
-  const enter = useEnter(0, 10);
-  const body = { padding: padded ? spacing.lg : 0, gap: spacing.lg, paddingBottom: (padded ? spacing.lg : 0) + inset } as const;
+  const body = { padding: padded ? spacing.lg : 0, gap: spacing.lg, paddingTop: (padded ? spacing.lg : 0) + headerH, paddingBottom: (padded ? spacing.lg : 0) + inset } as const;
+  const adjust = hasHeader ? "never" : "automatic"; // header offset is applied manually above; "automatic" would add it twice
   return (
     <LinearGradient colors={theme.bgGradient} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={{ flex: 1 }}>
       <StatusBar style={theme.mode === "dark" ? "light" : "dark"} />
-      <SafeAreaView style={{ flex: 1 }} edges={["top", "left", "right"]}>
+      {ambient ? <AmbientBackground /> : null}
+      <SafeAreaView style={{ flex: 1 }} edges={hasHeader ? ["left", "right"] : ["top", "left", "right"]}>
         <OfflineBanner />
-        <Animated.View style={[{ flex: 1 }, enter]}>
+        <View style={{ flex: 1 }}>
           {scroll ? (
-            <ScrollView contentContainerStyle={[body, style]} keyboardShouldPersistTaps="handled" contentInsetAdjustmentBehavior="automatic">
+            <ScrollView contentContainerStyle={[body, style]} keyboardShouldPersistTaps="handled" contentInsetAdjustmentBehavior={adjust}>
               {children}
             </ScrollView>
           ) : (
             <View style={[{ flex: 1 }, body, style]}>{children}</View>
           )}
-        </Animated.View>
+        </View>
       </SafeAreaView>
     </LinearGradient>
   );
@@ -75,10 +87,104 @@ export function Screen({ children, scroll = true, padded = true, style }: { chil
 
 // ------------------------------------------------------------------ card (glass)
 export function Card({ children, style, strong, ...rest }: { children: ReactNode; style?: StyleProp<ViewStyle>; strong?: boolean } & Omit<React.ComponentProps<typeof View>, "style">) {
+  const { theme } = useTheme();
   return (
-    <GlassSurface {...rest} strong={!!strong} style={[{ padding: spacing.lg, gap: spacing.sm }, style]}>
+    // Solid grouped surface (Apple HIG: glass is for chrome, content sits on opaque cells).
+    <View
+      {...rest}
+      style={[
+        {
+          padding: spacing.lg,
+          gap: spacing.sm,
+          borderRadius: radii.lg,
+          borderCurve: "continuous",
+          backgroundColor: strong ? theme.cardStrong : theme.card,
+          borderWidth: StyleSheet.hairlineWidth,
+          borderColor: theme.cardBorder,
+          boxShadow: theme.mode === "light" ? "0 1px 2px rgba(16,24,43,0.05), 0 4px 16px rgba(16,24,43,0.04)" : undefined,
+        },
+        style,
+      ]}
+    >
       {children}
-    </GlassSurface>
+    </View>
+  );
+}
+
+// ------------------------------------------------------------------ grouped list (iOS inset grouped)
+/** One rounded surface with hairline-separated rows; the section title sits outside it, like iOS Settings. */
+export function ListGroup({ title, footer, children, style }: { title?: string; footer?: string; children: ReactNode; style?: StyleProp<ViewStyle> }) {
+  const { theme } = useTheme();
+  const rows = Children.toArray(children).filter(Boolean);
+  return (
+    <View style={[{ gap: spacing.sm }, style]}>
+      {title ? (
+        <AppText variant="label" muted accessibilityRole="header" style={{ paddingHorizontal: spacing.lg, fontWeight: "500" }}>
+          {title}
+        </AppText>
+      ) : null}
+      <View style={{ backgroundColor: theme.card, borderRadius: radii.md + 2, borderCurve: "continuous", overflow: "hidden" }}>
+        {rows.map((row, i) => (
+          <View key={i}>
+            {i > 0 ? <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: theme.border, marginLeft: spacing.lg + 30 + spacing.md }} /> : null}
+            {row}
+          </View>
+        ))}
+      </View>
+      {footer ? (
+        <AppText variant="caption" muted style={{ paddingHorizontal: spacing.lg }}>
+          {footer}
+        </AppText>
+      ) : null}
+    </View>
+  );
+}
+
+/** A row inside ListGroup: tinted icon, title, optional subtitle and trailing text, chevron when it navigates. */
+export function ListRow({ icon, iconColor, titleColor, title, subtitle, subtitleColor, trailing, onPress, onLongPress, longPressLabel, accessibilityLabel }: { icon?: IconName; iconColor?: string; titleColor?: string; title: string; subtitle?: string; subtitleColor?: string; trailing?: ReactNode; onPress?: () => void; /** iOS-style secondary action (e.g. delete); also exposed to VoiceOver as a named action. */ onLongPress?: () => void; longPressLabel?: string; accessibilityLabel?: string }) {
+  const { theme } = useTheme();
+  const body = (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, minHeight: 52, paddingVertical: spacing.sm + 2, paddingHorizontal: spacing.lg }}>
+      {icon ? (
+        <View style={{ width: 30, height: 30, borderRadius: 8, borderCurve: "continuous", backgroundColor: theme.primarySoft, alignItems: "center", justifyContent: "center" }}>
+          <Icon name={icon} size={18} color={iconColor ?? theme.active} />
+        </View>
+      ) : null}
+      <View style={{ flex: 1, gap: 2 }}>
+        <AppText numberOfLines={2} style={{ fontWeight: "500", ...(titleColor ? { color: titleColor } : null) }}>
+          {title}
+        </AppText>
+        {subtitle ? (
+          <AppText variant="caption" numberOfLines={2} style={{ color: subtitleColor ?? theme.textMuted }}>
+            {subtitle}
+          </AppText>
+        ) : null}
+      </View>
+      {typeof trailing === "string" ? (
+        <AppText variant="caption" muted style={{ fontVariant: ["tabular-nums"] }}>
+          {trailing}
+        </AppText>
+      ) : (
+        trailing ?? null
+      )}
+      {onPress ? (
+        <AppText muted importantForAccessibility="no" style={{ fontSize: 22, lineHeight: 24, opacity: 0.6 }}>
+          ›
+        </AppText>
+      ) : null}
+    </View>
+  );
+  if (!onPress) return body;
+  return (
+    <Pressable
+      onPress={onPress}
+      {...(onLongPress ? { onLongPress, accessibilityActions: [{ name: "longpress", label: longPressLabel ?? title }], onAccessibilityAction: (e: { nativeEvent: { actionName: string } }) => e.nativeEvent.actionName === "longpress" && onLongPress() } : {})}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? (subtitle ? `${title}. ${subtitle}` : title)}
+      style={({ pressed }) => ({ backgroundColor: pressed ? theme.cardStrong : "transparent" })}
+    >
+      {body}
+    </Pressable>
   );
 }
 
@@ -106,64 +212,134 @@ export function Button({
   style?: StyleProp<ViewStyle>;
 }) {
   const { theme } = useTheme();
-  const press = usePressScale(0.96);
+  const reduced = useReducedMotion();
+  const [pressed, setPressed] = useState(false);
   const inactive = disabled || loading;
-  const bg = variant === "primary" ? theme.primary : variant === "danger" ? theme.dangerSoft : variant === "secondary" ? theme.cardStrong : "transparent";
-  const fg = variant === "primary" ? theme.onPrimary : variant === "danger" ? theme.danger : theme.text;
+  const light = theme.mode === "light";
+  // Every variant reads as a button: filled, tinted, outlined or danger-outlined. Never bare text.
+  const look: Record<ButtonVariant, { bg: string; fg: string; border: string | null }> = {
+    primary: { bg: theme.primary, fg: theme.onPrimary, border: null },
+    secondary: { bg: theme.primarySoft, fg: light ? theme.primary : theme.text, border: null },
+    ghost: { bg: "transparent", fg: theme.text, border: theme.textMuted },
+    danger: { bg: theme.dangerSoft, fg: theme.danger, border: theme.danger },
+  };
+  const { bg, fg, border } = look[variant];
+  // Static style on a plain Pressable, scale on the wrapper: function styles on an Animated Pressable can be dropped.
   return (
-    <AnimatedPressable
-      onPress={inactive ? undefined : () => { haptic.tap(); onPress?.(); }}
-      onPressIn={press.onPressIn}
-      onPressOut={press.onPressOut}
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel ?? title}
-      accessibilityState={{ disabled: !!inactive, busy: !!loading }}
-      style={({ pressed }) => [
-        {
-          transform: [{ scale: press.scale }],
-          minHeight: small ? 36 : MIN_TOUCH + 4,
-          paddingHorizontal: small ? spacing.md : spacing.lg,
+    <RA.View style={[pressStyle(pressed, 0.97, reduced), style]}>
+      <Pressable
+        onPress={inactive ? undefined : () => { haptic.tap(); onPress?.(); }}
+        onPressIn={() => setPressed(true)}
+        onPressOut={() => setPressed(false)}
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel ?? title}
+        accessibilityState={{ disabled: !!inactive, busy: !!loading }}
+        style={{
+          minHeight: small ? 40 : MIN_TOUCH + 4,
+          paddingHorizontal: small ? spacing.md + 2 : spacing.lg,
           borderRadius: radii.pill,
           backgroundColor: bg,
-          borderWidth: variant === "secondary" || variant === "danger" ? 1 : 0,
-          borderColor: variant === "danger" ? theme.danger : theme.border,
+          borderWidth: border ? 1 : 0,
+          borderColor: border ?? "transparent",
           alignItems: "center",
           justifyContent: "center",
           flexDirection: "row",
           gap: spacing.sm,
           opacity: inactive ? 0.55 : pressed ? 0.85 : 1,
-        },
-        style,
-      ]}
-    >
-      {loading ? <ActivityIndicator color={fg} /> : isValidElement(icon) ? cloneElement(icon as ReactElement<{ color?: string }>, { color: fg }) : icon}
-      <Text maxFontSizeMultiplier={1.5} style={{ color: fg, fontSize: small ? fontSizes.sm : fontSizes.base, fontWeight: "700", flexShrink: 1, textAlign: "center" }}>
-        {title}
-      </Text>
-    </AnimatedPressable>
+          borderCurve: "continuous",
+          ...(variant === "primary" && !inactive ? { boxShadow: `0 4px 12px ${light ? "rgba(67,56,202,0.28)" : "rgba(129,140,248,0.35)"}` } : null),
+        }}
+      >
+        {loading ? <ActivityIndicator color={fg} /> : isValidElement(icon) ? cloneElement(icon as ReactElement<{ color?: string }>, { color: fg }) : icon}
+        <Text maxFontSizeMultiplier={1.5} style={{ color: fg, fontSize: small ? fontSizes.sm : fontSizes.base, fontWeight: "700", flexShrink: 1, textAlign: "center" }}>
+          {title}
+        </Text>
+      </Pressable>
+    </RA.View>
   );
 }
 
 /** Pressable with a spring scale + light haptic: for tiles, cards and rows. Drop-in for Pressable (no render-function style). */
 export function PressableScale({ children, style, onPress, scaleTo = 0.97, ...rest }: Omit<React.ComponentProps<typeof Pressable>, "style" | "children"> & { children: ReactNode; style?: StyleProp<ViewStyle>; scaleTo?: number }) {
-  const press = usePressScale(scaleTo);
+  const reduced = useReducedMotion();
+  const [pressed, setPressed] = useState(false);
   return (
-    <AnimatedPressable
+    <RAPressable
       {...rest}
       onPress={onPress ? (e) => { haptic.tap(); onPress(e); } : undefined}
-      onPressIn={press.onPressIn}
-      onPressOut={press.onPressOut}
-      style={[style, { transform: [{ scale: press.scale }] }]}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
+      style={[style, pressStyle(pressed, scaleTo, reduced)]}
     >
       {children}
-    </AnimatedPressable>
+    </RAPressable>
   );
 }
 
 /** Fades and rises its children in on mount; `index` staggers siblings (capped so long lists stay snappy). */
 export function Reveal({ children, index = 0, style }: { children: ReactNode; index?: number; style?: StyleProp<ViewStyle> }) {
-  const enter = useEnter(Math.min(index, 8) * 60, 16);
-  return <Animated.View style={[style, enter]}>{children}</Animated.View>;
+  const entering = FadeInDown.duration(220).delay(Math.min(index, 4) * 35).easing(EASE_OUT).withInitialValues({ opacity: 0, transform: [{ translateY: 8 }] }).reduceMotion(ReduceMotion.System);
+  return (
+    <RA.View entering={entering} style={style}>
+      {children}
+    </RA.View>
+  );
+}
+
+// ------------------------------------------------------------------ editorial pieces
+/** Oversized light two-line headline: muted first line, ink second line, optional small raised count. */
+export function HeroTitle({ muted, strong, count }: { muted: string; strong: string; count?: number }) {
+  const { theme } = useTheme();
+  const base: TextStyle = { fontSize: 42, lineHeight: 46, fontWeight: "300", letterSpacing: -1 };
+  return (
+    <View accessibilityRole="header" accessible accessibilityLabel={`${muted} ${strong}${count != null ? ` ${count}` : ""}`}>
+      <Text importantForAccessibility="no" maxFontSizeMultiplier={1.2} style={[base, { color: theme.textMuted }]}>
+        {muted}
+      </Text>
+      <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
+        <Text importantForAccessibility="no" maxFontSizeMultiplier={1.2} style={[base, { color: theme.text, flexShrink: 1 }]}>
+          {strong}
+        </Text>
+        {count != null ? (
+          <Text importantForAccessibility="no" maxFontSizeMultiplier={1.2} style={{ color: theme.textMuted, fontSize: 16, fontWeight: "400", marginTop: 4, marginLeft: 4, textAlignVertical: "top", fontVariant: ["tabular-nums"] }}>
+            {`(${count})`}
+          </Text>
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
+/** Fully round label: accent (indigo), ink (near-black) or plain (card) tone; a button when onPress is given. */
+export function Pill({ label, tone = "plain", onPress, icon }: { label: string; tone?: "accent" | "ink" | "plain"; onPress?: () => void; icon?: ReactNode }) {
+  const { theme } = useTheme();
+  const bg = tone === "accent" ? theme.primary : tone === "ink" ? theme.ink : theme.card;
+  const fg = tone === "plain" ? theme.text : tone === "accent" ? theme.onPrimary : "#FFFFFF";
+  const body = (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 36, paddingHorizontal: spacing.md + 2, borderRadius: radii.pill, backgroundColor: bg, alignSelf: "flex-start", borderWidth: tone === "plain" ? StyleSheet.hairlineWidth : 0, borderColor: theme.cardBorder }}>
+      {icon}
+      <Text maxFontSizeMultiplier={1.4} numberOfLines={1} style={{ color: fg, fontSize: fontSizes.sm, fontWeight: "600", flexShrink: 1 }}>
+        {label}
+      </Text>
+    </View>
+  );
+  if (!onPress) return body;
+  return (
+    <PressableScale onPress={onPress} accessibilityRole="button" accessibilityLabel={label} style={{ alignSelf: "flex-start" }}>
+      {body}
+    </PressableScale>
+  );
+}
+
+/** 56px round action (ink, accent or plain) with a required accessibility label. */
+export function RoundAction({ icon, label, onPress, tone = "ink", disabled }: { icon: ReactNode; label: string; onPress: () => void; tone?: "ink" | "accent" | "plain"; disabled?: boolean }) {
+  const { theme } = useTheme();
+  const bg = tone === "accent" ? theme.primary : tone === "ink" ? theme.ink : theme.card;
+  return (
+    <PressableScale onPress={disabled ? undefined : onPress} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled: !!disabled }} style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: bg, alignItems: "center", justifyContent: "center", opacity: disabled ? 0.4 : 1 }}>
+      {isValidElement(icon) ? cloneElement(icon as ReactElement<{ color?: string }>, { color: tone === "plain" ? theme.text : tone === "accent" ? theme.onPrimary : "#FFFFFF" }) : icon}
+    </PressableScale>
+  );
 }
 
 // ------------------------------------------------------------------ input
@@ -204,6 +380,24 @@ export function Input({ label, error, hint, style, secure, ...rest }: TextInputP
   );
 }
 
+/** Rounded (28) search field on a card surface; the label is the accessibility label, not visible text. */
+export function SearchField({ label, hint, style, ...rest }: TextInputProps & { label: string; hint?: string | undefined }) {
+  const { theme } = useTheme();
+  return (
+    <View style={{ gap: 6 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, backgroundColor: theme.card, borderRadius: 28, borderCurve: "continuous", minHeight: 52, paddingHorizontal: spacing.lg }}>
+        <Icon name="search" size="sm" color={theme.textMuted} />
+        <TextInput {...rest} accessibilityLabel={label} placeholderTextColor={theme.textMuted} maxFontSizeMultiplier={1.6} style={[{ flex: 1, color: theme.text, fontSize: fontSizes.base, paddingVertical: spacing.md }, style as StyleProp<TextStyle>]} />
+      </View>
+      {hint ? (
+        <AppText variant="caption" muted style={{ paddingHorizontal: spacing.lg }}>
+          {hint}
+        </AppText>
+      ) : null}
+    </View>
+  );
+}
+
 // ------------------------------------------------------------------ badge / chips
 import type { BadgeTone } from "./badge-tone";
 export type { BadgeTone };
@@ -227,8 +421,55 @@ export function Badge({ children, tone = "neutral" }: { children: string; tone?:
   );
 }
 
+/** iOS segmented control (up to 3 options): one track, a thumb that slides (transform only, 200ms ease-in-out). */
+function IosSegmented<T extends string>({ options, value, onChange, label }: { options: readonly { value: T; label: string }[]; value: T; onChange: (v: T) => void; label: string }) {
+  const { theme } = useTheme();
+  const reduced = useReducedMotion();
+  const [width, setWidth] = useState(0);
+  const idx = Math.max(0, options.findIndex((o) => o.value === value));
+  const seg = width / options.length;
+  const dark = theme.mode === "dark";
+  return (
+    <View
+      accessibilityRole="tablist"
+      accessibilityLabel={label}
+      onLayout={(e) => setWidth(e.nativeEvent.layout.width - 4)}
+      style={{ flexDirection: "row", padding: 2, borderRadius: 10, borderCurve: "continuous", backgroundColor: theme.cardStrong }}
+    >
+      {width > 0 ? (
+        <RA.View
+          pointerEvents="none"
+          style={{ position: "absolute", top: 2, bottom: 2, left: 2, width: seg, borderRadius: 8, borderCurve: "continuous", backgroundColor: dark ? theme.border : theme.card, boxShadow: dark ? undefined : "0 1px 3px rgba(16,24,43,0.14)", transform: [{ translateX: idx * seg }], transitionProperty: "transform", transitionDuration: reduced ? 0 : 200, transitionTimingFunction: CSS_EASE_IN_OUT }}
+        />
+      ) : null}
+      {options.map((o) => {
+        const on = o.value === value;
+        return (
+          <Pressable
+            key={o.value}
+            onPress={() => {
+              if (!on) haptic.select();
+              onChange(o.value);
+            }}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: on }}
+            hitSlop={{ top: 4, bottom: 4 }}
+            style={{ flex: 1, minHeight: 36, alignItems: "center", justifyContent: "center", paddingHorizontal: spacing.sm }}
+          >
+            <Text maxFontSizeMultiplier={1.4} numberOfLines={1} style={{ color: theme.text, fontWeight: on ? "600" : "500", fontSize: fontSizes.sm }}>
+              {o.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+/** Choice control: iOS segmented control for 2-3 options, wrapping chips for longer lists (categories, letters). */
 export function Segmented<T extends string>({ options, value, onChange, label }: { options: readonly { value: T; label: string }[]; value: T; onChange: (v: T) => void; label: string }) {
   const { theme } = useTheme();
+  if (options.length <= 3) return <IosSegmented options={options} value={value} onChange={onChange} label={label} />;
   return (
     <View accessibilityRole="tablist" accessibilityLabel={label} style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
       {options.map((o) => {
@@ -373,24 +614,17 @@ export function Notice({ text, tone = "danger" }: { text: string; tone?: "danger
   );
 }
 
-/** Back + title row for pushed (non-tab) screens. */
-export function ScreenHeader({ title, onBack }: { title: string; onBack?: () => void }) {
-  const t = useT();
+/** Pushed screens: the native stack header (iOS large-title-free nav bar, system back + swipe-back). `onBack` kept for callers; the native back button handles it. */
+export function ScreenHeader({ title }: { title: string; onBack?: () => void }) {
   const { theme } = useTheme();
-  return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
-      {onBack ? (
-        <Pressable onPress={onBack} accessibilityRole="button" accessibilityLabel={t("common.back")} hitSlop={8} style={{ width: MIN_TOUCH, height: MIN_TOUCH, borderRadius: MIN_TOUCH / 2, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.card, alignItems: "center", justifyContent: "center" }}>
-          <AppText variant="title" style={{ lineHeight: 28 }}>
-            {"‹"}
-          </AppText>
-        </Pressable>
-      ) : null}
-      <AppText variant="title" accessibilityRole="header" style={{ flex: 1 }}>
+  // Pinned to the tab bar: there is no stack header (and no back), so the title is drawn in the content instead.
+  if (useContext(TabInsetContext) > 0)
+    return (
+      <Text accessibilityRole="header" maxFontSizeMultiplier={1.2} style={{ fontSize: 34, lineHeight: 40, fontWeight: "300", letterSpacing: -0.6, color: theme.text }}>
         {title}
-      </AppText>
-    </View>
-  );
+      </Text>
+    );
+  return <Stack.Screen options={{ headerShown: true, title }} />;
 }
 
 // ------------------------------------------------------------------ offline banner
@@ -452,18 +686,28 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 }
 
 // ------------------------------------------------------------------ dialog
+const DIALOG_IN = new Keyframe({ 0: { opacity: 0, transform: [{ scale: 0.95 }] }, 100: { opacity: 1, transform: [{ scale: 1 }], easing: EASE_OUT } }).duration(200).reduceMotion(ReduceMotion.System);
+/** Alert-style entrance: 0.95 -> 1 scale + fade, 200ms ease-out (occasional UI; opacity only with reduced motion). */
+function DialogCard({ children }: { children: ReactNode }) {
+  const { theme } = useTheme();
+  return (
+    <RA.View entering={DIALOG_IN} accessibilityViewIsModal style={{ backgroundColor: theme.surface, borderRadius: radii.xl, borderCurve: "continuous", padding: spacing.xl, gap: spacing.md }}>
+      {children}
+    </RA.View>
+  );
+}
 export function Dialog({ open, title, children, onClose, actions }: { open: boolean; title: string; children: ReactNode; onClose: () => void; actions: ReactNode }) {
   const { theme } = useTheme();
   return (
     <Modal visible={open} transparent animationType="fade" onRequestClose={onClose} accessibilityViewIsModal>
       <View style={{ flex: 1, backgroundColor: theme.overlay, justifyContent: "center", padding: spacing.xl }}>
-        <View accessibilityViewIsModal style={{ backgroundColor: theme.surface, borderRadius: radii.xl, padding: spacing.xl, gap: spacing.md, borderWidth: 1, borderColor: theme.border }}>
+        <DialogCard>
           <AppText variant="heading" accessibilityRole="header">
             {title}
           </AppText>
           {children}
           <View style={{ gap: spacing.sm }}>{actions}</View>
-        </View>
+        </DialogCard>
       </View>
     </Modal>
   );

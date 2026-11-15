@@ -82,7 +82,7 @@ export class SqlRepository implements Repository {
     const { rows } = await this.exec.service((q) =>
       q.query<Row>(
         `insert into public.processing_jobs (document_id, user_id, kind, payload, idempotency_key, max_attempts, run_after)
-         values ($1, $2, $3, $4::jsonb, $5, $6, coalesce($7::timestamptz, now()))
+         values ($1, $2, $3, $4::text::jsonb, $5, $6, coalesce($7::timestamptz, now()))
          on conflict (idempotency_key) do update set idempotency_key = excluded.idempotency_key
          returning *, (xmax = 0) as created`,
         [i.documentId, i.userId, i.kind, JSON.stringify(i.payload ?? {}), i.idempotencyKey, i.maxAttempts ?? 5, i.runAfter ? iso(i.runAfter) : null],
@@ -235,7 +235,7 @@ export class SqlRepository implements Repository {
     for (const c of chunks)
       await q.query(
         `insert into public.document_chunks (document_id, chunk_index, page_start, page_end, content, token_count, embedding, metadata)
-         values ($1, $2, $3, $4, $5, $6, $7::extensions.vector, $8::jsonb)`,
+         values ($1, $2, $3, $4, $5, $6, $7::extensions.vector, $8::text::jsonb)`,
         [documentId, c.index, c.pageStart, c.pageEnd, c.text, c.tokenCount, vec(c.embedding), JSON.stringify({ source_id: c.sourceId })],
       );
   }
@@ -385,7 +385,7 @@ export class SqlRepository implements Repository {
     const { rows } = await this.exec.service((q) =>
       q.query<Row>(
         `insert into public.messages (conversation_id, role, content, citations, model, input_tokens, output_tokens)
-         values ($1, $2::public.message_role, $3, $4::jsonb, $5, $6, $7) returning id`,
+         values ($1, $2::public.message_role, $3, $4::text::jsonb, $5, $6, $7) returning id`,
         [m.conversationId, m.role, m.content, JSON.stringify(m.citations ?? []), m.model ?? null, m.inputTokens ?? null, m.outputTokens ?? null],
       ),
     );
@@ -439,7 +439,7 @@ export class SqlRepository implements Repository {
     await this.exec.service((q) =>
       q.query(
         `insert into public.generation_cache (user_id, document_id, prompt_version_id, params_hash, output, model)
-         values ($1, $2, $3, $4, $5::jsonb, $6) on conflict (document_id, prompt_version_id, params_hash) do nothing`,
+         values ($1, $2, $3, $4, $5::text::jsonb, $6) on conflict (document_id, prompt_version_id, params_hash) do nothing`,
         [i.userId, i.documentId, i.promptVersionId, i.paramsHash, JSON.stringify(i.output), i.model],
       ),
     );
@@ -494,7 +494,7 @@ export class SqlRepository implements Repository {
           // answer/explanation are moved into question_keys by the questions_move_key trigger and blanked on the row.
           await q.query(
             `insert into public.questions (quiz_id, position, kind, prompt, options, answer, explanation)
-             values ($1, $2, 'mcq', $3, $4::jsonb, $5, $6)`,
+             values ($1, $2, 'mcq', $3, $4::text::jsonb, $5, $6)`,
             [quizId, pos, qu.prompt, JSON.stringify(qu.options), qu.answer, qu.explanation],
           );
       }

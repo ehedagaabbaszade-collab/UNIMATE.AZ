@@ -76,6 +76,7 @@ describe("happy paths", () => {
     const embedCalls = provider.calls.filter((c) => "inputs" in c);
     expect(r.chunks).toBeGreaterThan(10);
     expect(embedCalls.length).toBe(Math.ceil(r.chunks / 5));
+    expect(embedCalls.every((c) => (c as { inputType?: string }).inputType === "passage")).toBe(true); // stored chunks are passages
     const { rows } = await env.db.query<any>("select count(*)::int as n, sum(input_tokens)::int as t from public.ai_usage where feature = 'embed' and user_id = $1", [ids.alice]);
     expect(rows[0].n).toBeGreaterThanOrEqual(embedCalls.length);
   });

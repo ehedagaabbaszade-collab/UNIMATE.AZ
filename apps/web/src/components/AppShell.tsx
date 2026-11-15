@@ -1,30 +1,18 @@
 "use client";
 
-import { Icon, OfflineBanner, Avatar, useOnlineStatus, type IconName } from "@unimate/ui";
+import { Icon, OfflineBanner, Avatar, useOnlineStatus } from "@unimate/ui";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import type { ReactNode } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 import { useI18n } from "@unimate/i18n/react";
 import { clearSchedule } from "@/features/planner/offline-cache";
 import { getBrowserClient } from "@/lib/supabase/browser";
 import { useUser } from "./user";
 import { AppLogo } from "./brand";
-import { NotificationBell } from "@/features/gamification/NotificationBell";
+import { NotificationBell, useUnreadCount } from "@/features/gamification/NotificationBell";
 import { LocaleSwitcher } from "./prefs";
-
-const NAV = [
-  { href: "/dashboard", key: "nav.dashboard", icon: "home", mobile: true },
-  { href: "/documents", key: "nav.documents", icon: "ai-study", mobile: true },
-  { href: "/campus", key: "brand.module.campus", icon: "campus", mobile: true },
-  { href: "/notes", key: "brand.module.notes", icon: "notes", mobile: false },
-  { href: "/career", key: "brand.module.career", icon: "career", mobile: false },
-  { href: "/flashcards", key: "nav.flashcards", icon: "flashcard", mobile: false },
-  { href: "/planner", key: "nav.planner", icon: "planner", mobile: true },
-  { href: "/gamification", key: "brand.module.gamification", icon: "gamification", mobile: false },
-  { href: "/focus", key: "nav.focus", icon: "pomodoro", mobile: true },
-  { href: "/gpa", key: "nav.gpa", icon: "gpa", mobile: false },
-  { href: "/settings", key: "nav.settings", icon: "settings", mobile: true },
-] as const satisfies ReadonlyArray<{ href: string; key: string; icon: IconName; mobile: boolean }>;
+import { CommandPalette, usePaletteShortcut } from "./CommandPalette";
+import { NAV_GROUPS, SETTINGS_ITEM, TAB_ITEMS, isActive } from "./nav";
 
 export function AppShell({ displayName, children }: { displayName: string | null; children: ReactNode }) {
   const { t } = useI18n();
@@ -32,7 +20,11 @@ export function AppShell({ displayName, children }: { displayName: string | null
   const router = useRouter();
   const online = useOnlineStatus();
   const user = useUser();
-  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+  const unread = useUnreadCount();
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const togglePalette = useCallback(() => setPaletteOpen((o) => !o), []);
+  usePaletteShortcut(togglePalette);
+  const current = (href: string) => (isActive(pathname, href) ? "page" : undefined);
 
   async function signOut() {
     await clearSchedule(user.id); // do not leave one user's schedule on a shared device
@@ -48,27 +40,41 @@ export function AppShell({ displayName, children }: { displayName: string | null
       </a>
       <aside className="sidebar">
         <Link href="/dashboard" className="brand">
-          <AppLogo kind="logo" variant="dark" layout="row" height={36} />
+          <AppLogo kind="logo" variant="dark" layout="row" height={34} />
         </Link>
+        <button type="button" className="sidebar__search" onClick={() => setPaletteOpen(true)}>
+          <Icon name="search" size={18} />
+          <span>{t("palette.open")}</span>
+          <kbd aria-hidden="true">{"Ctrl K"}</kbd>
+        </button>
         <nav aria-label={t("nav.main")} className="sidebar__nav">
-          {NAV.map(({ href, key, icon }) => (
-            <Link key={href} href={href} className="navlink" aria-current={isActive(href) ? "page" : undefined}>
-              <Icon name={icon} size={22} />
-              <span>{t(key)}</span>
-            </Link>
+          {NAV_GROUPS.map((g) => (
+            <div key={g.id} className="sidebar__group" role="group" aria-label={g.label ? t(g.label) : undefined}>
+              {g.label ? <p className="sidebar__label" aria-hidden="true">{t(g.label)}</p> : null}
+              {g.items.map(({ href, key, icon }) => (
+                <Link key={href} href={href} className="navlink" aria-current={current(href)}>
+                  <Icon name={icon} size={20} />
+                  <span>{t(key)}</span>
+                </Link>
+              ))}
+            </div>
           ))}
         </nav>
         <div className="sidebar__foot">
-          <div className="sidebar__user">
-            <Avatar name={displayName} size={34} />
-            <span className="sidebar__name">{displayName ?? ""}</span>
-            <NotificationBell />
-          </div>
-          <LocaleSwitcher compact />
+          <Link href={SETTINGS_ITEM.href} className="navlink" aria-current={current(SETTINGS_ITEM.href)}>
+            <Icon name={SETTINGS_ITEM.icon} size={20} />
+            <span>{t(SETTINGS_ITEM.key)}</span>
+          </Link>
           <button type="button" className="navlink navlink--button" onClick={signOut}>
-            <Icon name="sign-out" size={22} />
+            <Icon name="sign-out" size={20} />
             <span>{t("nav.signOut")}</span>
           </button>
+          <div className="sidebar__user">
+            <Avatar name={displayName} size={32} />
+            <span className="sidebar__name">{displayName ?? ""}</span>
+            <NotificationBell unread={unread} />
+          </div>
+          <LocaleSwitcher compact />
         </div>
       </aside>
       <div className="shell__main">
@@ -76,7 +82,12 @@ export function AppShell({ displayName, children }: { displayName: string | null
           <Link href="/dashboard" className="brand">
             <AppLogo kind="logo" variant="dark" layout="row" height={30} />
           </Link>
-          <NotificationBell />
+          <div className="mobilebar__actions">
+            <button type="button" className="iconbtn" onClick={() => setPaletteOpen(true)} aria-label={t("palette.open")}>
+              <Icon name="search" size={22} />
+            </button>
+            <NotificationBell unread={unread} />
+          </div>
         </header>
         <OfflineBanner online={online} message={t("common.offline")} />
         <main id="main" className="page" tabIndex={-1}>
@@ -84,13 +95,18 @@ export function AppShell({ displayName, children }: { displayName: string | null
         </main>
       </div>
       <nav className="tabbar" aria-label={t("nav.main")}>
-        {NAV.filter((n) => n.mobile).map(({ href, key, icon }) => (
-          <Link key={href} href={href} className="tabbar__item" aria-current={isActive(href) ? "page" : undefined}>
+        {TAB_ITEMS.map(({ href, key, icon }) => (
+          <Link key={href} href={href} className="tabbar__item" aria-current={current(href)}>
             <Icon name={icon} />
             <span>{t(key)}</span>
           </Link>
         ))}
+        <button type="button" className="tabbar__item tabbar__more" onClick={() => setPaletteOpen(true)} aria-haspopup="dialog">
+          <Icon name="more" />
+          <span>{t("nav.more")}</span>
+        </button>
       </nav>
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </div>
   );
 }

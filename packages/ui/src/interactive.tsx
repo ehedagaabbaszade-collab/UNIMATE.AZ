@@ -83,13 +83,9 @@ export function Dialog({ open, onClose, title, children, actions }: { open: bool
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    if (open && !el.open) {
-      if (typeof el.showModal === "function") el.showModal();
-      else el.setAttribute("open", "");
-    } else if (!open && el.open) {
-      if (typeof el.close === "function") el.close();
-      else el.removeAttribute("open");
-    }
+    // <dialog> is Baseline (2022): showModal/close always exist; no attribute fallback needed.
+    if (open && !el.open) el.showModal();
+    else if (!open && el.open) el.close();
   }, [open]);
   return (
     <dialog

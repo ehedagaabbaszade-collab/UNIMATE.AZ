@@ -2,6 +2,7 @@
 import "@/test/dom";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { catalogs } from "@unimate/i18n";
 import { I18nProvider } from "@unimate/i18n/react";
 
 const signIn = vi.fn();
@@ -14,7 +15,7 @@ import { SignInForm } from "./SignInForm";
 
 const setup = (props: { next?: string } = {}) =>
   render(
-    <I18nProvider locale="en">
+    <I18nProvider locale="en" messages={catalogs.en}>
       <SignInForm {...props} />
     </I18nProvider>,
   );

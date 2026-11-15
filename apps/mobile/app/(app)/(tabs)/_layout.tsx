@@ -1,53 +1,72 @@
 import { useT } from "@unimate/i18n/react";
+import { usePathname } from "expo-router";
 import { NativeTabs } from "expo-router/native-tabs";
-import { overflowTabModules, tabModules } from "../../../src/lib/registry";
+import { TabInsetContext, useTabBarClearance } from "../../../src/components/Glass";
+import { MODULES, pinnedModules, tabRouteOf } from "../../../src/lib/registry";
+import { usePins } from "../../../src/state/pins";
+import { useUser } from "../../../src/state/session";
 import { useTheme } from "../../../src/theme/ThemeProvider";
 
-/** Native tab symbols per tab route: SF Symbols on iOS, Material icons on Android. Unknown routes fall back to a dot. */
+/** Native tab symbols per module id (+ home/more): SF Symbols on iOS, Material icons on Android. Unknown ids fall back to a dot. */
 const ICONS: Record<string, { sf: string; md: string }> = {
-  index: { sf: "house.fill", md: "home" },
-  study: { sf: "sparkles", md: "auto_awesome" },
+  home: { sf: "house.fill", md: "home" },
+  more: { sf: "square.grid.2x2.fill", md: "apps" },
+  aiStudy: { sf: "sparkles", md: "auto_awesome" },
   notes: { sf: "doc.text.fill", md: "description" },
   campus: { sf: "building.columns.fill", md: "school" },
   career: { sf: "briefcase.fill", md: "work" },
   planner: { sf: "calendar", md: "calendar_month" },
-  profile: { sf: "person.fill", md: "person" },
+  quiz: { sf: "checklist", md: "quiz" },
+  flashcards: { sf: "rectangle.stack.fill", md: "style" },
+  courses: { sf: "list.bullet.rectangle.fill", md: "view_timeline" },
+  budget: { sf: "creditcard.fill", md: "account_balance_wallet" },
+  gamification: { sf: "trophy.fill", md: "emoji_events" },
+  focus: { sf: "timer", md: "timer" },
+  gpa: { sf: "graduationcap.fill", md: "school" },
 };
-const iconFor = (route: string) => ICONS[route] ?? { sf: "circle.fill", md: "circle" };
+const icon = (id: string) => {
+  const i = ICONS[id] ?? { sf: "circle.fill", md: "circle" };
+  return <NativeTabs.Trigger.Icon sf={i.sf as never} md={i.md as never} />;
+};
 
 /**
- * Bottom navigation: the system's native tab bar (UITabBarController via react-native-screens). On iOS 26 this is
- * the real Liquid Glass tab bar rendered by the OS; on Android it is the Material 3 navigation bar; on older iOS it
- * is the standard translucent tab bar. Tabs are still derived from the module registry (src/lib/registry.ts).
+ * Bottom navigation: the system's native tab bar (Liquid Glass on iOS 26, Material 3 on Android).
+ * Home + the user's pinned modules (default AI Study, Career, Campus) + More. Every module has a tab file, so pinning
+ * from More only flips `hidden`; unpinned modules stay declared hidden so Expo Router does not auto-add them.
  */
 export default function TabsLayout() {
   const t = useT();
+  const clearance = useTabBarClearance();
   const { theme } = useTheme();
-  const modules = tabModules();
-  const hidden = overflowTabModules();
-  const icon = (route: string) => {
-    const i = iconFor(route);
-    return <NativeTabs.Trigger.Icon sf={i.sf as never} md={i.md as never} />;
-  };
+  const { user } = useUser();
+  const { ids } = usePins(user.id);
+  const pinned = pinnedModules(ids);
+  const pinnedIds = new Set(pinned.map((m) => m.id));
+  // AI Study replaces the tab bar with its own Safari-style composer, so the system bar is hidden there.
+  const onStudy = usePathname() === "/study";
+  // Constant on purpose: changing it on /study re-rendered every mounted tab exactly when the bar hides (the visible hitch).
+  // AI Study provides its own inset (app/(app)/(tabs)/study.tsx).
   return (
-    <NativeTabs tintColor={theme.active} iconColor={theme.textMuted} labelStyle={{ color: theme.textMuted }} backgroundColor={theme.mode === "dark" ? theme.bg : undefined}>
-      <NativeTabs.Trigger name="index">
-        <NativeTabs.Trigger.Label>{t("nav.dashboard")}</NativeTabs.Trigger.Label>
-        {icon("index")}
-      </NativeTabs.Trigger>
-      {modules.map((m) => (
-        <NativeTabs.Trigger key={m.id} name={m.tabRoute!}>
-          <NativeTabs.Trigger.Label>{t(m.labelKey)}</NativeTabs.Trigger.Label>
-          {icon(m.tabRoute!)}
+    <TabInsetContext.Provider value={clearance}>
+      <NativeTabs hidden={onStudy} tintColor={theme.active} minimizeBehavior="onScrollDown">
+        <NativeTabs.Trigger name="index">
+          <NativeTabs.Trigger.Label>{t("nav.dashboard")}</NativeTabs.Trigger.Label>
+          {icon("home")}
         </NativeTabs.Trigger>
-      ))}
-      {hidden.map((m) => (
-        <NativeTabs.Trigger key={m.id} name={m.tabRoute!} hidden />
-      ))}
-      <NativeTabs.Trigger name="profile">
-        <NativeTabs.Trigger.Label>{t("brand.module.profile")}</NativeTabs.Trigger.Label>
-        {icon("profile")}
-      </NativeTabs.Trigger>
-    </NativeTabs>
+        {pinned.map((m) => (
+          <NativeTabs.Trigger key={m.id} name={tabRouteOf(m)}>
+            <NativeTabs.Trigger.Label>{t(m.labelKey)}</NativeTabs.Trigger.Label>
+            {icon(m.id)}
+          </NativeTabs.Trigger>
+        ))}
+        <NativeTabs.Trigger name="more">
+          <NativeTabs.Trigger.Label>{t("nav.more")}</NativeTabs.Trigger.Label>
+          {icon("more")}
+        </NativeTabs.Trigger>
+        {MODULES.filter((m) => !pinnedIds.has(m.id)).map((m) => (
+          <NativeTabs.Trigger key={m.id} name={tabRouteOf(m)} hidden />
+        ))}
+      </NativeTabs>
+    </TabInsetContext.Provider>
   );
 }

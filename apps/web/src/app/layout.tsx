@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { ToastProvider } from "@unimate/ui";
 import "@unimate/ui/styles.css";
 import "./globals.css";
-import { createTranslator, LOCALE_COOKIE, toLocale } from "@unimate/i18n";
+import { catalogs, createTranslator, LOCALE_COOKIE, toLocale, type Messages } from "@unimate/i18n";
 import { I18nProvider } from "@unimate/i18n/react";
 import { getT } from "@/i18n/server";
 import { THEME_COOKIE, toTheme } from "@/lib/theme";
@@ -36,10 +36,12 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const locale = toLocale(store.get(LOCALE_COOKIE)?.value);
   const theme = toTheme(store.get(THEME_COOKIE)?.value);
   const t = createTranslator(locale);
+  // Only the active language goes to the client, and never the admin console's strings (web does not use them).
+  const { admin: _admin, ...webMessages } = catalogs[locale];
   return (
     <html lang={locale} {...(theme !== "system" ? { "data-theme": theme } : {})} suppressHydrationWarning>
       <body>
-        <I18nProvider locale={locale}>
+        <I18nProvider locale={locale} messages={webMessages as Messages}>
           <ToastProvider dismissLabel={t("common.dismiss")}>{children}</ToastProvider>
         </I18nProvider>
       </body>

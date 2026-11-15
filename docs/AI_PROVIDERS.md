@@ -20,6 +20,7 @@ Code: `packages/pipeline/src/providers/*` (adapters), `packages/core/src/ai/prov
 | `AI_BASE_URL` | optional base URL override (Groq, OpenRouter, a local server...) |
 | `EMBED_API_KEY`, `EMBED_BASE_URL` | embeddings endpoint (OpenAI-compatible). Required when `AI_PROVIDER=anthropic` (Anthropic has no embeddings API) |
 | `AI_EMBED_MODEL`, `AI_EMBED_DIMENSIONS` | embedding model; the DB column is `vector(1536)`, other sizes are rejected |
+| `AI_EMBED_PROTOCOL` | `openai` (default) or `nvidia`. `nvidia` (NVIDIA API Catalog, e.g. `nvidia/nemotron-3-embed-1b`, native 2048 dims) sends `input_type` query/passage and `truncate: "END"`, never `dimensions`, and slices + L2-renormalises to `AI_EMBED_DIMENSIONS` (required, 1536). Set it only together with `AI_EMBED_DIMENSIONS`: otherwise every AI function fails at start. The DB `embed` route must have no fallback to a different embedding model (vectors would be in another space) |
 | `AI_MODEL_SMALL`, `AI_MODEL_STANDARD`, `AI_MODEL_PREMIUM`, `AI_EMBED_MODEL` | LEGACY. No longer read by the edge functions: model names and prices live in the DB (see "Cost architecture"). `modelsFromEnv` remains only for the unguarded test/dev path |
 | `ALLOWED_ORIGIN` | required by all edge functions (no `*`) |
 | `WORKER_SECRET` | shared secret for the queue worker / purge functions |

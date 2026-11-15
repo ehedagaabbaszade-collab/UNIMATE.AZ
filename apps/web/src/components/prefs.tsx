@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useToast } from "@unimate/ui";
-import { LOCALES, LOCALE_NAMES, createTranslator, isLocale } from "@unimate/i18n";
+import { LOCALES, LOCALE_NAMES, isLocale } from "@unimate/i18n";
 import { useI18n } from "@unimate/i18n/react";
 import { persistLocale } from "@/i18n/client";
 import { useOptionalUser } from "@/components/user";
@@ -30,7 +30,7 @@ export function LocaleSwitcher({ compact }: { compact?: boolean }) {
           if (!isLocale(next)) return;
           // The local copy changes first so the UI switches at once; the profile write follows when signed in.
           void persistLocale(next, user?.id ?? null).then((ok) => {
-            if (!ok) toast(createTranslator(next)("language.saveFailed"), "error");
+            if (!ok) toast(t("language.saveFailed"), "error");
           });
           router.refresh();
         }}

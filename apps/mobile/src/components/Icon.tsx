@@ -10,6 +10,8 @@ export function Icon({ name, size = "md", color, strokeWidth = ICON_STROKE, labe
   const { theme } = useTheme();
   const stroke = color ?? theme.text;
   const data = ICON_PATHS[name];
+  // An unknown name (e.g. an achievement icon string from the DB) must never crash a whole screen.
+  if (!data) return null;
   const s = px(size);
   return (
     <View accessible={!!label} accessibilityRole={label ? "image" : undefined} accessibilityLabel={label} importantForAccessibility={label ? "yes" : "no-hide-descendants"}>

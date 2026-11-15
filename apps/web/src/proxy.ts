@@ -7,7 +7,7 @@ import { getSupabaseEnv } from "@/lib/supabase/env";
  * Next 16 "proxy" (formerly middleware): refreshes the Supabase session cookies and redirects
  * unauthenticated visitors away from protected routes. When the backend is not configured it passes
  * requests through so the app can render its "backend not configured" state.
- * Authorization is still enforced by RLS and by the (app) layout's server-side getUser() check.
+ * Authorization is still enforced by RLS and by the (app) layout's server-side verified-claims check.
  */
 export async function proxy(request: NextRequest) {
   const env = getSupabaseEnv();
@@ -32,8 +32,9 @@ export async function proxy(request: NextRequest) {
 
   let signedIn: boolean;
   try {
-    const { data } = await supabase.auth.getUser();
-    signedIn = !!data.user;
+    // getClaims verifies the JWT locally with the project's signing keys (no Auth round trip; symmetric keys fall back to one).
+    const { data } = await supabase.auth.getClaims();
+    signedIn = !!data?.claims.sub;
   } catch {
     signedIn = false;
   }
@@ -42,7 +43,7 @@ export async function proxy(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/sign-in";
     url.search = "";
-    url.searchParams.set("next", pathname);
+    url.searchParams.set("next", pathname + request.nextUrl.search); // keep deep links like /planner?tab=exams; sign-in passes it through safeNext
     return NextResponse.redirect(url);
   }
   if (signedIn && isAuthOnlyPath(pathname)) {

@@ -87,7 +87,7 @@ export class SqlCareerStore implements CareerStore {
   async putCached(i: { userId: string; task: CareerTask; hash: string; output: unknown; model: string }): Promise<void> {
     await this.exec.service((q: Queryable) =>
       q.query(
-        `insert into public.career_ai_cache (user_id, task, params_hash, output, model) values ($1, $2, $3, $4::jsonb, $5)
+        `insert into public.career_ai_cache (user_id, task, params_hash, output, model) values ($1, $2, $3, $4::text::jsonb, $5)
          on conflict (user_id, task, params_hash) do update set output = excluded.output, model = excluded.model, created_at = now()`,
         [i.userId, i.task, i.hash, JSON.stringify(i.output), i.model],
       ),
@@ -130,20 +130,30 @@ async function outputLanguage(repo: Repository, userId: string, requested: strin
   return repo.getLocale(userId);
 }
 
-async function runCareer<S extends z.ZodType>(
+const runCareer = <S extends z.ZodType>(
   deps: CareerDeps,
   input: { userId: string; requestId?: string | undefined },
   spec: { task: RouteTask & CareerTask; name: PromptName; schema: S; vars: Record<string, string | number>; params: Record<string, unknown>; dataText: string; language: StudyLanguage; maxOutputTokens: number },
+) => runStructured(deps, input, { ...spec, template: CAREER_PROMPTS[spec.name], cacheTask: spec.task });
+
+/**
+ * One guarded, quota-counted, zod-validated generation (one repair retry). Shared by career AI and the writing assistant.
+ * `cacheTask` enables the per-user result cache (career tasks only: the cache table is keyed by those task names).
+ */
+export async function runStructured<S extends z.ZodType>(
+  deps: { repo: Repository; store?: CareerStore; guard?: GuardedProvider | undefined; now?: () => Date },
+  input: { userId: string; requestId?: string | undefined },
+  spec: { task: RouteTask; name: string; template: string; cacheTask?: CareerTask; schema: S; vars: Record<string, string | number>; params: Record<string, unknown>; dataText: string; language: StudyLanguage; maxOutputTokens: number },
 ): Promise<CareerResult<z.infer<S>>> {
   const { repo, store, guard } = deps;
   if (!guard) throw new PipelineError("ai_not_configured", "AI is not configured: no guarded provider", false, false);
   const now = (deps.now ?? (() => new Date()))();
   const plan: PlanId = await repo.getPlan(input.userId, now);
   const route = await guard.resolve(spec.task, plan); // ai_not_configured here, before any quota or provider use
-  const pv = await repo.ensurePromptVersion(spec.name, CAREER_PROMPTS[spec.name]);
+  const pv = await repo.ensurePromptVersion(spec.name, spec.template);
   const hash = paramsHash({ name: spec.name, pv: pv.id, model: route.primary.model, language: spec.language, content: sha(spec.dataText), ...spec.params });
 
-  const hit = await store.getCached(input.userId, spec.task, hash);
+  const hit = spec.cacheTask && store ? await store.getCached(input.userId, spec.cacheTask, hash) : null;
   if (hit !== null) {
     const parsed = spec.schema.safeParse(hit);
     if (parsed.success) return { output: parsed.data, cached: true };
@@ -180,7 +190,7 @@ async function runCareer<S extends z.ZodType>(
       res = attempt(await call(repair, "repair"));
     }
     if (!res.ok) throw new StructuredOutputError(`Model output failed validation after one repair attempt: ${res.issue}`.slice(0, 300));
-    await store.putCached({ userId: input.userId, task: spec.task, hash, output: res.value, model: route.primary.model });
+    if (spec.cacheTask && store) await store.putCached({ userId: input.userId, task: spec.cacheTask, hash, output: res.value, model: route.primary.model });
     return { output: res.value, cached: false };
   } catch (e) {
     if (!spent && !isBillable(e)) await reservation.release().catch(() => {});

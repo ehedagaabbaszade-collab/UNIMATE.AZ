@@ -24,6 +24,8 @@ export interface GenerateResult {
 export interface EmbedRequest {
   model: string;
   inputs: string[];
+  /** Retrieval role of the inputs. Asymmetric models (NVIDIA retrieval embedders) need it; others ignore it. */
+  inputType?: "query" | "passage";
 }
 export interface EmbedResult {
   vectors: number[][];

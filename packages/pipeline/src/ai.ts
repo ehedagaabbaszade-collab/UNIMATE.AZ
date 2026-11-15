@@ -53,7 +53,10 @@ export async function embedAll(
   /** Called before each batch (e.g. a job heartbeat). */
   beforeBatch?: () => Promise<void>,
   guarded?: GuardedEmbed,
+  /** Retrieval role: "passage" for stored chunks, "query" for a question. */
+  inputType?: "query" | "passage",
 ): Promise<number[][]> {
+  const role = inputType ? { inputType } : {};
   const out: number[][] = [];
   for (let i = 0; i < inputs.length; i += batchSize) {
     await beforeBatch?.();
@@ -62,10 +65,10 @@ export async function embedAll(
     if (guarded) {
       const requestId = subRequestId(guarded.requestBase, `embed:${i / batchSize}`);
       // One rate-limit slot per embedAll operation (the first batch); the budget is still reserved per batch.
-      r = await guarded.guard.embed({ userId, plan: guarded.plan, requestId, skipRateLimit: i > 0 }, batch);
+      r = await guarded.guard.embed({ userId, plan: guarded.plan, requestId, skipRateLimit: i > 0 }, batch, role);
     } else {
       if (!deps.models) throw new PipelineError("ai_not_configured", "No model map or guard configured", false);
-      r = await deps.provider.embed({ model: deps.models.embed, inputs: batch });
+      r = await deps.provider.embed({ model: deps.models.embed, inputs: batch, ...role });
     }
     if (r.vectors.length !== batch.length)
       throw new PipelineError("embed_mismatch", `Embedding count ${r.vectors.length} != inputs ${batch.length}`, true, true);

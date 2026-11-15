@@ -8,7 +8,7 @@ import { Icon } from "../../components/Icon";
 import { PressableScale } from "../../components/ui";
 import { haptic, useReducedMotion } from "../../lib/motion";
 import { useTheme } from "../../theme/ThemeProvider";
-import { radii, spacing } from "../../theme/tokens";
+import { contentWidth, radii, spacing } from "../../theme/tokens";
 
 export interface DeckItem {
   id: string;
@@ -104,7 +104,7 @@ function Card({ item, index, total, width, pos, pull, front, reduced, onNext, on
 export function ModuleDeck({ items }: { items: DeckItem[] }) {
   const reduced = useReducedMotion();
   const { width: screenW } = useWindowDimensions();
-  const width = screenW - spacing.lg * 2;
+  const width = contentWidth(screenW);
   const n = items.length;
   const [frontIdx, setFrontIdx] = useState(0);
   const pos = useSharedValue(0); // continuous deck position; integer = settled

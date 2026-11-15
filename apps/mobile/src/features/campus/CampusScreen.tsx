@@ -4,7 +4,7 @@ import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { Icon } from "../../components/Icon";
-import { AppText, Button, Card, EmptyState, ErrorState, ExpandCard, HeroTitle, Input, ListGroup, ListRow, Pill, Screen, SearchField, Skeleton, useOnline, useToast, PressableScale } from "../../components/ui";
+import { AppText, Button, Card, EmptyState, ErrorState, ExpandCard, HeroTitle, Input, ListGroup, ListRow, PillRow, Screen, SearchField, Skeleton, useOnline, useToast, PressableScale } from "../../components/ui";
 import { MIN_TOUCH, spacing } from "../../theme/tokens";
 import { useAsync } from "../../lib/use-async";
 import { useUser } from "../../state/session";
@@ -136,8 +136,9 @@ function FeedTab({ onDiscover }: { onDiscover: () => void }) {
     <View style={{ gap: spacing.lg }}>
       <UniversityOffer mine={mine.data} onJoined={() => { mine.reload(); feed.reload(); }} />
       <Composer communities={mine.data ?? []} onPosted={feed.reload} />
-      <Chips label={t("campus.feed.filterLabel")} value={kind} onChange={setKind} options={[{ value: "", label: t("campus.feed.filterAll") }, { value: "post", label: t("campus.feed.filterPosts") }, { value: "question", label: t("campus.feed.filterQuestions") }]} />
-      <Chips label={t("campus.feed.language")} value={language} onChange={setLanguage} options={languageOptions(t("campus.feed.languageAll"))} />
+      {/* One line of filters: post kind, then the post language (the "all" chip of each row is first). */}
+      <PillRow role="radiogroup" label={t("campus.feed.filterLabel")} value={kind} onChange={setKind} options={[{ value: "", label: t("campus.feed.filterAll") }, { value: "post", label: t("campus.feed.filterPosts") }, { value: "question", label: t("campus.feed.filterQuestions") }]} />
+      <PillRow role="radiogroup" label={t("campus.feed.language")} value={language} onChange={setLanguage} options={languageOptions(t("campus.feed.languageAll"))} />
       {!online ? (
         <AppText variant="caption" muted>
           {t("campus.offline")}
@@ -197,9 +198,8 @@ function CommunitiesTab() {
   const bad = textError(t as (k: string) => string, name, description, rules);
   return (
     <View style={{ gap: spacing.lg }}>
-      <Input label={t("campus.communities.searchLabel")} placeholder={t("campus.communities.searchPlaceholder")} value={f.q} onChangeText={(q) => setF((p) => ({ ...p, q }))} returnKeyType="search" autoCorrect={false} />
-      <Chips label={t("campus.communities.kindLabel")} value={f.kind} onChange={(kindV) => setF((p) => ({ ...p, kind: kindV }))} options={[{ value: "", label: t("campus.communities.kind.all") }, ...COMMUNITY_KINDS.map((k) => ({ value: k as CommunityKind, label: t(`campus.communities.kind.${k}`) }))]} />
-      <Chips label={t("campus.communities.scopeLabel")} value={f.joined} onChange={(joined) => setF((p) => ({ ...p, joined }))} options={[{ value: "all", label: t("campus.communities.scopeAll") }, { value: "joined", label: t("campus.communities.scopeJoined") }, { value: "not", label: t("campus.communities.scopeNotJoined") }]} />
+      <PillRow role="radiogroup" label={t("campus.communities.kindLabel")} value={f.kind} onChange={(kindV) => setF((p) => ({ ...p, kind: kindV }))} options={[{ value: "", label: t("campus.communities.kind.all") }, ...COMMUNITY_KINDS.map((k) => ({ value: k as CommunityKind, label: t(`campus.communities.kind.${k}`) }))]} />
+      <PillRow role="radiogroup" label={t("campus.communities.scopeLabel")} value={f.joined} onChange={(joined) => setF((p) => ({ ...p, joined }))} options={[{ value: "all", label: t("campus.communities.scopeAll") }, { value: "joined", label: t("campus.communities.scopeJoined") }, { value: "not", label: t("campus.communities.scopeNotJoined") }]} />
       {!creating ? (
         <Button title={t("campus.communities.create")} variant="secondary" icon={<Icon name="add" size="sm" />} onPress={() => setCreating(true)} />
       ) : (
@@ -316,7 +316,7 @@ function EventsTab() {
   const [creating, setCreating] = useState(false);
   return (
     <View style={{ gap: spacing.lg }}>
-      <Chips label={t("campus.events.scopeLabel")} value={scope} onChange={setScope} options={[{ value: "upcoming", label: t("campus.events.upcoming") }, { value: "going", label: t("campus.events.going") }, { value: "mine", label: t("campus.events.mine") }]} />
+      <PillRow role="radiogroup" label={t("campus.events.scopeLabel")} value={scope} onChange={setScope} options={[{ value: "upcoming", label: t("campus.events.upcoming") }, { value: "going", label: t("campus.events.going") }, { value: "mine", label: t("campus.events.mine") }]} />
       {!creating ? (
         <Button title={t("campus.events.create")} variant="secondary" icon={<Icon name="add" size="sm" />} onPress={() => setCreating(true)} />
       ) : (
@@ -370,7 +370,6 @@ function GroupsTab() {
   return (
     <View style={{ gap: spacing.lg }}>
       <AppText muted>{t("campus.groups.intro")}</AppText>
-      <AppText variant="heading">{t("campus.groups.mine")}</AppText>
       {groups.loading && !groups.data ? (
         <Skeleton height={80} />
       ) : groups.error && !groups.data ? (
@@ -477,14 +476,11 @@ export function CampusScreen() {
   }, [q]);
   return (
     <Screen ambient>
-      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.md }}>
-        <View style={{ flex: 1, gap: spacing.sm }}>
+      <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: spacing.md }}>
+        <View style={{ flex: 1 }}>
           <HeroTitle muted={t("mobile.campus.heroMuted")} strong={t("mobile.campus.heroStrong")} />
-          <AppText variant="caption" muted>
-            {t("campus.subtitle")}
-          </AppText>
         </View>
-        <View style={{ flexDirection: "row", gap: 8 }}>
+        <View style={{ flexDirection: "row", gap: 8, paddingTop: 4 }}>
           <PressableScale onPress={() => router.push(`/campus/user/${user.id}`)} accessibilityRole="button" accessibilityLabel={t("campus.profile.title")} style={roundBtn}>
             <Icon name="profile" color={theme.text} />
           </PressableScale>
@@ -498,11 +494,7 @@ export function CampusScreen() {
         <SearchResults q={debounced.trim()} />
       ) : (
         <>
-          <View accessibilityRole="tablist" accessibilityLabel={t("campus.tabs.label")} style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-            {tabs.map((o) => (
-              <Pill key={o.value} label={o.label} tone={o.value === tab ? "accent" : "plain"} onPress={() => setTab(o.value)} />
-            ))}
-          </View>
+          <PillRow label={t("campus.tabs.label")} value={tab} onChange={setTab} options={tabs} />
           {tab === "feed" ? <FeedTab onDiscover={() => setTab("communities")} /> : tab === "communities" ? <CommunitiesTab /> : tab === "events" ? <EventsTab /> : <GroupsTab />}
         </>
       )}

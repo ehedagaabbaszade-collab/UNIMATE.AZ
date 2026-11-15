@@ -50,7 +50,7 @@ export default function CheckoutCardRoute() {
   };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
+    <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
       <Screen scroll={false} style={{ gap: compact ? spacing.sm : spacing.lg }}>
         <ScreenHeader title={t("mobile.checkout.card")} />
         {squeeze ? null : (

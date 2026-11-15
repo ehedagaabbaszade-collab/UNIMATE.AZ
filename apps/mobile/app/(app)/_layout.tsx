@@ -1,8 +1,10 @@
 import { Redirect, Stack, usePathname } from "expo-router";
 import { useEffect, useState } from "react";
 import { kv, onboardingSkipKey } from "../../src/lib/storage";
+import { useReminderSync } from "../../src/features/planner/useReminderSync";
 import { useAppMode } from "../../src/state/mode";
 import { useSession } from "../../src/state/session";
+import { NATIVE_GLASS } from "../../src/components/Glass";
 import { useTheme } from "../../src/theme/ThemeProvider";
 
 export const unstable_settings = { anchor: "(tabs)" };
@@ -19,6 +21,7 @@ export default function AppLayout() {
   const uid = state.status === "signed-in" ? state.user.id : null;
   const [skipped, setSkipped] = useState<boolean | null>(null);
   const { mode } = useAppMode(uid);
+  useReminderSync(state.status === "signed-in" && mode === "student");
 
   useEffect(() => {
     if (!uid) return;
@@ -44,6 +47,9 @@ export default function AppLayout() {
         headerTransparent: true,
         headerStyle: { backgroundColor: "transparent" },
         headerShadowVisible: false,
+        // iOS 26 blurs content under a transparent header by itself (scroll edge effect); iOS 16.4-25 does not, so
+        // scrolled content would run straight under the title. Give older iOS the system chrome material instead.
+        ...(NATIVE_GLASS ? {} : { headerBlurEffect: theme.mode === "dark" ? ("systemChromeMaterialDark" as const) : ("systemChromeMaterialLight" as const) }),
         headerTintColor: theme.active,
         headerTitleStyle: { color: theme.text, fontSize: 17, fontWeight: "600" },
         headerBackButtonDisplayMode: "minimal",

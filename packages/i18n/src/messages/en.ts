@@ -599,7 +599,7 @@ export const en = {
   career: {
     title: "Career",
     subtitle: "Internships, scholarships, your CV and interview practice.",
-    tabs: { label: "Career sections", opportunities: "Opportunities", tracker: "My tracker", cv: "CV", interview: "Interview" },
+    tabs: { label: "Career sections", forYou: "For you", opportunities: "Opportunities", tracker: "My tracker", cv: "CV", interview: "Interview" },
     kind: { all: "All", internship: "Internships", junior_job: "Junior jobs", scholarship: "Scholarships", exchange: "Exchange", competition: "Competitions", hackathon: "Hackathons", career_event: "Career events" },
     kindOne: { internship: "Internship", junior_job: "Junior job", scholarship: "Scholarship", exchange: "Exchange", competition: "Competition", hackathon: "Hackathon", career_event: "Career event" },
     search: { label: "Search opportunities", placeholder: "Title, organization, skill…" },
@@ -989,6 +989,7 @@ export const en = {
       you: "You",
       edited: "edited",
       like: "Like",
+      ownLike: "You can't like your own post",
       liked: "Liked",
       likes: "{n, plural, one {# like} other {# likes}}",
       helpful: "Helpful",

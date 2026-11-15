@@ -9,6 +9,7 @@ import { Children, cloneElement, createContext, isValidElement, useCallback, use
 import {
   ActivityIndicator,
   Animated,
+  KeyboardAvoidingView,
   LayoutAnimation,
   Modal,
   Platform,
@@ -19,6 +20,7 @@ import {
   Text,
   TextInput,
   View,
+  useWindowDimensions,
   type StyleProp,
   type TextInputProps,
   type TextProps,
@@ -27,7 +29,7 @@ import {
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../theme/ThemeProvider";
-import { MIN_TOUCH, fontSizes, radii, spacing } from "../theme/tokens";
+import { CONTENT_MAX, MIN_TOUCH, fontSizes, heroFontSize, radii, spacing } from "../theme/tokens";
 import RA, { FadeInDown, Keyframe, ReduceMotion } from "react-native-reanimated";
 import { AmbientBackground } from "./AmbientBackground";
 import { CSS_EASE_OUT, CSS_EASE_IN_OUT, EASE_OUT, easings, haptic, useReducedMotion } from "../lib/motion";
@@ -63,7 +65,9 @@ export function Screen({ children, scroll = true, padded = true, style, ambient 
   const headerH = useContext(HeaderHeightContext) ?? 0;
   const hasHeader = headerH > 0;
   const inset = useContext(TabInsetContext);
-  const body = { padding: padded ? spacing.lg : 0, gap: spacing.lg, paddingTop: (padded ? spacing.lg : 0) + headerH, paddingBottom: (padded ? spacing.lg : 0) + inset } as const;
+  // Centred and capped on wide screens (tablets): phone layouts stretched to 1000pt read as broken.
+  const pad = padded ? spacing.lg : 0;
+  const body = { padding: pad, gap: spacing.lg, paddingTop: pad + headerH, paddingBottom: pad + inset, width: "100%", maxWidth: CONTENT_MAX + pad * 2, alignSelf: "center" } as const;
   const adjust = hasHeader ? "never" : "automatic"; // header offset is applied manually above; "automatic" would add it twice
   return (
     <LinearGradient colors={theme.bgGradient} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={{ flex: 1 }}>
@@ -71,15 +75,18 @@ export function Screen({ children, scroll = true, padded = true, style, ambient 
       {ambient ? <AmbientBackground /> : null}
       <SafeAreaView style={{ flex: 1 }} edges={hasHeader ? ["left", "right"] : ["top", "left", "right"]}>
         <OfflineBanner />
-        <View style={{ flex: 1 }}>
+        {/* The focused field must never sit under the keyboard. iOS: the ScrollView insets itself and scrolls the focused
+            input into view. Android (edge-to-edge, the window does not resize): the content area shrinks by the keyboard
+            height and the ScrollView keeps the focused input visible. */}
+        <KeyboardAvoidingView behavior={Platform.OS === "android" ? "padding" : undefined} enabled={Platform.OS === "android"} style={{ flex: 1 }}>
           {scroll ? (
-            <ScrollView contentContainerStyle={[body, style]} keyboardShouldPersistTaps="handled" contentInsetAdjustmentBehavior={adjust}>
+            <ScrollView contentContainerStyle={[body, style]} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets contentInsetAdjustmentBehavior={adjust}>
               {children}
             </ScrollView>
           ) : (
             <View style={[{ flex: 1 }, body, style]}>{children}</View>
           )}
-        </View>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </LinearGradient>
   );
@@ -290,7 +297,8 @@ export function Reveal({ children, index = 0, style }: { children: ReactNode; in
 /** Oversized light two-line headline: muted first line, ink second line, optional small raised count. */
 export function HeroTitle({ muted, strong, count }: { muted: string; strong: string; count?: number }) {
   const { theme } = useTheme();
-  const base: TextStyle = { fontSize: 42, lineHeight: 46, fontWeight: "300", letterSpacing: -1 };
+  const size = heroFontSize(useWindowDimensions().width);
+  const base: TextStyle = { fontSize: size, lineHeight: Math.round(size * 1.1), fontWeight: "300", letterSpacing: -1 };
   return (
     <View accessibilityRole="header" accessible accessibilityLabel={`${muted} ${strong}${count != null ? ` ${count}` : ""}`}>
       <Text importantForAccessibility="no" maxFontSizeMultiplier={1.2} style={[base, { color: theme.textMuted }]}>
@@ -328,6 +336,20 @@ export function Pill({ label, tone = "plain", onPress, icon }: { label: string; 
     <PressableScale onPress={onPress} accessibilityRole="button" accessibilityLabel={label} style={{ alignSelf: "flex-start" }}>
       {body}
     </PressableScale>
+  );
+}
+
+/**
+ * One-line, horizontally scrolling row of pills: section switcher (role "tablist") or a single filter (role "radiogroup").
+ * Never wraps, so long translations (ru/tr) cannot push the content down into a second row of buttons.
+ */
+export function PillRow<T extends string>({ label, value, onChange, options, role = "tablist" }: { label: string; value: T; onChange: (v: T) => void; options: ReadonlyArray<{ value: T; label: string }>; role?: "tablist" | "radiogroup" }) {
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityRole={role} accessibilityLabel={label} style={{ marginHorizontal: -spacing.lg, flexGrow: 0 }} contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: spacing.sm }}>
+      {options.map((o) => (
+        <Pill key={o.value} label={o.label} tone={o.value === value ? "accent" : "plain"} onPress={() => onChange(o.value)} />
+      ))}
+    </ScrollView>
   );
 }
 
@@ -700,7 +722,8 @@ export function Dialog({ open, title, children, onClose, actions }: { open: bool
   const { theme } = useTheme();
   return (
     <Modal visible={open} transparent animationType="fade" onRequestClose={onClose} accessibilityViewIsModal>
-      <View style={{ flex: 1, backgroundColor: theme.overlay, justifyContent: "center", padding: spacing.xl }}>
+      {/* Dialogs with an input rise above the keyboard instead of being covered by it. */}
+      <KeyboardAvoidingView behavior="padding" style={{ flex: 1, backgroundColor: theme.overlay, justifyContent: "center", padding: spacing.xl }}>
         <DialogCard>
           <AppText variant="heading" accessibilityRole="header">
             {title}
@@ -708,7 +731,7 @@ export function Dialog({ open, title, children, onClose, actions }: { open: bool
           {children}
           <View style={{ gap: spacing.sm }}>{actions}</View>
         </DialogCard>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

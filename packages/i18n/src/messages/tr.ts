@@ -600,7 +600,7 @@ export const tr = {
   career: {
     title: "Kariyer",
     subtitle: "Stajlar, burslar, özgeçmişin ve mülakat hazırlığı.",
-    tabs: { label: "Kariyer bölümleri", opportunities: "Fırsatlar", tracker: "Takipçim", cv: "Özgeçmiş", interview: "Mülakat" },
+    tabs: { label: "Kariyer bölümleri", forYou: "Sana uygun", opportunities: "Fırsatlar", tracker: "Takipçim", cv: "Özgeçmiş", interview: "Mülakat" },
     kind: { all: "Tümü", internship: "Stajlar", junior_job: "Junior işler", scholarship: "Burslar", exchange: "Değişim", competition: "Yarışmalar", hackathon: "Hackathonlar", career_event: "Kariyer etkinlikleri" },
     kindOne: { internship: "Staj", junior_job: "Junior iş", scholarship: "Burs", exchange: "Değişim", competition: "Yarışma", hackathon: "Hackathon", career_event: "Kariyer etkinliği" },
     search: { label: "Fırsat ara", placeholder: "Başlık, kurum, beceri…" },
@@ -990,6 +990,7 @@ export const tr = {
       you: "Sen",
       edited: "düzenlendi",
       like: "Beğen",
+      ownLike: "Kendi gönderini beğenemezsin",
       liked: "Beğenildi",
       likes: "{n, plural, one {# beğeni} other {# beğeni}}",
       helpful: "Faydalı",

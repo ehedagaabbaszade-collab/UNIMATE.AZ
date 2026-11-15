@@ -103,6 +103,8 @@ export function PickerField({
             sections={filtered}
             keyExtractor={(o) => o.id}
             keyboardShouldPersistTaps="handled"
+            automaticallyAdjustKeyboardInsets
+            keyboardDismissMode="on-drag"
             contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.xl }}
             ListEmptyComponent={
               <AppText muted style={{ paddingVertical: spacing.lg }}>

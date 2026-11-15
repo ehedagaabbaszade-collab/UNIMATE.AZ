@@ -11,10 +11,14 @@ import { radii } from "../theme/tokens";
 export const TabInsetContext = createContext(0);
 export const FLOATING_TAB_HEIGHT = 64;
 
-/** Space the native tab bar occupies at the screen bottom: iOS floating bar ~49 + 8 margin, Android M3 bar 80, plus the home-indicator inset on iOS. */
+/**
+ * Space the native tab bar occupies at the screen bottom: iOS bar ~49 + 8 margin (floating on 26, docked before),
+ * Android M3 bar 80, plus the bottom system inset. iPadOS 18+ puts the tab bar at the top, so only the inset.
+ */
 export function useTabBarClearance(): number {
   const { bottom } = useSafeAreaInsets();
-  return Platform.OS === "ios" ? bottom + 49 + 8 : 80;
+  if (Platform.OS !== "ios") return bottom + 80; // edge-to-edge Android: the M3 bar sits above the navigation-bar inset
+  return Platform.isPad && parseInt(String(Platform.Version), 10) >= 18 ? bottom + 8 : bottom + 49 + 8;
 }
 
 /** True only on iOS 26+ where the OS provides UIGlassEffect. Everywhere else GlassSurface is a simulated material. */

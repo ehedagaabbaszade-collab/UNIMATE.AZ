@@ -228,7 +228,7 @@ function Reminders({ tasks, exams }: { tasks: TaskRow[]; exams: ExamRow[] }) {
   const [count, setCount] = useState<number | null>(null);
 
   useEffect(() => {
-    void kv.getItem(KEYS.reminders).then((v) => setEnabled(v === "1"));
+    void kv.getItem(KEYS.reminders).then((v) => setEnabled(v === "1")); // set at app start by useReminderSync (on by default)
   }, []);
 
   const sync = useCallback(async () => setCount(await syncReminders(locale, tasks, exams).catch(() => 0)), [locale, tasks, exams]);

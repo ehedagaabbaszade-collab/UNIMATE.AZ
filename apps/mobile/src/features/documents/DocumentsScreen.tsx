@@ -18,7 +18,7 @@ import { EASE_OUT, useReducedMotion } from "../../lib/motion";
 import { unwrap, useAsync } from "../../lib/use-async";
 import { useUser } from "../../state/session";
 import { useTheme } from "../../theme/ThemeProvider";
-import { radii, spacing } from "../../theme/tokens";
+import { CONTENT_MAX, radii, spacing } from "../../theme/tokens";
 import { pickDocument, pickImage, uploadDocument, type PickedFile } from "./upload-flow";
 
 const COMPOSER_H = 52;
@@ -164,18 +164,25 @@ export function DocumentsScreen() {
       hide.remove();
     };
   }, [kb, reduce]);
-  // Every time the tab is focused the system bar slides away (native animation) and the composer rises into its place,
-  // so the bar swap reads as one motion instead of a hitch. UI thread only.
-  const enter = useSharedValue(reduce ? 1 : 0);
+  // Every time the tab is focused the system bar slides away (native animation) and the composer rises into its place.
+  // Fail-safe: it starts (and always ends) fully visible; the rise is only an effect, so if a focus event is missed or
+  // reduce motion flips mid-animation the composer can never stay hidden below the screen.
+  const enter = useSharedValue(1);
   useFocusEffect(
     useCallback(() => {
-      if (reduce) return;
+      if (reduce) {
+        enter.value = 1;
+        return;
+      }
       enter.value = 0;
       enter.value = withDelay(60, withTiming(1, { duration: 300, easing: EASE_OUT }));
+      return () => {
+        enter.value = 1;
+      };
     }, [enter, reduce]),
   );
   const composerStyle = useAnimatedStyle(() => ({
-    opacity: enter.value,
+    opacity: 0.4 + 0.6 * enter.value,
     transform: [{ translateY: -Math.max(kb.value + KB_GAP - rest, 0) + (1 - enter.value) * (COMPOSER_H + bottom) }],
   }));
   // Padding is a layout prop: animating it per frame re-lays out the whole list (keyboard lag). Set it once per show/hide.
@@ -212,7 +219,7 @@ export function DocumentsScreen() {
     <Screen ambient scroll={false} padded={false}>
       <View style={{ flex: 1 }}>
         <View style={{ flex: 1 }}>
-        <ScrollView ref={scroller} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" scrollIndicatorInsets={{ bottom: listPad }} contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg, paddingBottom: listPad }} onContentSizeChange={() => messages.length > 0 && scroller.current?.scrollToEnd({ animated: true })}>
+        <ScrollView ref={scroller} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" scrollIndicatorInsets={{ bottom: listPad }} contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg, paddingBottom: listPad, width: "100%", maxWidth: CONTENT_MAX + spacing.lg * 2, alignSelf: "center" }} onContentSizeChange={() => messages.length > 0 && scroller.current?.scrollToEnd({ animated: true })}>
           <Reveal>
             <HeroTitle muted={t("mobile.aiStudy.heroMuted")} strong={t("mobile.aiStudy.heroStrong")} />
           </Reveal>
@@ -280,7 +287,7 @@ export function DocumentsScreen() {
 
         {/* Composer (iOS 26 Safari style): [attach] [ask pill + mic/send] [more]; focus collapses the sides and shows a close button. */}
         {/* No entrance animation: it must already be there the frame the tab bar disappears, or the swap shows an empty gap. */}
-        <Animated.View pointerEvents="box-none" style={[{ position: "absolute", left: 0, right: 0, bottom: rest, paddingHorizontal: spacing.lg }, composerStyle]}>
+        <Animated.View pointerEvents="box-none" style={[{ position: "absolute", left: 0, right: 0, bottom: rest, paddingHorizontal: spacing.lg, alignItems: "center" }, composerStyle]}>
           {hint ? (
             <View style={{ position: "absolute", left: spacing.lg, right: spacing.lg, bottom: COMPOSER_H + spacing.sm + 6, backgroundColor: theme.card, borderRadius: radii.lg, padding: spacing.md }}>
               <AppText variant="caption" muted>
@@ -288,7 +295,7 @@ export function DocumentsScreen() {
               </AppText>
             </View>
           ) : null}
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <View style={{ flexDirection: "row", alignItems: "center", width: "100%", maxWidth: CONTENT_MAX }}>
             <Animated.View style={[{ overflow: "hidden", paddingRight: spacing.sm }, sideStyle]}>
               <GlassSurface radius={COMPOSER_H / 2} style={glassBtn}>
                 <PressableScale accessibilityRole="button" accessibilityLabel={t("common.back")} style={glassBtn} onPress={() => (router.canGoBack() ? router.back() : router.navigate("/"))}>

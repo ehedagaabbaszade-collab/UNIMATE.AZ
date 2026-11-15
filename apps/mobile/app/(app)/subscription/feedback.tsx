@@ -1,7 +1,7 @@
 import { useI18n } from "@unimate/i18n/react";
 import { useLocalSearchParams, useRouter, type Href } from "expo-router";
 import { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, TextInput, View, useWindowDimensions } from "react-native";
+import { KeyboardAvoidingView, TextInput, View, useWindowDimensions } from "react-native";
 import RA, { useAnimatedStyle, useSharedValue, withSequence, withSpring } from "react-native-reanimated";
 import { z } from "zod";
 import { Icon } from "../../../src/components/Icon";
@@ -69,7 +69,7 @@ export default function FeedbackRoute() {
   };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
+    <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
       <Screen scroll={false} style={{ gap: compact ? spacing.md : spacing.lg }}>
         <ScreenHeader title={t("mobile.profile.subscription.fbTitle")} />
         {done ? (

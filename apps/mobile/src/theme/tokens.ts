@@ -109,6 +109,15 @@ export const palettes: Readonly<Record<ThemeMode, Palette>> = {
 
 /** Apple-inspired rhythm: 4pt grid, generous radii. */
 export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 } as const;
+
+/** Responsive layout: content never grows wider than this (tablets, landscape), it is centred instead. */
+export const CONTENT_MAX = 640;
+/** Width available to content on a screen of `screenW` (gutters on both sides, capped at CONTENT_MAX). */
+export const contentWidth = (screenW: number) => Math.min(screenW - spacing.lg * 2, CONTENT_MAX);
+/** Hero title size: 42 on a 390pt phone, down to 32 on 320pt (iPhone SE 1st gen / small Android), up to 48 on tablets. */
+export const heroFontSize = (screenW: number) => Math.round(Math.min(48, Math.max(32, screenW * 0.108)));
+/** Icon grid columns: 3 on phones, 4 from large phones in landscape / small tablets, 5 on wide tablets. */
+export const gridColumns = (contentW: number) => (contentW >= 600 ? 5 : contentW >= 480 ? 4 : 3);
 export const radii = { sm: 10, md: 16, lg: 22, xl: 28, xxl: 32, pill: 999 } as const;
 /** Base sizes in dp; Text scales with the user's font-size setting (allowFontScaling), so layouts use minHeight not height. */
 export const fontSizes = { xs: 12, sm: 14, base: 16, lg: 18, xl: 22, xxl: 28 } as const;

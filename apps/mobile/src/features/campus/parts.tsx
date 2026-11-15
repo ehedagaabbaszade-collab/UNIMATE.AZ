@@ -74,6 +74,7 @@ export function authorLabel(t: (k: string) => string, p: { is_anonymous?: boolea
 export function PostCardView({ post, onOpen, onLike, onAuthor }: { post: PostCard; onOpen: () => void; onLike: () => void; onAuthor?: (() => void) | undefined }) {
   const { t, dateTime } = useI18n();
   const { theme } = useTheme();
+  const { toast } = useToast();
   const author = authorLabel(t as (k: string) => string, post);
   const canOpenAuthor = !!onAuthor && !!post.author_id && !post.is_mine;
   return (
@@ -101,8 +102,11 @@ export function PostCardView({ post, onOpen, onLike, onAuthor }: { post: PostCar
         <LanguageTag language={post.language} />
       </View>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
-        <PressableScale onPress={onLike} disabled={post.is_mine} accessibilityRole="button" accessibilityState={{ selected: post.my_liked, disabled: post.is_mine }} accessibilityLabel={`${post.my_liked ? t("campus.post.liked") : t("campus.post.like")}, ${t("campus.post.likes", { n: post.like_count })}`} style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 44 }}>
-          <Icon name="reaction" size="sm" color={post.my_liked ? theme.danger : theme.textMuted} />
+        {/* Own posts cannot be liked (the server refuses it): faded heart, and a tap explains why instead of doing nothing. */}
+        <PressableScale onPress={post.is_mine ? () => toast(t("campus.post.ownLike")) : onLike} accessibilityRole="button" accessibilityState={{ selected: post.my_liked, disabled: post.is_mine }} accessibilityLabel={`${post.my_liked ? t("campus.post.liked") : t("campus.post.like")}, ${t("campus.post.likes", { n: post.like_count })}`} style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 44 }}>
+          <View style={{ opacity: post.is_mine ? 0.45 : 1 }}>
+            <Icon name="reaction" size="sm" color={post.my_liked ? theme.danger : theme.textMuted} />
+          </View>
           <AppText variant="caption" muted>
             {post.like_count}
           </AppText>

@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Linking, View } from "react-native";
 import { Icon } from "../../components/Icon";
 import { WorkAzSection } from "./WorkAzSection";
-import { AppText, Badge, Button, Card, EmptyState, ErrorState, HeroTitle, ListGroup, ListRow, Pill, Screen, SearchField, Segmented, Skeleton, useOnline, useToast, PressableScale, Input } from "../../components/ui";
+import { AppText, Badge, Button, Card, EmptyState, ErrorState, HeroTitle, ListGroup, ListRow, PillRow, Screen, SearchField, Segmented, Skeleton, useOnline, useToast, PressableScale, Input } from "../../components/ui";
 import { radii, spacing } from "../../theme/tokens";
 import { useTheme } from "../../theme/ThemeProvider";
 import { useAsync } from "../../lib/use-async";
@@ -15,7 +15,7 @@ import { DEFAULT_FILTERS, createCv, listCvs, myCvSkills, myTracking, removeTrack
 import { DeadlineLabel, KIND_ICON, OpportunityCard, STATUS_TONE } from "./parts";
 import { emptyCv } from "@unimate/core";
 
-type Tab = "opportunities" | "tracker" | "cv" | "interview";
+type Tab = "opportunities" | "forYou" | "tracker" | "cv" | "interview";
 
 /** Feed with debounced search; keeps the last result visible when offline or on error. */
 function useFeed(filters: OpportunityFilters) {
@@ -64,18 +64,17 @@ function Feed() {
   const filtered = JSON.stringify(f) !== JSON.stringify(DEFAULT_FILTERS);
   return (
     <View style={{ gap: spacing.lg }}>
-      <WorkAzSection />
-      <ListGroup>
-        <ListRow icon="development" title={t("colleges.title")} subtitle={t("colleges.subtitle")} onPress={() => router.push("/colleges" as never)} />
-      </ListGroup>
-      <SearchField label={t("career.search.label")} placeholder={t("career.search.placeholder")} value={f.q} onChangeText={(v) => set("q", v)} returnKeyType="search" autoCorrect={false} />
-      <Segmented
-        label={t("career.tabs.opportunities")}
-        value={f.kind}
-        onChange={(v) => set("kind", v)}
-        options={[{ value: "", label: t("career.kind.all") }, ...OPPORTUNITY_KINDS.map((k) => ({ value: k, label: t(`career.kind.${k}`) }))]}
-      />
-      <Pill label={`${t("career.filters.title")}${filtered ? " •" : ""}`} tone={showFilters ? "accent" : "plain"} onPress={() => setShowFilters((s) => !s)} icon={<Icon name="development" size="sm" color={showFilters ? theme.onPrimary : theme.text} />} />
+      {/* Search + one filter button on a single line; the extra filters stay folded away until asked for. */}
+      <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+        <View style={{ flex: 1 }}>
+          <SearchField label={t("career.search.label")} placeholder={t("career.search.placeholder")} value={f.q} onChangeText={(v) => set("q", v)} returnKeyType="search" autoCorrect={false} />
+        </View>
+        <PressableScale onPress={() => setShowFilters((s) => !s)} accessibilityRole="button" accessibilityState={{ expanded: showFilters }} accessibilityLabel={`${t("career.filters.title")}${filtered ? " •" : ""}`} style={{ width: 52, height: 52, borderRadius: 26, alignItems: "center", justifyContent: "center", backgroundColor: showFilters ? theme.primary : theme.card }}>
+          <Icon name="development" size="sm" color={showFilters ? theme.onPrimary : theme.text} />
+          {filtered ? <View style={{ position: "absolute", top: 12, right: 12, width: 8, height: 8, borderRadius: 4, backgroundColor: theme.active }} /> : null}
+        </PressableScale>
+      </View>
+      <PillRow role="radiogroup" label={t("career.tabs.opportunities")} value={f.kind} onChange={(v) => set("kind", v)} options={[{ value: "", label: t("career.kind.all") }, ...OPPORTUNITY_KINDS.map((k) => ({ value: k, label: t(`career.kind.${k}`) }))]} />
       {showFilters ? (
         <Card style={{ borderRadius: radii.xxl }}>
           <Input label={t("career.filters.location")} placeholder={t("career.filters.locationPlaceholder")} value={f.location} onChangeText={(v) => set("location", v)} autoCorrect={false} />
@@ -125,6 +124,20 @@ function Feed() {
           {feed.hasMore ? <Button title={t("career.loadMore")} variant="secondary" loading={feed.loading} onPress={feed.more} /> : null}
         </View>
       )}
+    </View>
+  );
+}
+
+/** Recommendations that leave the app: Work.az searches matched to the profile, and the college catalog. */
+function ForYou() {
+  const { t } = useI18n();
+  const router = useRouter();
+  return (
+    <View style={{ gap: spacing.lg }}>
+      <ListGroup>
+        <ListRow icon="development" title={t("colleges.title")} subtitle={t("colleges.subtitle")} onPress={() => router.push("/colleges" as never)} />
+      </ListGroup>
+      <WorkAzSection />
     </View>
   );
 }
@@ -315,24 +328,16 @@ export function CareerScreen() {
   const [tab, setTab] = useState<Tab>("opportunities");
   const tabs: { value: Tab; label: string }[] = [
     { value: "opportunities", label: t("career.tabs.opportunities") },
+    { value: "forYou", label: t("career.tabs.forYou") },
     { value: "tracker", label: t("career.tabs.tracker") },
     { value: "cv", label: t("career.tabs.cv") },
     { value: "interview", label: t("career.tabs.interview") },
   ];
   return (
     <Screen ambient>
-      <View style={{ gap: spacing.sm }}>
-        <HeroTitle muted={t("mobile.career.heroMuted")} strong={t("mobile.career.heroStrong")} />
-        <AppText variant="caption" muted>
-          {t("career.subtitle")}
-        </AppText>
-      </View>
-      <View accessibilityRole="tablist" accessibilityLabel={t("career.tabs.label")} style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-        {tabs.map((o) => (
-          <Pill key={o.value} label={o.label} tone={o.value === tab ? "accent" : "plain"} onPress={() => setTab(o.value)} />
-        ))}
-      </View>
-      {tab === "opportunities" ? <Feed /> : tab === "tracker" ? <Tracker /> : tab === "cv" ? <CvList /> : <InterviewPanel />}
+      <HeroTitle muted={t("mobile.career.heroMuted")} strong={t("mobile.career.heroStrong")} />
+      <PillRow label={t("career.tabs.label")} value={tab} onChange={setTab} options={tabs} />
+      {tab === "opportunities" ? <Feed /> : tab === "forYou" ? <ForYou /> : tab === "tracker" ? <Tracker /> : tab === "cv" ? <CvList /> : <InterviewPanel />}
     </Screen>
   );
 }

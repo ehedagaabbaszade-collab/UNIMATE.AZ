@@ -2,7 +2,7 @@ import { LOCALES, LOCALE_NAMES, createTranslator } from "@unimate/i18n";
 import { useI18n } from "@unimate/i18n/react";
 import { useRouter, type Href } from "expo-router";
 import { useState } from "react";
-import { Alert, Image, View } from "react-native";
+import { Alert, Image, View, useWindowDimensions } from "react-native";
 import { ModuleIcon } from "../../components/Icon";
 import { SlidingSegmented } from "../../components/SlidingSegmented";
 import { AppText, HeroTitle, ListGroup, ListRow, PressableScale, Screen, useToast } from "../../components/ui";
@@ -14,7 +14,7 @@ import { useAppMode } from "../../state/mode";
 import { useLocaleControl } from "../../state/locale";
 import { useSession, useUser } from "../../state/session";
 import { useTheme } from "../../theme/ThemeProvider";
-import { MIN_TOUCH, spacing, type ThemePref } from "../../theme/tokens";
+import { MIN_TOUCH, contentWidth, gridColumns, spacing, type ThemePref } from "../../theme/tokens";
 import { useAvatar } from "../profile/avatar";
 
 const THEME_ICONS = { dark: "moon", light: "sun", system: "smartphone" } as const;
@@ -25,6 +25,7 @@ function ModuleGrid({ uid }: { uid: string }) {
   const router = useRouter();
   const { theme } = useTheme();
   const { ids, pin, unpin } = usePins(uid);
+  const cols = gridColumns(contentWidth(useWindowDimensions().width));
   const menu = (id: string, label: string) => {
     haptic.medium();
     const isPinned = ids.includes(id);
@@ -57,7 +58,7 @@ function ModuleGrid({ uid }: { uid: string }) {
               accessibilityHint={t("mobile.profile.morePinHint")}
               accessibilityActions={[{ name: "longpress", label: t(isPinned ? "mobile.profile.unpin" : "mobile.profile.pin") }]}
               onAccessibilityAction={() => menu(m.id, label)}
-              style={{ width: "33.333%", alignItems: "center", gap: 6, paddingVertical: spacing.sm }}
+              style={{ width: `${100 / cols}%`, alignItems: "center", gap: 6, paddingVertical: spacing.sm }}
             >
               <View>
                 <ModuleIcon icon={m.icon} size={52} />

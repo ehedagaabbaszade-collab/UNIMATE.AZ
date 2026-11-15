@@ -16,7 +16,8 @@
     },
     "ios": {
       "bundleIdentifier": "az.unimate.app",
-      "supportsTablet": false,
+      "supportsTablet": true,
+      "requireFullScreen": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "CFBundleAllowMixedLocalizations": true,

@@ -1,7 +1,8 @@
 import { useT } from "@unimate/i18n/react";
 import { usePathname } from "expo-router";
+import { Platform, useWindowDimensions } from "react-native";
 import { NativeTabs } from "expo-router/native-tabs";
-import { TabInsetContext, useTabBarClearance } from "../../../src/components/Glass";
+import { NATIVE_GLASS, TabInsetContext, useTabBarClearance } from "../../../src/components/Glass";
 import { MODULES, pinnedModules, tabRouteOf } from "../../../src/lib/registry";
 import { usePins } from "../../../src/state/pins";
 import { useUser } from "../../../src/state/session";
@@ -44,11 +45,26 @@ export default function TabsLayout() {
   const pinnedIds = new Set(pinned.map((m) => m.id));
   // AI Study replaces the tab bar with its own Safari-style composer, so the system bar is hidden there.
   const onStudy = usePathname() === "/study";
+  const dark = theme.mode === "dark";
+  const narrow = useWindowDimensions().width < 360; // iPhone SE 1st gen / small Android: 5 labels must still fit
   // Constant on purpose: changing it on /study re-rendered every mounted tab exactly when the bar hides (the visible hitch).
   // AI Study provides its own inset (app/(app)/(tabs)/study.tsx).
   return (
     <TabInsetContext.Provider value={clearance}>
-      <NativeTabs hidden={onStudy} tintColor={theme.active} minimizeBehavior="onScrollDown">
+      {/* iOS 26 draws Liquid Glass itself and ignores the background props. iOS 16.4-25 and Android need them: by default
+          the iOS bar turns fully transparent at the scroll edge (labels over content) and follows the *system* light/dark,
+          and the Android M3 bar ignores the app theme. */}
+      <NativeTabs
+        hidden={onStudy}
+        tintColor={theme.active}
+        minimizeBehavior="onScrollDown"
+        disableTransparentOnScrollEdge
+        blurEffect={dark ? "systemChromeMaterialDark" : "systemChromeMaterialLight"}
+        shadowColor={theme.cardBorder}
+        {...(NATIVE_GLASS ? {} : { iconColor: { default: theme.textMuted, selected: theme.active } })}
+        labelStyle={{ default: { ...(NATIVE_GLASS ? {} : { color: theme.textMuted }), ...(narrow ? { fontSize: 10 } : {}) }, selected: NATIVE_GLASS ? {} : { color: theme.active } }}
+        {...(Platform.OS === "android" ? { backgroundColor: theme.bg, indicatorColor: theme.primarySoft, rippleColor: theme.primarySoft, labelVisibilityMode: "labeled" as const } : {})}
+      >
         <NativeTabs.Trigger name="index">
           <NativeTabs.Trigger.Label>{t("nav.dashboard")}</NativeTabs.Trigger.Label>
           {icon("home")}

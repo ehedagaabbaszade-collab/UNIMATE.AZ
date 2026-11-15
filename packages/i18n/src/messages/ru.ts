@@ -600,7 +600,7 @@ export const ru = {
   career: {
     title: "Карьера",
     subtitle: "Стажировки, стипендии, ваше резюме и подготовка к собеседованию.",
-    tabs: { label: "Разделы «Карьеры»", opportunities: "Возможности", tracker: "Мой трекер", cv: "Резюме", interview: "Собеседование" },
+    tabs: { label: "Разделы «Карьеры»", forYou: "Для тебя", opportunities: "Возможности", tracker: "Мой трекер", cv: "Резюме", interview: "Собеседование" },
     kind: { all: "Все", internship: "Стажировки", junior_job: "Junior-вакансии", scholarship: "Стипендии", exchange: "Обмен", competition: "Конкурсы", hackathon: "Хакатоны", career_event: "Карьерные события" },
     kindOne: { internship: "Стажировка", junior_job: "Junior-вакансия", scholarship: "Стипендия", exchange: "Обмен", competition: "Конкурс", hackathon: "Хакатон", career_event: "Карьерное событие" },
     search: { label: "Поиск возможностей", placeholder: "Название, организация, навык…" },
@@ -990,6 +990,7 @@ export const ru = {
       you: "Вы",
       edited: "изменено",
       like: "Нравится",
+      ownLike: "Нельзя оценить собственную публикацию",
       liked: "Вам нравится",
       likes: "{n, plural, one {# отметка «нравится»} few {# отметки «нравится»} many {# отметок «нравится»} other {# отметки «нравится»}}",
       helpful: "Полезно",

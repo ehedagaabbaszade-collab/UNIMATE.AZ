@@ -600,7 +600,7 @@ export const az = {
   career: {
     title: "Karyera",
     subtitle: "Təcrübə proqramları, təqaüdlər, CV-n və müsahibə hazırlığı.",
-    tabs: { label: "Karyera bölmələri", opportunities: "Fürsətlər", tracker: "İzləyicim", cv: "CV", interview: "Müsahibə" },
+    tabs: { label: "Karyera bölmələri", forYou: "Sənə uyğun", opportunities: "Fürsətlər", tracker: "İzləyicim", cv: "CV", interview: "Müsahibə" },
     kind: { all: "Hamısı", internship: "Təcrübə", junior_job: "Junior iş", scholarship: "Təqaüd", exchange: "Mübadilə", competition: "Müsabiqə", hackathon: "Hakaton", career_event: "Karyera tədbirləri" },
     kindOne: { internship: "Təcrübə", junior_job: "Junior iş", scholarship: "Təqaüd", exchange: "Mübadilə", competition: "Müsabiqə", hackathon: "Hakaton", career_event: "Karyera tədbiri" },
     search: { label: "Fürsətləri axtar", placeholder: "Başlıq, təşkilat, bacarıq…" },
@@ -990,6 +990,7 @@ export const az = {
       you: "Siz",
       edited: "redaktə edilib",
       like: "Bəyən",
+      ownLike: "Öz paylaşımını bəyənə bilməzsən",
       liked: "Bəyənilib",
       likes: "{n, plural, one {# bəyənmə} other {# bəyənmə}}",
       helpful: "Faydalı",

@@ -62,19 +62,21 @@ export function ClassesScreen({ pushed = false }: { pushed?: boolean }) {
     }
   }
 
-  const classes = (list.data ?? []).filter((c) => (teacher ? c.teaching : !c.teaching));
+  // Every class shows in both modes (a student may moderate one, a teacher may sit in a colleague's); teaching ones first.
+  const classes = [...(list.data ?? [])].sort((a, b) => Number(b.teaching) - Number(a.teaching));
+  const loaded = list.data !== undefined;
   return (
     <Screen ambient>
       {pushed ? <ScreenHeader title={t("teach.class.title")} /> : null}
       <HeroTitle muted={t("teach.class.title")} strong={t("teach.class.heroStrong")} />
 
-      {teacher ? (
-        <ExpandCard label={t("teach.class.create")} header={<AppText variant="heading">{t("teach.class.create")}</AppText>} defaultOpen={list.data?.every((c) => !c.teaching)}>
+      {!loaded ? null : teacher ? (
+        <ExpandCard label={t("teach.class.create")} header={<AppText variant="heading">{t("teach.class.create")}</AppText>} defaultOpen={list.data!.every((c) => !c.teaching)}>
           <Input label={t("teach.class.name")} placeholder={t("teach.class.namePlaceholder")} value={name} onChangeText={setName} maxLength={100} />
           <Button title={t("teach.class.create")} loading={busy === "create"} disabled={name.trim().length < 2 || !!busy} onPress={() => void run("create")} />
         </ExpandCard>
       ) : (
-        <ExpandCard label={t("teach.class.join")} header={<AppText variant="heading">{t("teach.class.join")}</AppText>} defaultOpen={list.data?.every((c) => c.teaching)}>
+        <ExpandCard label={t("teach.class.join")} header={<AppText variant="heading">{t("teach.class.join")}</AppText>} defaultOpen={list.data!.every((c) => c.teaching)}>
           <Input label={t("teach.class.code")} value={code} onChangeText={(v) => setCode(normalizeInviteCode(v))} autoCapitalize="characters" autoCorrect={false} />
           <Button title={t("teach.class.join")} loading={busy === "join"} disabled={!isInviteCode(code) || !!busy} onPress={() => void run("join")} />
         </ExpandCard>

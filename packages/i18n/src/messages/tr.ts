@@ -1537,6 +1537,8 @@ export const tr = {
       remindersCount: "{n, plural, one {# hatırlatıcı planlandı} other {# hatırlatıcı planlandı}}",
       reminderTask: "Görevin süresine 1 saat kaldı",
       reminderExam: "Sınava 1 saat kaldı",
+      reminderAssignment: "Ödevin son teslimine 1 saat kaldı",
+      reminderClassExam: "Sınavın kapanmasına 1 saat kaldı",
       heroMuted: "Planlayıcı",
       heroStrong: "Haftan",
       prevWeek: "Önceki hafta",

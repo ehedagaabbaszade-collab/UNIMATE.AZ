@@ -2,6 +2,7 @@
   "expo": {
     "name": "UNIMATE.AZ",
     "slug": "unimate",
+    "platforms": ["ios", "android"],
     "scheme": "unimate",
     "version": "0.1.0",
     "orientation": "portrait",

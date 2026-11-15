@@ -27,7 +27,11 @@ export function AiQuestions({ subject, onQuestions }: { subject: string; onQuest
   const [error, setError] = useState<EdgeError | null>(null);
   // RLS limits documents to the caller's own; only processed ones can be a source.
   const docs = useAsync(
-    async () => ((await sb.from("documents").select("id,title").eq("status", "ready").order("created_at", { ascending: false }).limit(100)).data ?? []) as Array<{ id: string; title: string }>,
+    async () => {
+      const r = await sb.from("documents").select("id,title").eq("status", "ready").order("created_at", { ascending: false }).limit(100);
+      if (r.error) throw new Error(r.error.message);
+      return (r.data ?? []) as Array<{ id: string; title: string }>;
+    },
     [source],
     source === "doc",
   );
@@ -60,6 +64,8 @@ export function AiQuestions({ subject, onQuestions }: { subject: string; onQuest
       <Segmented label={t("teach.exams.ai.title")} value={source} onChange={setSource} options={[{ value: "topic", label: t("teach.exams.ai.sourceTopic") }, { value: "doc", label: t("teach.exams.ai.sourceDoc") }]} />
       {source === "topic" ? (
         <Input label={t("teach.exams.ai.topic")} placeholder={t("teach.exams.ai.topicHint")} value={topic} onChangeText={setTopic} maxLength={500} multiline />
+      ) : docs.error && !docs.data ? (
+        <Button small variant="secondary" title={t("common.retry")} onPress={docs.reload} />
       ) : docs.data && docs.data.length === 0 ? (
         <AppText muted>{t("teach.exams.ai.noDocs")}</AppText>
       ) : (

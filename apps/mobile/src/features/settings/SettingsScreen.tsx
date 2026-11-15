@@ -1,7 +1,7 @@
 import { LOCALES, LOCALE_NAMES, createTranslator } from "@unimate/i18n";
 import { useI18n } from "@unimate/i18n/react";
 import { useRouter, type Href } from "expo-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Alert, Image, View, useWindowDimensions } from "react-native";
 import { ModuleIcon } from "../../components/Icon";
 import { SlidingSegmented } from "../../components/SlidingSegmented";
@@ -89,6 +89,7 @@ export function SettingsScreen() {
   const { toast } = useToast();
   const { mode, setMode } = useAppMode(user.id);
   const avatar = useAvatar(user.id);
+  const switching = useRef(false);
   const [open, setOpen] = useState<"theme" | "lang" | null>(null);
   const toggle = (k: "theme" | "lang") => setOpen((o) => (o === k ? null : k));
   const name = profile?.display_name ?? "";
@@ -171,9 +172,15 @@ export function SettingsScreen() {
           title={t("teach.switch.change")}
           subtitle={t("teach.switch.current", { mode: mode === "teacher" ? t("teach.welcome.teacher") : t("teach.welcome.student") })}
           onPress={async () => {
+            if (switching.current) return;
+            switching.current = true;
             const next = mode === "teacher" ? "student" : "teacher";
-            await setMode(next);
-            router.replace(next === "teacher" ? "/teacher" : "/");
+            try {
+              await setMode(next);
+              router.replace(next === "teacher" ? "/teacher" : "/");
+            } finally {
+              switching.current = false;
+            }
           }}
         />
       </ListGroup>

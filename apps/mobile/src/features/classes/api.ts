@@ -189,6 +189,30 @@ export async function submissionUrl(sb: SupabaseClient, path: string): Promise<s
   return r.data.signedUrl;
 }
 
+export interface OpenClassWork {
+  id: string;
+  classId: string;
+  kind: "assignment" | "classExam";
+  title: string;
+  /** Due date of the assignment, or when the exam closes. */
+  at: string;
+}
+/** Open work with a deadline in the classes the caller studies in (not those they teach): assignments not handed in,
+ *  exams not yet taken. Best effort per class; at most 20 classes. */
+export async function openClassWork(sb: SupabaseClient): Promise<OpenClassWork[]> {
+  const classes = (await myClasses(sb)).filter((c) => !c.teaching).slice(0, 20);
+  const per = await Promise.all(
+    classes.map(async (c): Promise<OpenClassWork[]> => {
+      const [tasks, exams] = await Promise.all([listAssignments(sb, c.id).catch(() => []), listClassExams(sb, c.id).catch(() => [])]);
+      return [
+        ...tasks.filter((a) => a.due_at && !a.my_submitted_at).map((a) => ({ id: a.id, classId: c.id, kind: "assignment" as const, title: a.title, at: a.due_at! })),
+        ...exams.filter((e) => e.closes_at && e.my_status !== "submitted").map((e) => ({ id: e.id, classId: c.id, kind: "classExam" as const, title: e.title, at: e.closes_at! })),
+      ];
+    }),
+  );
+  return per.flat().sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
+}
+
 /** Whole seconds left until `deadline` (never negative). Pure; tested. */
 export const secondsLeft = (deadline: string, now = Date.now()) => Math.max(0, Math.floor((Date.parse(deadline) - now) / 1000));
 /** "mm:ss", or "h:mm:ss" from one hour. Pure; tested. */

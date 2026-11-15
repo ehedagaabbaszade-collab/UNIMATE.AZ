@@ -50,13 +50,21 @@ export function TakeExamScreen({ id }: { id: string }) {
   const submitRef = useRef(submit);
   submitRef.current = submit;
 
-  // Countdown from the server deadline; at zero the saved answers are handed in.
+  // Countdown from the server deadline; at zero the answers are handed in. The server enforces the deadline itself, so
+  // the client only auto-submits after it has seen time left (a phone clock ahead of the server must not hand in a
+  // blank paper on the first tick) and retries a failed time-up submit every 10 s, not every second.
+  const sawTime = useRef(false);
+  const nextTry = useRef(0);
   useEffect(() => {
     if (!exam.data || result) return;
     const tick = () => {
       const s = secondsLeft(exam.data!.deadline_at);
       setLeft(s);
-      if (s === 0) void submitRef.current();
+      if (s > 0) sawTime.current = true;
+      else if (sawTime.current && Date.now() >= nextTry.current) {
+        nextTry.current = Date.now() + 10_000;
+        void submitRef.current();
+      }
     };
     tick();
     const timer = setInterval(tick, 1000);

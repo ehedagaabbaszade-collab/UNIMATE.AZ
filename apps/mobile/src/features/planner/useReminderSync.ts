@@ -4,6 +4,8 @@ import { AppState } from "react-native";
 import type { ExamRow, TaskRow } from "../../lib/db";
 import { KEYS, kv } from "../../lib/storage";
 import { useSession } from "../../state/session";
+import type { ClassDeadline } from "../../lib/reminders";
+import { openClassWork } from "../classes/api";
 import { ensurePermission, syncReminders } from "./reminders-native";
 
 /**
@@ -29,7 +31,8 @@ export function useReminderSync(enabled: boolean) {
         if (pref !== "1") return;
         const [tasks, exams] = await Promise.all([sb.from("tasks").select("id,title,due_at,status,priority,completed_at"), sb.from("exams").select("id,title,starts_at,duration_minutes,location,weight")]);
         if (tasks.error || exams.error) return; // offline: keep what is already scheduled
-        await syncReminders(locale, tasks.data as TaskRow[], exams.data as ExamRow[]);
+        const classWork: ClassDeadline[] = await openClassWork(sb).catch(() => []);
+        await syncReminders(locale, tasks.data as TaskRow[], exams.data as ExamRow[], classWork);
       } catch {
         // best effort: never block the app on notifications
       } finally {

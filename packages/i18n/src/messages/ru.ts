@@ -1537,6 +1537,8 @@ export const ru = {
       remindersCount: "{n, plural, one {# напоминание запланировано} few {# напоминания запланированы} many {# напоминаний запланировано} other {# напоминания запланированы}}",
       reminderTask: "Через час срок задачи",
       reminderExam: "Экзамен через час",
+      reminderAssignment: "До срока сдачи задания остался 1 час",
+      reminderClassExam: "До закрытия экзамена остался 1 час",
       heroMuted: "Планировщик",
       heroStrong: "Твоя неделя",
       prevWeek: "Предыдущая неделя",

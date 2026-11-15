@@ -21,10 +21,13 @@ export function usePins(uid: string) {
   useEffect(() => {
     let alive = true;
     if (cache?.uid !== uid) {
-      void kv.getItem(pinsKey(uid)).then((v) => {
-        cache = { uid, ids: parse(v) };
-        if (alive) setIds(cache.ids);
-      });
+      void kv
+        .getItem(pinsKey(uid))
+        .catch(() => null)
+        .then((v) => {
+          cache = { uid, ids: parse(v) };
+          if (alive) setIds(cache.ids);
+        });
     }
     listeners.add(setIds);
     return () => {

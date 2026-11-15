@@ -60,8 +60,9 @@ export function ExamEditor({ id }: { id: string }) {
     if (!store.ready || loaded) return;
     const e = store.value.exams.find((x) => x.id === id);
     if (e) setDraft({ title: e.title, subject: e.subject, group: e.group, minutes: String(e.minutes), questions: e.questions.map((q) => ({ ...q, points: String(q.points) })) });
+    else if (!isNew) router.back(); // deleted meanwhile (e.g. on another screen)
     setLoaded(true);
-  }, [store.ready, store.value, loaded, id]);
+  }, [store.ready, store.value, loaded, id, isNew, router]);
 
   const patch = (p: Partial<Draft>) => setDraft((d) => ({ ...d, ...p }));
   const patchQ = (qi: number, p: Partial<QDraft>) => setDraft((d) => ({ ...d, questions: d.questions.map((q, i) => (i === qi ? { ...q, ...p } : q)) }));

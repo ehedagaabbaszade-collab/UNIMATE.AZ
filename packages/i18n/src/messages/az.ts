@@ -1537,6 +1537,8 @@ export const az = {
       remindersCount: "{n, plural, one {# xatırlatma planlaşdırılıb} other {# xatırlatma planlaşdırılıb}}",
       reminderTask: "Tapşırığın vaxtına 1 saat qalıb",
       reminderExam: "İmtahana 1 saat qalıb",
+      reminderAssignment: "Tapşırığın son tarixinə 1 saat qalıb",
+      reminderClassExam: "İmtahanın bağlanmasına 1 saat qalıb",
       heroMuted: "Planlayıcı",
       heroStrong: "Həftən",
       prevWeek: "Əvvəlki həftə",

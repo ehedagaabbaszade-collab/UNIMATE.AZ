@@ -1536,6 +1536,8 @@ export const en = {
       remindersCount: "{n, plural, one {# reminder scheduled} other {# reminders scheduled}}",
       reminderTask: "Task due in 1 hour",
       reminderExam: "Exam in 1 hour",
+      reminderAssignment: "1 hour left before the assignment is due",
+      reminderClassExam: "1 hour left before the exam closes",
       heroMuted: "Planner",
       heroStrong: "Your week",
       prevWeek: "Previous week",

@@ -4,7 +4,7 @@ import { useFocusEffect, useRouter, type Href } from "expo-router";
 import { useCallback, useRef, useState } from "react";
 import { Modal, ScrollView, Share, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { AppText, Badge, Button, Card, EmptyState, ErrorState, ExpandCard, HeroTitle, Input, ListGroup, ListRow, PillRow, PressableScale, Screen, ScreenHeader, Skeleton, useToast } from "../../components/ui";
+import { AppText, Badge, Button, Card, EmptyState, ErrorState, ExpandCard, HeroTitle, Input, ListGroup, ListRow, Notice, PillRow, PressableScale, Screen, ScreenHeader, Skeleton, useToast } from "../../components/ui";
 import { parseLocalDateTime } from "../../lib/datetime";
 import { useLocalValue } from "../../lib/local-store";
 import { examsKey } from "../../lib/storage";
@@ -13,7 +13,7 @@ import { useUser } from "../../state/session";
 import { useTheme } from "../../theme/ThemeProvider";
 import { spacing } from "../../theme/tokens";
 import { getCommunity } from "../campus/api";
-import { classInviteCode, createAssignment, listAssignments, listClassExams, publishExam, type ClassAssignment, type ClassExam } from "./api";
+import { ClassApiError, classInviteCode, createAssignment, listAssignments, listClassExams, publishExam, type ClassAssignment, type ClassExam } from "./api";
 import { useClassError } from "./ClassesScreen";
 
 type Section = "exams" | "assignments";
@@ -112,7 +112,11 @@ function InviteCard({ id, name }: { id: string; name: string }) {
       <AppText variant="caption" muted>
         {t("teach.class.inviteHint")}
       </AppText>
-      <Button small variant="secondary" title={t("teach.class.shareCode")} disabled={!code.data} onPress={() => void Share.share({ message: t("teach.class.shareText", { name, code: code.data ?? "" }) })} />
+      {code.error && !code.data ? (
+        <Button small variant="secondary" title={t("common.retry")} onPress={code.reload} />
+      ) : (
+        <Button small variant="secondary" title={t("teach.class.shareCode")} disabled={!code.data} onPress={() => void Share.share({ message: t("teach.class.shareText", { name, code: code.data ?? "" }) })} />
+      )}
     </Card>
   );
 }
@@ -190,9 +194,9 @@ function PublishExam({ cls, onDone }: { cls: string; onDone: () => void }) {
   const { t } = useI18n();
   const { theme } = useTheme();
   const { toast } = useToast();
-  const onError = useClassError();
   const { user, supabase: sb } = useUser();
   const store = useLocalValue(examsKey(user.id), ExamStoreSchema, { exams: [] });
+  const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [picked, setPicked] = useState<Exam | null>(null);
   const [closes, setCloses] = useState("");
@@ -203,6 +207,7 @@ function PublishExam({ cls, onDone }: { cls: string; onDone: () => void }) {
     const c = optionalFuture(closes);
     if (c === false) return setBadDate(true);
     setBusy(true);
+    setError(null);
     try {
       await publishExam(sb, cls, picked, c);
       toast(t("teach.class.published"), "success");
@@ -211,7 +216,7 @@ function PublishExam({ cls, onDone }: { cls: string; onDone: () => void }) {
       setCloses("");
       onDone();
     } catch (e) {
-      onError(e);
+      setError(t(`teach.class.errors.${e instanceof ClassApiError ? e.key : "generic"}`));
     } finally {
       setBusy(false);
     }
@@ -255,6 +260,7 @@ function PublishExam({ cls, onDone }: { cls: string; onDone: () => void }) {
               keyboardType="numbers-and-punctuation"
               error={badDate ? t("teach.class.badDate") : undefined}
             />
+            {error ? <Notice text={error} /> : null}
             <Button title={t("teach.class.publish")} loading={busy} disabled={!picked || busy} onPress={() => void publish()} />
           </ScrollView>
         </SafeAreaView>

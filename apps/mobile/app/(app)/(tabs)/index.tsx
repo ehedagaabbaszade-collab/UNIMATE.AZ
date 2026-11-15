@@ -19,6 +19,7 @@ import { tileLayout } from "../../../src/lib/registry";
 import { useLocalValue } from "../../../src/lib/local-store";
 import { EMPTY_COURSES, coursesKey, coursesStoreSchema } from "../../../src/features/semester/store";
 import { useAsync } from "../../../src/lib/use-async";
+import { openClassWork } from "../../../src/features/classes/api";
 import { useUser } from "../../../src/state/session";
 import { useTheme } from "../../../src/theme/ThemeProvider";
 import { MIN_TOUCH, radii, spacing } from "../../../src/theme/tokens";
@@ -66,11 +67,15 @@ export default function Home() {
     return { unread: typeof unread.data === "number" ? unread.data : 0, progress: prog.error ? null : parseMyProgress(prog.data) };
   }, [user.id]);
 
+  // Class work (student side) with a deadline: listed in "Up next" when due within 3 days.
+  const classWork = useAsync(() => openClassWork(sb), [user.id]);
+
   // Tab screens stay mounted: refresh server data whenever Home regains focus (new XP, tasks, notifications).
   const courses = useLocalValue(coursesKey(user.id), coursesStoreSchema, EMPTY_COURSES);
   const reloadExtras = extras.reload;
   const reloadSchedule = schedule.reload;
   const reloadCourses = courses.reload;
+  const reloadClassWork = classWork.reload;
   const first = useRef(true);
   useFocusEffect(
     useCallback(() => {
@@ -81,7 +86,8 @@ export default function Home() {
       reloadExtras();
       reloadSchedule();
       reloadCourses();
-    }, [reloadExtras, reloadSchedule, reloadCourses]),
+      reloadClassWork();
+    }, [reloadExtras, reloadSchedule, reloadCourses, reloadClassWork]),
   );
 
   const now = new Date();
@@ -92,7 +98,8 @@ export default function Home() {
     .filter((x) => x.s.level !== "ok")
     .sort((a, b) => a.s.remainingHours - b.s.remainingHours)
     .slice(0, 2);
-  const agenda = (schedule.data ? buildAgenda(schedule.data.tasks, schedule.data.exams, 0, now, 4 - risks.length) : []).filter((u) => u.kind !== "cards");
+  const soonClass = (classWork.data ?? []).filter((w) => Date.parse(w.at) > now.getTime() && Date.parse(w.at) - now.getTime() <= 3 * 86_400_000).slice(0, 2);
+  const agenda = (schedule.data ? buildAgenda(schedule.data.tasks, schedule.data.exams, 0, now, 4 - risks.length - soonClass.length) : []).filter((u) => u.kind !== "cards");
   const items: Item[] = [
     ...risks.map(({ c, s }) => ({
       key: `risk-${c.id}`,
@@ -101,6 +108,13 @@ export default function Home() {
       danger: s.level === "over",
       warn: s.level !== "over",
       onPress: () => go(router, "/courses"),
+    })),
+    ...soonClass.map((w) => ({
+      key: `class-${w.kind}-${w.id}`,
+      title: w.title,
+      meta: w.kind === "assignment" ? t("teach.class.dueOn", { date: dateTime(w.at) }) : t("teach.class.closesOn", { date: dateTime(w.at) }),
+      today: localDay(new Date(w.at)) === today,
+      onPress: () => go(router, w.kind === "assignment" ? `/class/assignment/${w.id}?cls=${w.classId}` : `/class/exam/${w.id}`),
     })),
     ...agenda.map((u) => ({
       key: `${u.kind}-${u.id}`,

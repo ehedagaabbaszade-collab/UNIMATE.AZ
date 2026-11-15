@@ -79,6 +79,8 @@ export const MODULES: readonly ModuleEntry[] = [
   { id: "budget", href: "/budget", icon: "wallet", tileColors: ["#0F766E", "#0E7490"], labelKey: "budget.title", tileOrder: 5.5 },
   { id: "gamification", href: "/gamification", icon: "gamification", module: "gamification", labelKey: "brand.module.gamification", tileOrder: 8 },
   { id: "focus", href: "/focus", icon: "pomodoro", tileColors: ["#B45309", "#C2410C"], labelKey: "nav.focus", tileOrder: 5.2 },
+  // Teacher classes (exams, assignments). Not a Home tile: reached from More, pinnable to the tab bar.
+  { id: "classes", href: "/classes", icon: "institution", labelKey: "teach.class.title" },
   { id: "gpa", href: "/gpa", icon: "gpa", tileColors: ["#2563EB", "#4F46E5"], labelKey: "nav.gpa", tileOrder: 10 },
 ];
 

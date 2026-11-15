@@ -22,6 +22,7 @@ const ICONS: Record<string, { sf: string; md: string }> = {
   gamification: { sf: "trophy.fill", md: "emoji_events" },
   focus: { sf: "timer", md: "timer" },
   gpa: { sf: "graduationcap.fill", md: "school" },
+  classes: { sf: "person.3.fill", md: "groups" },
 };
 const icon = (id: string) => {
   const i = ICONS[id] ?? { sf: "circle.fill", md: "circle" };

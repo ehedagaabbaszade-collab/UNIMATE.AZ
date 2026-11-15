@@ -12,17 +12,27 @@
 import { purgeDueAccounts } from "@unimate/pipeline";
 import { BUCKET, corsHeaders, errorResponse, json, safeEqual, serviceClient } from "../_shared/runtime.ts";
 
-/** Buckets with flat "<uid>/<file>" folders that the documents-bucket walk in the pipeline does not cover. */
-const EXTRA_BUCKETS = ["avatars", "resources"] as const;
+/**
+ * Buckets with "<uid>/..." folders that the documents-bucket walk in the pipeline does not cover. avatars and resources
+ * are flat; submissions nests one level ("<uid>/<assignment_id>/<file>"), so sub-folders are walked too.
+ */
+const EXTRA_BUCKETS = ["avatars", "resources", "submissions"] as const;
 const MAX_EXTRA = 1000; // per bucket per user; more than this fails the attempt (recorded, retried) instead of half-purging
 
 async function removeUserFolder(sb: ReturnType<typeof serviceClient>, bucket: string, uid: string): Promise<void> {
-  const { data, error } = await sb.storage.from(bucket).list(uid, { limit: MAX_EXTRA + 1 });
-  if (error) throw new Error(`${bucket} list failed`);
-  const files = (data ?? []).filter((f) => f.id !== null); // folders have no id
-  if (files.length > MAX_EXTRA) throw new Error(`${bucket} has too many objects to purge in one pass`);
-  if (files.length === 0) return;
-  const { error: rmError } = await sb.storage.from(bucket).remove(files.map((f) => `${uid}/${f.name}`));
+  const paths: string[] = [];
+  const walk = async (prefix: string, depth: number): Promise<void> => {
+    const { data, error } = await sb.storage.from(bucket).list(prefix, { limit: MAX_EXTRA + 1 });
+    if (error) throw new Error(`${bucket} list failed`);
+    for (const f of data ?? []) {
+      if (f.id !== null) paths.push(`${prefix}/${f.name}`);
+      else if (depth < 2) await walk(`${prefix}/${f.name}`, depth + 1); // folders have no id
+      if (paths.length > MAX_EXTRA) throw new Error(`${bucket} has too many objects to purge in one pass`);
+    }
+  };
+  await walk(uid, 0);
+  if (paths.length === 0) return;
+  const { error: rmError } = await sb.storage.from(bucket).remove(paths);
   if (rmError) throw new Error(`${bucket} remove failed`);
 }
 

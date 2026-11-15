@@ -14,6 +14,10 @@ export default function TeacherLayout() {
         <NativeTabs.Trigger.Label>{t("teach.exams.tab")}</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf={"checklist" as never} md={"quiz" as never} />
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="classes">
+        <NativeTabs.Trigger.Label>{t("teach.class.title")}</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf={"person.3.fill" as never} md={"groups" as never} />
+      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="planner">
         <NativeTabs.Trigger.Label>{t("teach.exams.scheduleTab")}</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf={"calendar" as never} md={"calendar_month" as never} />

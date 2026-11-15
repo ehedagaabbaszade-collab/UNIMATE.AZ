@@ -24,3 +24,4 @@ export * from "./account-purge";
 export * from "./import-resource";
 export * from "./career";
 export * from "./writing";
+export * from "./exam-questions";

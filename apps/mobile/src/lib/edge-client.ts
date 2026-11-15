@@ -1,4 +1,4 @@
-import { DocumentDraftSchema, SlidesDraftSchema, type WritingRequest, CvFeedbackResultSchema, InterviewQuestionsResultSchema, InterviewScoreResultSchema, type CvLanguage, type InterviewLevel } from "@unimate/core";
+import { DocumentDraftSchema, ExamGenResultSchema, SlidesDraftSchema, type ExamGenRequest, type WritingRequest, CvFeedbackResultSchema, InterviewQuestionsResultSchema, InterviewScoreResultSchema, type CvLanguage, type InterviewLevel } from "@unimate/core";
 import { z } from "zod";
 import { askResultSchema, callEdge, flashcardsResultSchema, processResponseSchema, importResourceResponseSchema, resourceUrlResponseSchema, quizResultSchema, summaryResultSchema, type EdgeResult } from "./edge";
 import { getSupabaseEnv } from "./env";
@@ -38,3 +38,6 @@ export const interviewScore = (role: string, level: InterviewLevel, question: st
 /** University written work drafted by AI (sərbəst iş, referat, esse, təqdimat). The reply is parsed, never trusted. */
 const writingResultSchema = z.object({ kind: z.string(), result: z.union([SlidesDraftSchema, DocumentDraftSchema]) });
 export const writeAssignment = (req: WritingRequest) => call("write-assignment", req, writingResultSchema);
+
+/** Teacher: AI-drafted exam questions with their answer key (the caller authors the exam). The reply is parsed, never trusted. */
+export const generateExamQuestions = (req: ExamGenRequest) => call("generate-exam", req as Record<string, unknown>, ExamGenResultSchema);

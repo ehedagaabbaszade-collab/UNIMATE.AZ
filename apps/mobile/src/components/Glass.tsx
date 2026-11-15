@@ -3,6 +3,7 @@ import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
 import { LinearGradient } from "expo-linear-gradient";
 import { createContext } from "react";
 import { Platform, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
+import { useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../theme/ThemeProvider";
 import { radii } from "../theme/tokens";
@@ -88,4 +89,24 @@ export function GlassSurface({
       {children}
     </View>
   );
+}
+
+/**
+ * Props for every NativeTabs bar (student and teacher). iOS 26 draws Liquid Glass itself and ignores the background props.
+ * iOS 16.4-25 and Android need them: the iOS bar otherwise turns transparent at the scroll edge (labels over content)
+ * and follows the *system* light/dark; the Android M3 bar ignores the app theme. Narrow phones get smaller labels.
+ */
+export function useNativeTabsLook() {
+  const { theme } = useTheme();
+  const narrow = useWindowDimensions().width < 360;
+  const dark = theme.mode === "dark";
+  return {
+    tintColor: theme.active,
+    disableTransparentOnScrollEdge: true,
+    blurEffect: dark ? ("systemChromeMaterialDark" as const) : ("systemChromeMaterialLight" as const),
+    shadowColor: theme.cardBorder,
+    ...(NATIVE_GLASS ? {} : { iconColor: { default: theme.textMuted, selected: theme.active } }),
+    labelStyle: { default: { ...(NATIVE_GLASS ? {} : { color: theme.textMuted }), ...(narrow ? { fontSize: 10 } : {}) }, selected: NATIVE_GLASS ? {} : { color: theme.active } },
+    ...(Platform.OS === "android" ? { backgroundColor: theme.bg, indicatorColor: theme.primarySoft, rippleColor: theme.primarySoft, labelVisibilityMode: "labeled" as const } : {}),
+  };
 }

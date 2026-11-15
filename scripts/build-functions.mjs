@@ -15,7 +15,6 @@ const denoExternals = {
   setup(b) {
     b.onResolve({ filter: /.*/ }, (a) => {
       if (/^(npm:|jsr:|https?:|node:)/.test(a.path)) return { path: a.path, external: true };
-      const base = a.path.split("/")[0];
       if (npmExternal[a.path]) return { path: `npm:${npmExternal[a.path]}`, external: true };
       if (a.path.startsWith("zod/")) return { path: `npm:zod@^4.6.7/${a.path.slice(4)}`, external: true };
       return undefined;

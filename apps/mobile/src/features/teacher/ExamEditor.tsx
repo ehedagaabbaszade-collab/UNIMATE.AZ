@@ -1,13 +1,15 @@
-import { EXAM_LETTERS, ExamQuestionSchema, ExamSchema, ExamStoreSchema, renderExamHtml, type Exam, type ExamLabels } from "@unimate/core";
+import { EXAM_LETTERS, ExamQuestionSchema, ExamSchema, ExamStoreSchema, MAX_VARIANTS, renderExamVariantsHtml, variantLetter, type Exam, type ExamLabels } from "@unimate/core";
 import { useI18n } from "@unimate/i18n/react";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
-import { AppText, Button, Card, Dialog, Input, Notice, Screen, ScreenHeader, useToast } from "../../components/ui";
+import { AppText, Button, Card, Dialog, Input, Notice, Screen, ScreenHeader, Segmented, useToast } from "../../components/ui";
 import { newId, useLocalValue } from "../../lib/local-store";
 import { haptic } from "../../lib/motion";
+import { AiQuestions } from "./AiQuestions";
+import { QuestionBank } from "./QuestionBank";
 import { examsKey } from "../../lib/storage";
 import { useAsync } from "../../lib/use-async";
 import { useUser } from "../../state/session";
@@ -45,6 +47,8 @@ export function ExamEditor({ id }: { id: string }) {
   const [error, setError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [exporting, setExporting] = useState<"paper" | "key" | null>(null);
+  const [variants, setVariants] = useState("1");
+  const [bankOpen, setBankOpen] = useState(false);
   const isNew = id === "new";
   const uni = useAsync(async () => {
     if (!profile?.university_id) return null;
@@ -101,13 +105,13 @@ export function ExamEditor({ id }: { id: string }) {
     router.back();
   };
 
-  const labels = (): ExamLabels => ({ subject: t("teach.exams.fSubject"), group: t("teach.exams.fGroup"), fullName: t("teach.exams.print.fullName"), date: t("teach.exams.print.date"), duration: t("teach.exams.print.duration"), minutes: t("teach.exams.print.minutes"), points: t("teach.exams.print.points"), totalPoints: t("teach.exams.print.totalPoints"), answerKey: t("teach.exams.print.answerKey"), openAnswer: t("teach.exams.print.openAnswer") });
+  const labels = (): ExamLabels => ({ subject: t("teach.exams.fSubject"), group: t("teach.exams.fGroup"), fullName: t("teach.exams.print.fullName"), date: t("teach.exams.print.date"), duration: t("teach.exams.print.duration"), minutes: t("teach.exams.print.minutes"), points: t("teach.exams.print.points"), totalPoints: t("teach.exams.print.totalPoints"), answerKey: t("teach.exams.print.answerKey"), openAnswer: t("teach.exams.print.openAnswer"), variant: t("teach.exams.print.variant") });
   async function share(key: boolean) {
     const exam = build();
     if (!exam) return;
     setExporting(key ? "key" : "paper");
     try {
-      const file = await Print.printToFileAsync({ html: renderExamHtml(exam, labels(), { ...(uni.data ? { university: uni.data } : {}), key }) });
+      const file = await Print.printToFileAsync({ html: renderExamVariantsHtml(exam, labels(), Number(variants), { ...(uni.data ? { university: uni.data } : {}), key }) });
       if (!(await Sharing.isAvailableAsync())) toast(t("teach.exams.sharingUnavailable"), "error");
       else await Sharing.shareAsync(file.uri, { mimeType: "application/pdf", UTI: "com.adobe.pdf" });
     } catch {
@@ -162,10 +166,32 @@ export function ExamEditor({ id }: { id: string }) {
       ))}
       <Button variant="secondary" title={t("teach.exams.addChoice")} onPress={() => addQuestion("choice")} />
       <Button variant="secondary" title={t("teach.exams.addOpen")} onPress={() => addQuestion("open")} />
+      <Button variant="secondary" title={t("teach.exams.bankOpen")} onPress={() => setBankOpen(true)} />
+      <AiQuestions
+        subject={draft.subject}
+        onQuestions={(qs) => {
+          setDraft((d) => ({ ...d, questions: [...d.questions, ...qs.map((q) => ({ ...q, id: newId(), points: String(q.points) }))] }));
+          toast(t("teach.exams.ai.added", { n: qs.length }), "success");
+        }}
+      />
+      <QuestionBank
+        open={bankOpen}
+        exams={store.value.exams}
+        excludeId={id}
+        onClose={() => setBankOpen(false)}
+        onAdd={(q) => setDraft((d) => ({ ...d, questions: [...d.questions, { ...q, id: newId(), options: [...q.options], points: String(q.points) }] }))}
+      />
       <AppText muted>{`${t("teach.exams.print.totalPoints")}: ${total}`}</AppText>
 
       {error ? <Notice text={error} /> : null}
       <Button title={t("teach.exams.save")} onPress={save} />
+      <AppText variant="label">{t("teach.exams.variants")}</AppText>
+      <Segmented label={t("teach.exams.variants")} value={variants} onChange={setVariants} options={Array.from({ length: MAX_VARIANTS }, (_, i) => ({ value: String(i + 1), label: i === 0 ? "A" : `A–${variantLetter(i)}` }))} />
+      {variants !== "1" ? (
+        <AppText variant="caption" muted>
+          {t("teach.exams.variantsHint")}
+        </AppText>
+      ) : null}
       <Button variant="secondary" title={t("teach.exams.exportPaper")} loading={exporting === "paper"} onPress={() => void share(false)} />
       <Button variant="secondary" title={t("teach.exams.exportKey")} loading={exporting === "key"} onPress={() => void share(true)} />
       {!isNew ? <Button variant="danger" title={t("teach.exams.deleteExam")} onPress={() => setConfirmDelete(true)} /> : null}

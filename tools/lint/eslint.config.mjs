@@ -17,6 +17,10 @@ export default tseslint.config(
       "**/coverage/**",
       "**/next-env.d.ts",
       "supabase/functions/**",
+      "supabase/.build/**", // esbuild bundles of the edge functions
+      ".agents/**", // local agent tooling, not project code
+      ".claude/**",
+      ".tmp-*/**",
       "tools/lint/eslint.config.mjs",
     ],
   },

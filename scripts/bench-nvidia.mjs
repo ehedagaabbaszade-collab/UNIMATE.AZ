@@ -80,7 +80,7 @@ async function run(model) {
   }
   const total = (performance.now() - t0) / 1000;
   let valid = false;
-  let sample = "";
+  let sample;
   try {
     const q = JSON.parse(strip(text)).questions;
     valid = Array.isArray(q) && q.length >= 1 && q.every((x) => Array.isArray(x.options) && Number.isInteger(x.answer));

@@ -3,7 +3,7 @@ import { useI18n } from "@unimate/i18n/react";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { View } from "react-native";
-import { Icon, ModuleIcon } from "../../components/Icon";
+import { Icon } from "../../components/Icon";
 import { PickerField } from "../../components/PickerField";
 import { AppText, Badge, Button, Card, EmptyState, ErrorState, Input, Screen, ScreenHeader, Segmented, Skeleton, useOnline, PressableScale } from "../../components/ui";
 import { useAsync } from "../../lib/use-async";

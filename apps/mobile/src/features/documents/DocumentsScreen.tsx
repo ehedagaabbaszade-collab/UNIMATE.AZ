@@ -4,7 +4,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState, type ComponentRef } from "react";
 import Animated, { Easing, interpolate, withDelay, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ActivityIndicator, Alert, Keyboard, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Keyboard, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import type { IconName } from "@unimate/ui/icons";
 import { EdgeNotice } from "../../components/EdgeNotice";
 import { GlassSurface } from "../../components/Glass";
@@ -46,6 +46,7 @@ export function DocumentsScreen() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [messages, setMessages] = useState<Bubble[]>([]);
   const [conversationId, setConversationId] = useState<string | undefined>();
   const [question, setQuestion] = useState("");
@@ -338,7 +339,7 @@ export function DocumentsScreen() {
             </GlassSurface>
             <Animated.View style={[{ overflow: "hidden", paddingLeft: spacing.sm }, sideStyle]}>
               <GlassSurface radius={COMPOSER_H / 2} style={glassBtn}>
-                <PressableScale accessibilityRole="button" accessibilityLabel={t("mobile.aiStudy.more")} style={glassBtn} disabled={uploading} onPress={() => Alert.alert(t("mobile.aiStudy.more"), t("documents.uploadHint"), [{ text: t("documents.dropTitle"), onPress: () => void start(pickDocument) }, { text: t("mobile.documents.pickImage"), onPress: () => void start(pickImage) }, { text: t("mobile.aiStudy.pickerTitle"), onPress: () => setPickerOpen(true) }, { text: t("mobile.aiStudy.myDocs"), onPress: () => router.push("/documents") }, { text: t("common.cancel"), style: "cancel" }])}>
+                <PressableScale accessibilityRole="button" accessibilityLabel={t("mobile.aiStudy.more")} style={glassBtn} disabled={uploading} onPress={() => setMenuOpen(true)}>
                   {uploading ? <ActivityIndicator color={theme.text} /> : <Icon name="more-horizontal" color={theme.text} />}
                 </PressableScale>
               </GlassSurface>
@@ -353,6 +354,38 @@ export function DocumentsScreen() {
           </View>
         </Animated.View>
       </View>
+
+      {/* Actions sheet instead of a system alert: Android alerts show at most 3 buttons, this menu has 4 actions. */}
+      <Modal visible={menuOpen} transparent animationType="slide" onRequestClose={() => setMenuOpen(false)}>
+        <Pressable accessibilityLabel={t("common.close")} onPress={() => setMenuOpen(false)} style={{ flex: 1, backgroundColor: theme.overlay, justifyContent: "flex-end" }}>
+          <Pressable accessible={false} style={{ backgroundColor: theme.bg, borderTopLeftRadius: radii.xxl, borderTopRightRadius: radii.xxl, borderCurve: "continuous", padding: spacing.lg, paddingBottom: spacing.xl + bottom, width: "100%", maxWidth: CONTENT_MAX + spacing.lg * 2, alignSelf: "center" }}>
+            <ListGroup title={t("mobile.aiStudy.more")}>
+              {(
+                [
+                  ["upload", t("documents.dropTitle"), () => void start(pickDocument)],
+                  ["file-image", t("mobile.documents.pickImage"), () => void start(pickImage)],
+                  ["notes", t("mobile.aiStudy.pickerTitle"), () => setPickerOpen(true)],
+                  ["saved", t("mobile.aiStudy.myDocs"), () => router.push("/documents")],
+                ] as const
+              ).map(([icon, title, run]) => (
+                <ListRow
+                  key={icon}
+                  icon={icon}
+                  title={title}
+                  onPress={() => {
+                    setMenuOpen(false);
+                    // iOS cannot present the next modal / system picker while this sheet is still sliding away.
+                    setTimeout(run, 350);
+                  }}
+                />
+              ))}
+            </ListGroup>
+            <AppText variant="caption" muted style={{ paddingTop: spacing.sm }}>
+              {t("documents.uploadHint")}
+            </AppText>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       <Modal visible={pickerOpen} transparent animationType="slide" onRequestClose={() => setPickerOpen(false)}>
         <Pressable accessibilityLabel={t("common.close")} onPress={() => setPickerOpen(false)} style={{ flex: 1, backgroundColor: theme.overlay, justifyContent: "flex-end" }}>

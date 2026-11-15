@@ -43,7 +43,7 @@ const pressStyle = (pressed: boolean, to: number, reduced: boolean) => ({ transf
 // ------------------------------------------------------------------ text
 type Variant = "display" | "title" | "heading" | "body" | "caption" | "label";
 const VARIANTS: Record<Variant, TextStyle> = {
-  display: { fontSize: 34, fontWeight: "700", letterSpacing: -0.8 }, // iOS large title
+  display: { fontSize: 34, fontWeight: "300", letterSpacing: -1 }, // big light numerals/names, same voice as HeroTitle
   title: { fontSize: fontSizes.xl, fontWeight: "700", letterSpacing: -0.3 },
   heading: { fontSize: fontSizes.lg, fontWeight: "600", letterSpacing: -0.2 },
   body: { fontSize: fontSizes.base, fontWeight: "400", lineHeight: 22 },

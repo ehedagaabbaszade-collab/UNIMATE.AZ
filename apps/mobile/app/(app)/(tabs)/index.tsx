@@ -13,7 +13,7 @@ const TAB_ICON: Partial<Record<string, IconName>> = { aiStudy: "sparkles", campu
 import { useAvatar } from "../../../src/features/profile/avatar";
 import { SpotlightTour } from "../../../src/features/tour/SpotlightTour";
 import { Icon } from "../../../src/components/Icon";
-import { AppText, HeroTitle, ListGroup, ListRow, Pill, PressableScale, Reveal, RoundAction, Screen, Skeleton } from "../../../src/components/ui";
+import { AppText, Pill, PressableScale, Reveal, RoundAction, Screen, Skeleton } from "../../../src/components/ui";
 import { useSchedule } from "../../../src/features/planner/useSchedule";
 import { tileLayout } from "../../../src/lib/registry";
 import { useLocalValue } from "../../../src/lib/local-store";

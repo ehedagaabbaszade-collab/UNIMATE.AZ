@@ -3,7 +3,7 @@ import { useI18n } from "@unimate/i18n/react";
 import { useFocusEffect, useRouter, type Href } from "expo-router";
 import { useCallback, useRef } from "react";
 import { View } from "react-native";
-import { AppText, Button, Card, EmptyState, PressableScale, Screen } from "../../components/ui";
+import { AppText, Button, Card, EmptyState, HeroTitle, PressableScale, Screen } from "../../components/ui";
 import { useLocalValue } from "../../lib/local-store";
 import { examsKey } from "../../lib/storage";
 import { useUser } from "../../state/session";
@@ -29,10 +29,8 @@ export function ExamsScreen() {
   const open = (id: string) => router.push({ pathname: "/exam-edit", params: { id } } as Href);
   const exams = store.value.exams;
   return (
-    <Screen>
-      <AppText variant="display" accessibilityRole="header">
-        {t("teach.exams.tab")}
-      </AppText>
+    <Screen ambient>
+      <HeroTitle muted={t("teach.exams.heroMuted")} strong={t("teach.exams.heroStrong")} />
       {exams.length === 0 && store.ready ? (
         <EmptyState title={t("teach.exams.emptyTitle")} description={t("teach.exams.emptyBody")} action={<Button title={t("teach.exams.new")} onPress={() => open("new")} />} />
       ) : (

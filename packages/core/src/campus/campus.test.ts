@@ -46,8 +46,14 @@ describe("campus rules", () => {
   it("paginates by cursor and normalises invite codes", () => {
     expect(nextPostCursor([{ id: "1", created_at: "t1" }], 2)).toBeNull();
     expect(nextPostCursor([{ id: "1", created_at: "t1" }, { id: "2", created_at: "t2" }], 2)).toEqual({ ts: "t2", id: "2" });
-    expect(normalizeInviteCode(" ab12 cd34 ef ")).toBe("AB12CD34EF");
-    expect(isInviteCode("ab12cd34ef")).toBe(true);
+    expect(normalizeInviteCode(" hkeu f32i zd81 ti41 a34n ")).toBe("HKEUF32IZD81TI41A34N");
+    // a whole pasted share message: the code is picked out, whatever the language
+    expect(normalizeInviteCode("UNIMATE.AZ-da “Fizika 101” sinfinə qoşul: kod HKEUF32IZD81TI41A34N")).toBe("HKEUF32IZD81TI41A34N");
+    expect(normalizeInviteCode("Присоединяйся к классу «Физика» в UNIMATE.AZ: код hkeuf32izd81ti41a34n ")).toBe("HKEUF32IZD81TI41A34N");
+    expect(normalizeInviteCode("HKEU-F32I-ZD81-TI41-A34N")).toBe("HKEUF32IZD81TI41A34N");
+    expect(isInviteCode("Join “Physics 101” on UNIMATE.AZ: code HKEUF32IZD81TI41A34N")).toBe(true);
+    expect(isInviteCode("HKEUF32IZD81TI41A34N")).toBe(true);
+    expect(isInviteCode("HKEUF32IZD")).toBe(false); // the old 10-character cut that made joins fail
     expect(isInviteCode("short")).toBe(false);
   });
 });

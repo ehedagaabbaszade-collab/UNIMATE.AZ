@@ -1079,7 +1079,7 @@ export const tr = {
       createSubmit: "Grup oluştur",
       joinTitle: "Davet koduyla katıl",
       codeLabel: "Davet kodu",
-      codePlaceholder: "10 karakterlik kod",
+      codePlaceholder: "20 karakterlik kod",
       joinSubmit: "Gruba katıl",
       joined: "Gruba katıldınız.",
       invalidCode: "Bu kod geçerli değil.",

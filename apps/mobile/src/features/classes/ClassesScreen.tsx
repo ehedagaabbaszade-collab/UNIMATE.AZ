@@ -75,7 +75,7 @@ export function ClassesScreen({ pushed = false }: { pushed?: boolean }) {
         </ExpandCard>
       ) : (
         <ExpandCard label={t("teach.class.join")} header={<AppText variant="heading">{t("teach.class.join")}</AppText>} defaultOpen={list.data?.every((c) => c.teaching)}>
-          <Input label={t("teach.class.code")} value={code} onChangeText={(v) => setCode(normalizeInviteCode(v).slice(0, 10))} autoCapitalize="characters" autoCorrect={false} />
+          <Input label={t("teach.class.code")} value={code} onChangeText={(v) => setCode(normalizeInviteCode(v))} autoCapitalize="characters" autoCorrect={false} />
           <Button title={t("teach.class.join")} loading={busy === "join"} disabled={!isInviteCode(code) || !!busy} onPress={() => void run("join")} />
         </ExpandCard>
       )}

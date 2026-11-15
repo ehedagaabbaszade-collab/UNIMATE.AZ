@@ -105,8 +105,9 @@ function InviteCard({ id, name }: { id: string; name: string }) {
       <AppText variant="label" muted>
         {t("teach.class.code")}
       </AppText>
-      <AppText selectable style={{ fontSize: 30, fontWeight: "300", letterSpacing: 4, color: theme.text, fontVariant: ["tabular-nums"] }}>
-        {code.data ?? "··········"}
+      {/* 20-character code: one line, shrinks to fit narrow phones */}
+      <AppText selectable numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ fontSize: 24, fontWeight: "300", letterSpacing: 2, color: theme.text, fontVariant: ["tabular-nums"] }}>
+        {code.data ?? "····················"}
       </AppText>
       <AppText variant="caption" muted>
         {t("teach.class.inviteHint")}

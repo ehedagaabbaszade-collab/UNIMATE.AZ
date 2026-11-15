@@ -1078,7 +1078,7 @@ export const en = {
       createSubmit: "Create group",
       joinTitle: "Join with an invite code",
       codeLabel: "Invite code",
-      codePlaceholder: "10-character code",
+      codePlaceholder: "20-character code",
       joinSubmit: "Join group",
       joined: "You joined the group.",
       invalidCode: "That code is not valid.",

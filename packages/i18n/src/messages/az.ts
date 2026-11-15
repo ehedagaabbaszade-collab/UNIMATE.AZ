@@ -1079,7 +1079,7 @@ export const az = {
       createSubmit: "Qrup yarat",
       joinTitle: "Dəvət kodu ilə qoşul",
       codeLabel: "Dəvət kodu",
-      codePlaceholder: "10 simvollu kod",
+      codePlaceholder: "20 simvollu kod",
       joinSubmit: "Qrupa qoşul",
       joined: "Qrupa qoşuldunuz.",
       invalidCode: "Bu kod düzgün deyil.",

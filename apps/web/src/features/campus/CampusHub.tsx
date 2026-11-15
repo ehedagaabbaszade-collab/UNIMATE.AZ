@@ -451,7 +451,7 @@ function GroupsTab() {
             }}
           >
             <h2 style={{ margin: 0 }}>{t("campus.groups.joinTitle")}</h2>
-            <Input label={t("campus.groups.codeLabel")} placeholder={t("campus.groups.codePlaceholder")} value={code} onChange={(e) => setCode(normalizeInviteCode(e.target.value).slice(0, 10))} autoComplete="off" autoCapitalize="characters" />
+            <Input label={t("campus.groups.codeLabel")} placeholder={t("campus.groups.codePlaceholder")} value={code} onChange={(e) => setCode(normalizeInviteCode(e.target.value))} autoComplete="off" autoCapitalize="characters" />
             <div className="row">
               <Button type="submit" loading={busy === "join"} disabled={!isInviteCode(code)}>
                 {t("campus.groups.joinSubmit")}

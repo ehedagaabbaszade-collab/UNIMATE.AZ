@@ -384,7 +384,7 @@ function GroupsTab() {
         </View>
       )}
       <ExpandCard label={t("campus.groups.joinTitle")} header={<AppText variant="heading">{t("campus.groups.joinTitle")}</AppText>}>
-        <Input label={t("campus.groups.codeLabel")} placeholder={t("campus.groups.codePlaceholder")} value={code} onChangeText={(v) => setCode(normalizeInviteCode(v).slice(0, 10))} autoCapitalize="characters" autoCorrect={false} />
+        <Input label={t("campus.groups.codeLabel")} placeholder={t("campus.groups.codePlaceholder")} value={code} onChangeText={(v) => setCode(normalizeInviteCode(v))} autoCapitalize="characters" autoCorrect={false} />
         <Button
           title={t("campus.groups.joinSubmit")}
           loading={busy === "join"}

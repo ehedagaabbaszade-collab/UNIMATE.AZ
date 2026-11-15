@@ -1079,7 +1079,7 @@ export const ru = {
       createSubmit: "Создать группу",
       joinTitle: "Вступить по коду приглашения",
       codeLabel: "Код приглашения",
-      codePlaceholder: "Код из 10 символов",
+      codePlaceholder: "Код из 20 символов",
       joinSubmit: "Вступить в группу",
       joined: "Вы вступили в группу.",
       invalidCode: "Этот код недействителен.",

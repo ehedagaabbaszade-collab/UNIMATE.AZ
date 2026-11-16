@@ -11,3 +11,9 @@ coverage
 supabase/.temp
 *.tsbuildinfo
 supabase/.build
+
+# Local tooling output and third-party skill installs (reinstall from skills-lock.json)
+.playwright-mcp/
+.tmp-awesome-design-md/
+.agents/
+.claude/skills/

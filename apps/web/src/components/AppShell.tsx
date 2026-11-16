@@ -7,14 +7,16 @@ import { useCallback, useState, type ReactNode } from "react";
 import { useI18n } from "@unimate/i18n/react";
 import { clearSchedule } from "@/features/planner/offline-cache";
 import { getBrowserClient } from "@/lib/supabase/browser";
+import { body, head } from "@/app/fonts";
 import { useUser } from "./user";
 import { AppLogo } from "./brand";
 import { NotificationBell, useUnreadCount } from "@/features/gamification/NotificationBell";
 import { LocaleSwitcher } from "./prefs";
 import { CommandPalette, usePaletteShortcut } from "./CommandPalette";
-import { NAV_GROUPS, SETTINGS_ITEM, TAB_ITEMS, isActive } from "./nav";
+import { homeFor, setModeCookie, type AppMode } from "@/lib/mode";
+import { NAV_GROUPS, SETTINGS_ITEM, TAB_ITEMS, TEACHER_NAV_GROUPS, TEACHER_TAB_ITEMS, isActive } from "./nav";
 
-export function AppShell({ displayName, children }: { displayName: string | null; children: ReactNode }) {
+export function AppShell({ displayName, mode, children }: { displayName: string | null; mode: AppMode; children: ReactNode }) {
   const { t } = useI18n();
   const pathname = usePathname();
   const router = useRouter();
@@ -26,21 +28,31 @@ export function AppShell({ displayName, children }: { displayName: string | null
   usePaletteShortcut(togglePalette);
   const current = (href: string) => (isActive(pathname, href) ? "page" : undefined);
 
+  const groups = mode === "teacher" ? TEACHER_NAV_GROUPS : NAV_GROUPS;
+  const tabs = mode === "teacher" ? TEACHER_TAB_ITEMS : TAB_ITEMS;
+  const other: AppMode = mode === "teacher" ? "student" : "teacher";
+
+  function switchMode() {
+    setModeCookie(other);
+    router.push(homeFor(other));
+    router.refresh();
+  }
+
   async function signOut() {
     await clearSchedule(user.id); // do not leave one user's schedule on a shared device
     await getBrowserClient().auth.signOut();
-    router.replace("/sign-in");
+    router.replace(mode === "teacher" ? "/sign-in?as=teacher" : "/sign-in");
     router.refresh();
   }
 
   return (
-    <div className="shell">
+    <div className={`shell ${head.variable} ${body.className}`}>
       <a className="um-skip" href="#main">
         {t("common.skipToContent")}
       </a>
       <aside className="sidebar">
-        <Link href="/dashboard" className="brand">
-          <AppLogo kind="logo" variant="dark" layout="row" height={34} />
+        <Link href={homeFor(mode)} className="brand">
+          <AppLogo kind="logo" layout="row" height={34} />
         </Link>
         <button type="button" className="sidebar__search" onClick={() => setPaletteOpen(true)}>
           <Icon name="search" size={18} />
@@ -48,7 +60,7 @@ export function AppShell({ displayName, children }: { displayName: string | null
           <kbd aria-hidden="true">{"Ctrl K"}</kbd>
         </button>
         <nav aria-label={t("nav.main")} className="sidebar__nav">
-          {NAV_GROUPS.map((g) => (
+          {groups.map((g) => (
             <div key={g.id} className="sidebar__group" role="group" aria-label={g.label ? t(g.label) : undefined}>
               {g.label ? <p className="sidebar__label" aria-hidden="true">{t(g.label)}</p> : null}
               {g.items.map(({ href, key, icon }) => (
@@ -65,6 +77,10 @@ export function AppShell({ displayName, children }: { displayName: string | null
             <Icon name={SETTINGS_ITEM.icon} size={20} />
             <span>{t(SETTINGS_ITEM.key)}</span>
           </Link>
+          <button type="button" className="navlink navlink--button" onClick={switchMode}>
+            <Icon name="group" size={20} />
+            <span>{t(`landing.switchTo.${other}`)}</span>
+          </button>
           <button type="button" className="navlink navlink--button" onClick={signOut}>
             <Icon name="sign-out" size={20} />
             <span>{t("nav.signOut")}</span>
@@ -79,8 +95,8 @@ export function AppShell({ displayName, children }: { displayName: string | null
       </aside>
       <div className="shell__main">
         <header className="mobilebar">
-          <Link href="/dashboard" className="brand">
-            <AppLogo kind="logo" variant="dark" layout="row" height={30} />
+          <Link href={homeFor(mode)} className="brand">
+            <AppLogo kind="logo" layout="row" height={30} />
           </Link>
           <div className="mobilebar__actions">
             <button type="button" className="iconbtn" onClick={() => setPaletteOpen(true)} aria-label={t("palette.open")}>
@@ -95,7 +111,7 @@ export function AppShell({ displayName, children }: { displayName: string | null
         </main>
       </div>
       <nav className="tabbar" aria-label={t("nav.main")}>
-        {TAB_ITEMS.map(({ href, key, icon }) => (
+        {tabs.map(({ href, key, icon }) => (
           <Link key={href} href={href} className="tabbar__item" aria-current={current(href)}>
             <Icon name={icon} />
             <span>{t(key)}</span>

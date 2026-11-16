@@ -1,5 +1,10 @@
 /** Route classification shared by proxy.ts and tests. */
-export const PROTECTED_PREFIXES = ["/dashboard", "/documents", "/flashcards", "/planner", "/focus", "/gpa", "/settings", "/onboarding"] as const;
+export const PROTECTED_PREFIXES = [
+  "/dashboard", "/documents", "/flashcards", "/planner", "/focus", "/gpa", "/settings", "/onboarding",
+  "/notes", "/campus", "/career", "/gamification", "/notifications",
+  "/classes", "/class", "/budget", "/writing", "/colleges", "/courses", "/quizzes", "/quiz", "/profile", "/plans",
+  "/teacher", "/study",
+] as const;
 /** Auth pages a signed-in user is bounced away from. /reset-password and /verify-email are deliberately excluded. */
 export const AUTH_ONLY_PATHS = ["/sign-in", "/sign-up", "/forgot-password"] as const;
 

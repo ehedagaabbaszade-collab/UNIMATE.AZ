@@ -1,4 +1,4 @@
-import { fallbackList, fallbackRelativeTime } from "./intl-fallback";
+import { dateLocaleUnsupported, fallbackDateTime, fallbackList, fallbackRelativeTime } from "./intl-fallback";
 import { bcp47, type Locale } from "./locales";
 import { APP_TIMEZONE } from "./timezone";
 
@@ -13,12 +13,13 @@ export const formatPercent = (l: Locale, fraction: number, opts?: Intl.NumberFor
 export const formatCurrency = (l: Locale, amount: number, currency = "AZN", opts?: Intl.NumberFormatOptions) =>
   new Intl.NumberFormat(bcp47(l), { style: "currency", currency, ...opts }).format(amount);
 
-export const formatDate = (l: Locale, d: DateInput, opts: Intl.DateTimeFormatOptions = { dateStyle: "medium" }) =>
-  new Intl.DateTimeFormat(bcp47(l), { timeZone: APP_TIMEZONE, ...opts }).format(toDate(d));
-export const formatTime = (l: Locale, d: DateInput, opts: Intl.DateTimeFormatOptions = { timeStyle: "short" }) =>
-  new Intl.DateTimeFormat(bcp47(l), { timeZone: APP_TIMEZONE, ...opts }).format(toDate(d));
-export const formatDateTime = (l: Locale, d: DateInput, opts: Intl.DateTimeFormatOptions = { dateStyle: "medium", timeStyle: "short" }) =>
-  new Intl.DateTimeFormat(bcp47(l), { timeZone: APP_TIMEZONE, ...opts }).format(toDate(d));
+const dt = (l: Locale, d: DateInput, opts: Intl.DateTimeFormatOptions) =>
+  l !== "en" && dateLocaleUnsupported(bcp47(l))
+    ? fallbackDateTime(l, toDate(d), opts, APP_TIMEZONE)
+    : new Intl.DateTimeFormat(bcp47(l), { timeZone: APP_TIMEZONE, ...opts }).format(toDate(d));
+export const formatDate = (l: Locale, d: DateInput, opts: Intl.DateTimeFormatOptions = { dateStyle: "medium" }) => dt(l, d, opts);
+export const formatTime = (l: Locale, d: DateInput, opts: Intl.DateTimeFormatOptions = { timeStyle: "short" }) => dt(l, d, opts);
+export const formatDateTime = (l: Locale, d: DateInput, opts: Intl.DateTimeFormatOptions = { dateStyle: "medium", timeStyle: "short" }) => dt(l, d, opts);
 
 const UNITS: ReadonlyArray<[Intl.RelativeTimeFormatUnit, number]> = [
   ["year", 365 * 86400],

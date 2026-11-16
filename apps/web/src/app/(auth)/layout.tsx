@@ -2,15 +2,17 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { BackendNotConfigured } from "@/components/BackendNotConfigured";
 import { AppLogo } from "@/components/brand";
-import { LocaleSwitcher } from "@/components/prefs";
+import { LocaleSwitcher, ThemeSwitch } from "@/components/prefs";
+import { body, head } from "@/app/fonts";
 import { getT } from "@/i18n/server";
 import { getSupabaseEnv } from "@/lib/supabase/env";
+
 
 export default async function AuthLayout({ children }: { children: ReactNode }) {
   if (!getSupabaseEnv()) return <BackendNotConfigured />;
   const { t } = await getT();
   return (
-    <div className="auth">
+    <div className={`auth ${head.variable} ${body.className}`}>
       <aside className="auth__aside" aria-hidden="true">
         <h2>{t("landing.title")}</h2>
         <p>{t("landing.f1Body")}</p>
@@ -21,7 +23,10 @@ export default async function AuthLayout({ children }: { children: ReactNode }) 
             <Link href="/" className="auth__brand">
               <AppLogo kind="logo" height={84} />
             </Link>
-            <LocaleSwitcher compact />
+            <div className="row" style={{ flexWrap: "nowrap", gap: 8 }}>
+              <LocaleSwitcher compact />
+              <ThemeSwitch />
+            </div>
           </div>
           {children}
         </div>

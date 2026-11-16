@@ -7,7 +7,7 @@ describe("navigation model", () => {
     const hrefs = PAGES.map((p) => p.href);
     expect(new Set(hrefs).size).toBe(hrefs.length);
     expect(TAB_ITEMS.length).toBe(4);
-    expect(NAV_GROUPS.flatMap((g) => g.items).length).toBe(10);
+    expect(NAV_GROUPS.flatMap((g) => g.items).length).toBe(17);
   });
 
   it("every label resolves in all four locales", () => {

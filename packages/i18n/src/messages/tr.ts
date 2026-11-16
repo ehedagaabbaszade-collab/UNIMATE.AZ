@@ -59,6 +59,181 @@ export const tr = {
     f2Body: "Kartlar aralıklı tekrarla planlanır; unutmadan hemen önce yeniden görürsün.",
     f3Title: "Dönemi planla",
     f3Body: "Ders programı, görevler, sınavlar ve çevrimdışı çalışan GPA hesaplayıcı.",
+    "copyright": "© UNIMATE.AZ",
+    "mock": { "main": "Ana", "hello": "Merhaba! AI Study'ye sor", "input": "Sorunu yaz…" },
+    "marquee": { "title": "Tüm öğrenci araçları tek hesapta" },
+    "bento": {
+      "hub": { "title": "Tüm modüller tek yerde", "body": "Planlayıcıdan kampüse her araç aynı hesaba bağlı." },
+      "ai": { "title": "AI Study", "body": "Belgene sor, kaynağa bağlı yanıt al.", "q": "Bu dersin özeti nedir?", "a": "Ana fikirler 3 maddede, sayfa göstergeleriyle." },
+      "plan": { "title": "Planlayıcı", "body": "Dersler, görevler ve sınavlar tek listede." }
+    },
+    "cardCta": { "title": "Dönemini bugün planlamaya hazır mısın?" },
+    "foot": { "tagline": "Eğitimin tek, sakin ve net bir yerde.", "text": "Öğrenciler ve öğretmenler için tek hesap.", "menu": "Menü", "legal": "Hukuki" },
+    "switchTo": {
+      "student": "Öğrenci portalına geç",
+      "teacher": "Öğretmen portalına geç"
+    },
+    "nav": {
+      "features": "Özellikler",
+      "teachers": "Öğretmenler için",
+      "how": "Nasıl çalışır",
+      "faq": "Sorular",
+      "signUp": "Kayıt ol",
+      "aria": "Ana bölümler"
+    },
+    "hero": {
+      "l1": "Tüm eğitimin",
+      "l2": "tek hesapta, net",
+      "l3": "ve planlı",
+      "lead": "UNIMATE.AZ belgelerini okur, programını kurar, kartlarla tekrar ettirir. Öğretmenler sınav ve ödevleri aynı hesaptan yönetir.",
+      "ctaStudent": "Öğrenci olarak başla",
+      "ctaTeacher": "Öğretmen olarak başla"
+    },
+    "preview": {
+      "title": "Sıradaki",
+      "r1": "Fizik: sınava hazırlık",
+      "r2": "Kartlar: tekrar zamanı",
+      "r3": "Ödev: son tarih yaklaşıyor",
+      "ring": "Haftalık ilerleme",
+      "sample": "Örnek görünüm"
+    },
+    "modules": {
+      "title": "Her gün kullandığın araçlar",
+      "body": "Öğrenci hayatının temel parçaları tek hesapta.",
+      "items": {
+        "ai": {
+          "title": "AI Study",
+          "body": "Belgelerinden özet, sohbet, quiz ve kartlar."
+        },
+        "planner": {
+          "title": "Planlayıcı",
+          "body": "Ders programı, görevler ve sınavlar bir arada."
+        },
+        "cards": {
+          "title": "Kartlar",
+          "body": "Aralıklı tekrarla aklında tut."
+        },
+        "notes": {
+          "title": "Notlar",
+          "body": "Not yaz, düzenle ve paylaş."
+        },
+        "campus": {
+          "title": "Kampüs",
+          "body": "Üniversitenin etkinlikleri, kulüpleri ve haberleri."
+        },
+        "career": {
+          "title": "Kariyer",
+          "body": "Staj, iş ve CV araçları."
+        },
+        "gpa": {
+          "title": "GPA",
+          "body": "Notlarını hesapla, çevrimdışı da."
+        },
+        "focus": {
+          "title": "Odak",
+          "body": "Zamanlayıcıyla dikkatini koru."
+        },
+        "budget": {
+          "title": "Bütçe",
+          "body": "Harcamalarını AZN ile takip et."
+        },
+        "colleges": {
+          "title": "Üniversiteler",
+          "body": "Kolejler ve bölümler hakkında bilgi."
+        },
+        "classes": {
+          "title": "Sınıflar",
+          "body": "Öğretmenin sınıfına kodla katıl."
+        }
+      }
+    },
+    "teachers": {
+      "eyebrow": "Öğretmenler için",
+      "title": "Sınavı dakikalar içinde hazırla",
+      "body": "Cevap anahtarlı sınavdan sınıf çalışmalarına kadar her şey öğretmen portalında.",
+      "items": {
+        "t1": {
+          "title": "Cevap anahtarlı sınav oluşturucu",
+          "body": "Test ve açık uçlu sorular, doğru cevaplar ve puanlar."
+        },
+        "t2": {
+          "title": "A, B, C varyantları",
+          "body": "Sorular karıştırılır, her varyant PDF olarak yazdırılır."
+        },
+        "t3": {
+          "title": "Soru bankası",
+          "body": "Önceki sınavlardaki soruları yeniden kullan."
+        },
+        "t4": {
+          "title": "AI ile soru üretme",
+          "body": "Bir konudan veya belgeden soru taslakları al."
+        },
+        "t5": {
+          "title": "Davet kodlu sınıflar",
+          "body": "Öğrenciler kodla sınıfa katılır."
+        },
+        "t6": {
+          "title": "Zamanlayıcılı çevrimiçi sınav",
+          "body": "Süre dolunca cevaplar otomatik teslim edilir."
+        },
+        "t7": {
+          "title": "Ödev toplama ve notlandırma",
+          "body": "Ödevleri topla, not ve geri bildirim yaz."
+        }
+      },
+      "cta": "Öğretmen olarak giriş yap"
+    },
+    "how": {
+      "eyebrow": "Nasıl çalışır",
+      "title": "Üç adımda başla",
+      "steps": {
+        "s1": {
+          "title": "Hesap oluştur",
+          "body": "E-posta ve parolayla kayıt ol."
+        },
+        "s2": {
+          "title": "Portalını seç",
+          "body": "Öğrenci veya öğretmen portalına gir; istediğin zaman değiştirebilirsin."
+        },
+        "s3": {
+          "title": "Telefonda ve web'de aynı hesap",
+          "body": "Uygulamaya aynı e-postayla gir, her şey senkron kalsın."
+        }
+      }
+    },
+    "one": {
+      "title": "Tek hesap, her yerde",
+      "body": "Web ve iOS/Android uygulaması aynı hesabı kullanır. Birinde yaptığın değişiklik diğerinde de görünür.",
+      "web": "Web",
+      "app": "Uygulama",
+      "webBody": "Tarayıcından kullan.",
+      "appBody": "Telefonda UNIMATE.AZ uygulamasına aynı hesapla giriş yap."
+    },
+    "faq": {
+      "title": "Sorularına yanıt",
+      "items": {
+        "q1": {
+          "q": "Ücretsiz mi?",
+          "a": "Hesap oluşturmak ücretsizdir, kart gerekmez."
+        },
+        "q2": {
+          "q": "Hangi diller destekleniyor?",
+          "a": "Azerbaycanca, Türkçe, İngilizce ve Rusça."
+        },
+        "q3": {
+          "q": "Öğrenci ve öğretmen portalı arasındaki fark nedir?",
+          "a": "Öğrenci portalı çalışma ve planlama araçlarını, öğretmen portalı sınav ve sınıf araçlarını gösterir. Hesap aynıdır."
+        },
+        "q4": {
+          "q": "Telefondaki verilerim web'de görünür mü?",
+          "a": "Evet, aynı hesapla girince veriler senkron olur."
+        },
+        "q5": {
+          "q": "Verilerim nasıl korunuyor?",
+          "a": "Verilerin hesabına bağlıdır. Ayrıntılar Gizlilik Politikası'nda."
+        }
+      }
+    }
   },
   validation: {
     required: "Bu alan zorunludur.",
@@ -76,6 +251,11 @@ export const tr = {
     question: "1 ile 2000 karakter arasında bir soru sorun.",
   },
   auth: {
+    "teacherSignInTitle": "Öğretmen olarak giriş yap",
+    "teacherSignInBody": "Sınavlarını ve sınıflarını yönetmek için giriş yap.",
+    "teacherSignUpTitle": "Öğretmen hesabı oluştur",
+    "teacherSignUpBody": "Ücretsiz başla, sınav ve sınıf kur.",
+    "roleLabel": "Rol seç",
     signInTitle: "Tekrar hoş geldin",
     signInBody: "Çalışmaya devam etmek için giriş yap.",
     signInCta: "Giriş yap",
@@ -1641,6 +1821,7 @@ export const tr = {
       deleteAssignmentConfirm: "Silinsin mi? Teslim edilen çalışmalar da silinir.",
       noSubmissions: "Henüz teslim yok",
       fileTooBig: "Dosya en fazla 20 MB olabilir.",
+      fileType: "Bu dosya türü desteklenmiyor. PDF, görsel, Word, PowerPoint veya metin dosyası seçin.",
       uploadFailed: "Dosya yüklenemedi. Tekrar deneyin.",
       errors: { notTeacher: "Bunu yalnızca sınıfın öğretmeni yapabilir.", teacherCannotTake: "Öğretmen kendi sınıfının çalışmasını teslim edemez.", alreadyTaken: "Bu sınava zaten girdiniz.", notOpen: "Sınav şu anda açık değil.", alreadyGraded: "Çalışma zaten notlandı, değiştirilemez.", notFound: "Bulunamadı veya artık bu sınıfta değilsiniz.", rateLimited: "Çok sık. Biraz sonra tekrar deneyin.", invalid: "Bilgileri kontrol edip tekrar deneyin.", generic: "Bir şeyler ters gitti. Tekrar deneyin." },
     },

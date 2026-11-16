@@ -58,6 +58,181 @@ export const en = {
     f2Body: "Flashcards are scheduled with spaced repetition so you revisit them just before they fade.",
     f3Title: "Plan the semester",
     f3Body: "Timetable, tasks, exams and a GPA calculator that works offline.",
+    "copyright": "© UNIMATE.AZ",
+    "mock": { "main": "Main", "hello": "Hi! Ask AI Study", "input": "Type your question…" },
+    "marquee": { "title": "Every student tool in one account" },
+    "bento": {
+      "hub": { "title": "Every module in one place", "body": "From the planner to campus, each tool is tied to the same account." },
+      "ai": { "title": "AI Study", "body": "Ask about your document and get an answer tied to the source.", "q": "What is the summary of this lecture?", "a": "The key ideas in 3 points, with page references." },
+      "plan": { "title": "Planner", "body": "Classes, tasks and exams in one list." }
+    },
+    "cardCta": { "title": "Ready to plan your semester today?" },
+    "foot": { "tagline": "Your studies in one calm, clear place.", "text": "One account for students and teachers.", "menu": "Menu", "legal": "Legal" },
+    "switchTo": {
+      "student": "Switch to student portal",
+      "teacher": "Switch to teacher portal"
+    },
+    "nav": {
+      "features": "Features",
+      "teachers": "For teachers",
+      "how": "How it works",
+      "faq": "FAQ",
+      "signUp": "Sign up",
+      "aria": "Main sections"
+    },
+    "hero": {
+      "l1": "All of your studies",
+      "l2": "in one account, clear",
+      "l3": "and well planned",
+      "lead": "UNIMATE.AZ reads your documents, builds your schedule and quizzes you with flashcards. Teachers run exams and assignments from the same account.",
+      "ctaStudent": "Start as a student",
+      "ctaTeacher": "Start as a teacher"
+    },
+    "preview": {
+      "title": "Up next",
+      "r1": "Physics: exam preparation",
+      "r2": "Flashcards: time to review",
+      "r3": "Assignment: due date approaching",
+      "ring": "Weekly progress",
+      "sample": "Sample view"
+    },
+    "modules": {
+      "title": "Tools you use every day",
+      "body": "The core of student life in one account.",
+      "items": {
+        "ai": {
+          "title": "AI Study",
+          "body": "Summaries, chat, quizzes and cards from your documents."
+        },
+        "planner": {
+          "title": "Planner",
+          "body": "Timetable, tasks and exams together."
+        },
+        "cards": {
+          "title": "Flashcards",
+          "body": "Remember with spaced repetition."
+        },
+        "notes": {
+          "title": "Notes",
+          "body": "Write, organise and share notes."
+        },
+        "campus": {
+          "title": "Campus",
+          "body": "Events, clubs and news from your university."
+        },
+        "career": {
+          "title": "Career",
+          "body": "Internship, job and CV tools."
+        },
+        "gpa": {
+          "title": "GPA",
+          "body": "Calculate your grades, even offline."
+        },
+        "focus": {
+          "title": "Focus",
+          "body": "Stay on task with a timer."
+        },
+        "budget": {
+          "title": "Budget",
+          "body": "Track spending in AZN."
+        },
+        "colleges": {
+          "title": "Universities",
+          "body": "Colleges and specialties information."
+        },
+        "classes": {
+          "title": "Classes",
+          "body": "Join a teacher class with a code."
+        }
+      }
+    },
+    "teachers": {
+      "eyebrow": "For teachers",
+      "title": "Build an exam in minutes",
+      "body": "From exams with answer keys to class work, it is all in the teacher portal.",
+      "items": {
+        "t1": {
+          "title": "Exam builder with answer key",
+          "body": "Choice and open questions, correct answers and points."
+        },
+        "t2": {
+          "title": "Variants A, B and C",
+          "body": "Questions are shuffled; each variant prints as a PDF."
+        },
+        "t3": {
+          "title": "Question bank",
+          "body": "Reuse questions from earlier exams."
+        },
+        "t4": {
+          "title": "AI question generation",
+          "body": "Get draft questions from a topic or a document."
+        },
+        "t5": {
+          "title": "Classes with invite codes",
+          "body": "Students join a class with a code."
+        },
+        "t6": {
+          "title": "Online exams with a timer",
+          "body": "Answers are handed in when time runs out."
+        },
+        "t7": {
+          "title": "Assignment collection and grading",
+          "body": "Collect work, give grades and feedback."
+        }
+      },
+      "cta": "Sign in as teacher"
+    },
+    "how": {
+      "eyebrow": "How it works",
+      "title": "Start in three steps",
+      "steps": {
+        "s1": {
+          "title": "Create an account",
+          "body": "Sign up with an email and password."
+        },
+        "s2": {
+          "title": "Choose your portal",
+          "body": "Enter the student or teacher portal; switch whenever you like."
+        },
+        "s3": {
+          "title": "The same account on phone and web",
+          "body": "Sign in to the app with the same email and everything stays in sync."
+        }
+      }
+    },
+    "one": {
+      "title": "One account, everywhere",
+      "body": "The web and the iOS/Android app share one account. A change in one shows up in the other.",
+      "web": "Web",
+      "app": "App",
+      "webBody": "Use it from the browser.",
+      "appBody": "Sign in to the UNIMATE.AZ app on your phone with the same account."
+    },
+    "faq": {
+      "title": "Answers to your questions",
+      "items": {
+        "q1": {
+          "q": "Is it free?",
+          "a": "Creating an account is free and needs no card."
+        },
+        "q2": {
+          "q": "Which languages are supported?",
+          "a": "Azerbaijani, Turkish, English and Russian."
+        },
+        "q3": {
+          "q": "What is the difference between the student and teacher portals?",
+          "a": "The student portal shows study and planning tools, the teacher portal shows exam and class tools. The account is the same."
+        },
+        "q4": {
+          "q": "Does my phone data appear on the web?",
+          "a": "Yes, when you sign in with the same account the data is in sync."
+        },
+        "q5": {
+          "q": "How is my data protected?",
+          "a": "Your data is tied to your account. Details are in the Privacy Policy."
+        }
+      }
+    }
   },
   validation: {
     required: "This field is required.",
@@ -75,6 +250,11 @@ export const en = {
     question: "Ask a question between 1 and 2000 characters.",
   },
   auth: {
+    "teacherSignInTitle": "Sign in as a teacher",
+    "teacherSignInBody": "Sign in to manage your exams and classes.",
+    "teacherSignUpTitle": "Create a teacher account",
+    "teacherSignUpBody": "Start free and build exams and classes.",
+    "roleLabel": "Choose a role",
     signInTitle: "Welcome back",
     signInBody: "Sign in to continue studying.",
     signInCta: "Sign in",
@@ -1640,6 +1820,7 @@ export const en = {
       deleteAssignmentConfirm: "Delete it? Handed-in work is deleted too.",
       noSubmissions: "Nothing handed in yet",
       fileTooBig: "The file must be 20 MB or smaller.",
+      fileType: "This file type is not supported. Choose a PDF, image, Word, PowerPoint or text file.",
       uploadFailed: "The file did not upload. Try again.",
       errors: { notTeacher: "Only the class teacher can do this.", teacherCannotTake: "Teachers cannot take their own class work.", alreadyTaken: "You already took this exam.", notOpen: "The exam is not open right now.", alreadyGraded: "It is already graded and cannot change.", notFound: "Not found, or you are no longer in this class.", rateLimited: "Too many in a short time. Try again later.", invalid: "Check the details and try again.", generic: "Something went wrong. Try again." },
     },

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { useT } from "@unimate/i18n/react";
 import type { MessageKey } from "@unimate/i18n";
+import { homeFor, readModeCookie } from "@/lib/mode";
 import { fieldErrors, resetSchema } from "@/lib/schemas";
 import { getBrowserClient } from "@/lib/supabase/browser";
 import { authErrorKey } from "./auth-errors";
@@ -42,7 +43,7 @@ export function ResetForm() {
       return;
     }
     setDone(true);
-    router.replace("/dashboard");
+    router.replace(homeFor(readModeCookie()));
     router.refresh();
   }
 

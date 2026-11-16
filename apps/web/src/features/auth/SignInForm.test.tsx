@@ -9,14 +9,14 @@ const signIn = vi.fn();
 const replace = vi.fn();
 vi.mock("@/lib/supabase/browser", () => ({ getBrowserClient: () => ({ auth: { signInWithPassword: signIn } }) }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace, refresh: vi.fn() }) }));
-vi.mock("next/link", () => ({ default: ({ href, children }: { href: string; children: React.ReactNode }) => <a href={href}>{children}</a> }));
+vi.mock("next/link", () => ({ default: ({ href, children, ...rest }: { href: string; children: React.ReactNode }) => <a href={href} {...rest}>{children}</a> }));
 
 import { SignInForm } from "./SignInForm";
 
-const setup = (props: { next?: string } = {}) =>
+const setup = (props: { next?: string; as?: "student" | "teacher" } = {}) =>
   render(
     <I18nProvider locale="en" messages={catalogs.en}>
-      <SignInForm {...props} />
+      <SignInForm as="student" {...props} />
     </I18nProvider>,
   );
 const fill = (email: string, password: string) => {
@@ -45,6 +45,15 @@ describe("SignInForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/documents"));
     expect(signIn).toHaveBeenCalledWith({ email: "a@b.co", password: "secret-password" });
+  });
+
+  it("sends a teacher to /teacher and marks the active role", async () => {
+    signIn.mockResolvedValue({ error: null });
+    setup({ as: "teacher" });
+    expect(screen.getByRole("link", { name: "Teacher" })).toHaveAttribute("aria-current", "page");
+    fill("a@b.co", "secret-password");
+    fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/teacher"));
   });
 
   it("ignores an external next target", async () => {

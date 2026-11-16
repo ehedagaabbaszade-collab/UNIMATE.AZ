@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { MODE_COOKIE, homeFor, parseMode } from "@/lib/mode";
 import { isAuthOnlyPath, isProtectedPath } from "@/lib/paths";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 
@@ -48,9 +49,13 @@ export async function proxy(request: NextRequest) {
   }
   if (signedIn && isAuthOnlyPath(pathname)) {
     const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
+    url.pathname = homeFor(parseMode(request.cookies.get(MODE_COOKIE)?.value));
     url.search = "";
     return NextResponse.redirect(url);
+  }
+  if (signedIn && (pathname === "/teacher" || pathname.startsWith("/teacher/")) && request.cookies.get(MODE_COOKIE)?.value !== "teacher") {
+    // A teacher deep link must render in the teacher shell even with a stale student cookie.
+    response.cookies.set(MODE_COOKIE, "teacher", { path: "/", maxAge: 31536000, sameSite: "lax" });
   }
   return response;
 }

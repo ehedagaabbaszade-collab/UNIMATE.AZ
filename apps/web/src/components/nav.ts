@@ -11,9 +11,13 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     id: "study",
     label: "nav.groups.study",
     items: [
-      { href: "/documents", key: "nav.documents", icon: "ai-study" },
+      { href: "/study", key: "brand.module.aiStudy", icon: "ai-study" },
+      { href: "/documents", key: "nav.documents", icon: "materials" },
       { href: "/flashcards", key: "nav.flashcards", icon: "flashcard" },
       { href: "/notes", key: "brand.module.notes", icon: "notes" },
+      { href: "/writing", key: "writing.title", icon: "notes" },
+      { href: "/quizzes", key: "mobile.quizzes.title", icon: "flashcard" },
+      { href: "/classes", key: "teach.class.title", icon: "group" },
     ],
   },
   {
@@ -23,6 +27,8 @@ export const NAV_GROUPS: readonly NavGroup[] = [
       { href: "/planner", key: "nav.planner", icon: "planner" },
       { href: "/focus", key: "nav.focus", icon: "pomodoro" },
       { href: "/gpa", key: "nav.gpa", icon: "gpa" },
+      { href: "/courses", key: "semester.title", icon: "tasks" },
+      { href: "/budget", key: "budget.title", icon: "wallet" },
     ],
   },
   {
@@ -31,17 +37,27 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     items: [
       { href: "/campus", key: "brand.module.campus", icon: "campus" },
       { href: "/career", key: "brand.module.career", icon: "career" },
+      { href: "/colleges", key: "colleges.viewColleges", icon: "institution" },
       { href: "/gamification", key: "brand.module.gamification", icon: "gamification" },
     ],
   },
 ];
+
+const TEACHER_ITEMS: readonly NavItem[] = [
+  { href: "/teacher", key: "teach.exams.tab", icon: "exams" },
+  { href: "/teacher/classes", key: "teach.class.title", icon: "group" },
+  { href: "/planner", key: "teach.exams.scheduleTab", icon: "planner" },
+  { href: "/profile", key: "brand.module.profile", icon: "profile" },
+];
+export const TEACHER_NAV_GROUPS: readonly NavGroup[] = [{ id: "home", label: null, items: TEACHER_ITEMS }];
+export const TEACHER_TAB_ITEMS: readonly NavItem[] = TEACHER_ITEMS;
 
 export const SETTINGS_ITEM: NavItem = { href: "/settings", key: "nav.settings", icon: "settings" };
 
 /** Phone tab bar: four destinations + "More" (opens the command palette, which reaches everything else). */
 export const TAB_ITEMS: readonly NavItem[] = [
   { href: "/dashboard", key: "nav.dashboard", icon: "home" },
-  { href: "/documents", key: "nav.documents", icon: "ai-study" },
+  { href: "/study", key: "brand.module.aiStudy", icon: "ai-study" },
   { href: "/planner", key: "nav.planner", icon: "planner" },
   { href: "/campus", key: "brand.module.campus", icon: "campus" },
 ];

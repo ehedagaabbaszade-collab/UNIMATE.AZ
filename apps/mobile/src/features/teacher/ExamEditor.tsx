@@ -49,6 +49,7 @@ export function ExamEditor({ id }: { id: string }) {
   const [exporting, setExporting] = useState<"paper" | "key" | null>(null);
   const [variants, setVariants] = useState("1");
   const [bankOpen, setBankOpen] = useState(false);
+  const [newExamId] = useState(newId); // stable across paper/key exports of an unsaved exam
   const isNew = id === "new";
   const uni = useAsync(async () => {
     if (!profile?.university_id) return null;
@@ -83,7 +84,7 @@ export function ExamEditor({ id }: { id: string }) {
     const questions = draft.questions.map((q) => ({ ...q, options: q.kind === "choice" ? q.options : [], points: num(q.points) }));
     const bad = questions.findIndex((q) => !ExamQuestionSchema.safeParse(q).success);
     if (bad >= 0) return fail(t("teach.exams.errQuestion", { n: bad + 1 }));
-    const parsed = ExamSchema.safeParse({ id: isNew ? newId() : id, title: draft.title, subject: draft.subject, group: draft.group, minutes, questions });
+    const parsed = ExamSchema.safeParse({ id: isNew ? newExamId : id, title: draft.title, subject: draft.subject, group: draft.group, minutes, questions });
     return parsed.success ? parsed.data : fail(t("common.genericError"));
   };
 

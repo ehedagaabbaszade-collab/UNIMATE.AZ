@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { ToastProvider } from "@unimate/ui";
 import "@unimate/ui/styles.css";
 import "./globals.css";
+import "./select.css";
 import { catalogs, createTranslator, LOCALE_COOKIE, toLocale, type Messages } from "@unimate/i18n";
 import { I18nProvider } from "@unimate/i18n/react";
 import { getT } from "@/i18n/server";

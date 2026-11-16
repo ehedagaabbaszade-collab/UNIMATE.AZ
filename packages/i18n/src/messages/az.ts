@@ -59,6 +59,181 @@ export const az = {
     f2Body: "Kartlar məsafəli təkrar üsulu ilə planlanır: unutmazdan əvvəl yenidən görürsən.",
     f3Title: "Semestri planla",
     f3Body: "Dərs cədvəli, tapşırıqlar, imtahanlar və oflayn işləyən GPA kalkulyatoru.",
+    "copyright": "© UNIMATE.AZ",
+    "mock": { "main": "Əsas", "hello": "Salam! AI Study-dən soruş", "input": "Sualını yaz…" },
+    "marquee": { "title": "Bir hesabda bütün tələbə alətləri" },
+    "bento": {
+      "hub": { "title": "Bütün modullar bir yerdə", "body": "Planlayıcıdan kampusa qədər hər alət eyni hesaba bağlıdır." },
+      "ai": { "title": "AI Study", "body": "Sənədindən sual ver, mənbəyə bağlı cavab al.", "q": "Bu mühazirənin xülasəsi nədir?", "a": "Əsas fikirlər 3 bənddə, səhifə göstərişi ilə." },
+      "plan": { "title": "Planlayıcı", "body": "Dərs, tapşırıq və imtahanlar bir siyahıda." }
+    },
+    "cardCta": { "title": "Semestrini bu gün planlamağa başla?" },
+    "foot": { "tagline": "Təhsil bir yerdə, sakit və aydın.", "text": "Tələbələr və müəllimlər üçün vahid hesab.", "menu": "Menyu", "legal": "Hüquqi" },
+    "switchTo": {
+      "student": "Tələbə portalına keç",
+      "teacher": "Müəllim portalına keç"
+    },
+    "nav": {
+      "features": "Funksiyalar",
+      "teachers": "Müəllimlər üçün",
+      "how": "Necə işləyir",
+      "faq": "Suallar",
+      "signUp": "Qeydiyyat",
+      "aria": "Əsas bölmələr"
+    },
+    "hero": {
+      "l1": "Təhsilin hamısı",
+      "l2": "bir hesabda, aydın",
+      "l3": "və planlı",
+      "lead": "UNIMATE.AZ sənədlərini oxuyur, cədvəlini qurur, kartlarla təkrar etdirir. Müəllimlər isə imtahan və tapşırıqları eyni hesabdan idarə edir.",
+      "ctaStudent": "Tələbə kimi başla",
+      "ctaTeacher": "Müəllim kimi başla"
+    },
+    "preview": {
+      "title": "Növbəti",
+      "r1": "Fizika: imtahana hazırlıq",
+      "r2": "Kartlar: təkrar vaxtıdır",
+      "r3": "Tapşırıq: son tarix yaxınlaşır",
+      "ring": "Həftəlik irəliləyiş",
+      "sample": "Nümunə görünüş"
+    },
+    "modules": {
+      "title": "Hər gün lazım olan alətlər",
+      "body": "Tələbə həyatının əsas hissələri bir hesabda.",
+      "items": {
+        "ai": {
+          "title": "AI Study",
+          "body": "Sənədlərdən xülasə, söhbət, quiz və kartlar."
+        },
+        "planner": {
+          "title": "Planlayıcı",
+          "body": "Dərs cədvəli, tapşırıq və imtahanlar bir yerdə."
+        },
+        "cards": {
+          "title": "Kartlar",
+          "body": "Məsafəli təkrarla yadda saxla."
+        },
+        "notes": {
+          "title": "Qeydlər",
+          "body": "Qeydləri yaz, təşkil et və paylaş."
+        },
+        "campus": {
+          "title": "Kampus",
+          "body": "Universitetinin tədbirləri, klubları və xəbərləri."
+        },
+        "career": {
+          "title": "Karyera",
+          "body": "Təcrübə, iş və CV alətləri."
+        },
+        "gpa": {
+          "title": "GPA",
+          "body": "Qiymətlərini hesabla, oflayn da."
+        },
+        "focus": {
+          "title": "Fokus",
+          "body": "Taymerlə diqqətli qal."
+        },
+        "budget": {
+          "title": "Büdcə",
+          "body": "Xərclərini AZN ilə izlə."
+        },
+        "colleges": {
+          "title": "Universitetlər",
+          "body": "Kolleclər və ixtisaslar üzrə məlumat."
+        },
+        "classes": {
+          "title": "Siniflər",
+          "body": "Müəllimin sinfinə kodla qoşul."
+        }
+      }
+    },
+    "teachers": {
+      "eyebrow": "Müəllimlər üçün",
+      "title": "İmtahanı dəqiqələr içində hazırla",
+      "body": "Cavab açarlı imtahandan sinif işlərinə qədər hər şey müəllim portalındadır.",
+      "items": {
+        "t1": {
+          "title": "Cavab açarlı imtahan qurucusu",
+          "body": "Test və açıq suallar, düzgün cavablar və ballar."
+        },
+        "t2": {
+          "title": "A, B, C variantları",
+          "body": "Suallar qarışdırılır, hər variant PDF kimi çap olunur."
+        },
+        "t3": {
+          "title": "Sual bankı",
+          "body": "Əvvəlki imtahanlardakı sualları yenidən istifadə et."
+        },
+        "t4": {
+          "title": "AI ilə sual yaratma",
+          "body": "Mövzudan və ya sənəddən sual qaralamaları al."
+        },
+        "t5": {
+          "title": "Dəvət kodlu siniflər",
+          "body": "Tələbələr kodla sinfə qoşulur."
+        },
+        "t6": {
+          "title": "Taymerli onlayn imtahan",
+          "body": "Vaxt bitəndə cavablar avtomatik təhvil verilir."
+        },
+        "t7": {
+          "title": "Tapşırıq toplama və qiymətləndirmə",
+          "body": "İşləri topla, qiymət və rəy yaz."
+        }
+      },
+      "cta": "Müəllim kimi daxil ol"
+    },
+    "how": {
+      "eyebrow": "Necə işləyir",
+      "title": "Üç addımda başla",
+      "steps": {
+        "s1": {
+          "title": "Hesab yarat",
+          "body": "E-poçt və parolla qeydiyyatdan keç."
+        },
+        "s2": {
+          "title": "Portalını seç",
+          "body": "Tələbə və ya müəllim portalına daxil ol; istədiyin vaxt dəyişə bilərsən."
+        },
+        "s3": {
+          "title": "Telefonda və veb-də eyni hesab",
+          "body": "Eyni e-poçtla tətbiqdə də daxil ol, hər şey sinxron olsun."
+        }
+      }
+    },
+    "one": {
+      "title": "Bir hesab, hər yerdə",
+      "body": "Veb və iOS/Android tətbiqi eyni hesabdan istifadə edir. Bir yerdə etdiyin dəyişiklik digərində də görünür.",
+      "web": "Veb",
+      "app": "Tətbiq",
+      "webBody": "Brauzerdən istifadə et.",
+      "appBody": "Telefonda UNIMATE.AZ tətbiqi ilə eyni hesaba daxil ol."
+    },
+    "faq": {
+      "title": "Suallarına cavab",
+      "items": {
+        "q1": {
+          "q": "Pulsuzdurmu?",
+          "a": "Hesab yaratmaq pulsuzdur və kart tələb olunmur."
+        },
+        "q2": {
+          "q": "Hansı dillər dəstəklənir?",
+          "a": "Azərbaycan, türk, ingilis və rus dilləri."
+        },
+        "q3": {
+          "q": "Tələbə və müəllim portalı arasında nə fərq var?",
+          "a": "Tələbə portalı öyrənmə və planlama alətlərini, müəllim portalı imtahan və sinif alətlərini göstərir. Hesab eynidir."
+        },
+        "q4": {
+          "q": "Telefondakı məlumatlarım veb-də görünür?",
+          "a": "Bəli, eyni hesabla daxil olduqda məlumatlar sinxron olur."
+        },
+        "q5": {
+          "q": "Məlumatlarım necə qorunur?",
+          "a": "Məlumatlar hesabına bağlıdır. Ətraflı Məxfilik Siyasətində."
+        }
+      }
+    }
   },
   validation: {
     required: "Bu sahə mütləqdir.",
@@ -76,6 +251,11 @@ export const az = {
     question: "1 ilə 2000 simvol arasında sual verin.",
   },
   auth: {
+    "teacherSignInTitle": "Müəllim hesabına daxil ol",
+    "teacherSignInBody": "İmtahanlarını və siniflərini idarə etmək üçün daxil ol.",
+    "teacherSignUpTitle": "Müəllim hesabı yarat",
+    "teacherSignUpBody": "Pulsuz başla, imtahan və sinif qur.",
+    "roleLabel": "Rol seçimi",
     signInTitle: "Xoş gəldin",
     signInBody: "Oxumağa davam etmək üçün daxil ol.",
     signInCta: "Daxil ol",
@@ -1641,6 +1821,7 @@ export const az = {
       deleteAssignmentConfirm: "Silinsin? Təhvil verilən işlər də silinəcək.",
       noSubmissions: "Hələ təhvil yoxdur",
       fileTooBig: "Fayl 20 MB-dan böyük ola bilməz.",
+      fileType: "Bu fayl tipi dəstəklənmir. PDF, şəkil, Word, PowerPoint və ya mətn faylı seçin.",
       uploadFailed: "Fayl yüklənmədi. Yenidən cəhd edin.",
       errors: { notTeacher: "Bunu yalnız sinfin müəllimi edə bilər.", teacherCannotTake: "Müəllim öz sinfinin işini təhvil verə bilməz.", alreadyTaken: "Bu imtahanı artıq yazmısınız.", notOpen: "İmtahan hazırda açıq deyil.", alreadyGraded: "İş artıq qiymətləndirilib, dəyişmək olmaz.", notFound: "Tapılmadı və ya artıq bu sinifdə deyilsiniz.", rateLimited: "Çox tez-tez. Bir az sonra cəhd edin.", invalid: "Məlumatı yoxlayın və yenidən cəhd edin.", generic: "Nəsə alınmadı. Yenidən cəhd edin." },
     },

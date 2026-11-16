@@ -1,5 +1,6 @@
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
+import { MODE_COOKIE, parseMode } from "@/lib/mode";
 import { safeNext } from "@/lib/paths";
 import { getServerClient } from "@/lib/supabase/server";
 
@@ -20,5 +21,8 @@ export async function GET(request: NextRequest) {
   } else if (tokenHash && type) {
     ok = !(await supabase.auth.verifyOtp({ type, token_hash: tokenHash })).error;
   }
-  return NextResponse.redirect(ok ? `${origin}${next}` : `${origin}/sign-in?error=callback`);
+  const res = NextResponse.redirect(ok ? `${origin}${next}` : `${origin}/sign-in?error=callback`);
+  const as = searchParams.get("as");
+  if (ok && as) res.cookies.set(MODE_COOKIE, parseMode(as), { path: "/", maxAge: 31536000, sameSite: "lax" });
+  return res;
 }

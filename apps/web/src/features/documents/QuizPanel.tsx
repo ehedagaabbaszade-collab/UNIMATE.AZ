@@ -11,7 +11,7 @@ import { getBrowserClient } from "@/lib/supabase/browser";
 import { unwrap, useAsync } from "@/lib/use-async";
 import { buildAnswers, parseOptions, parseSubmitResult, type QuizQuestion, type SubmitResult } from "./quiz";
 
-function QuizTaker({ quiz, onExit }: { quiz: QuizRow; onExit: () => void }) {
+export function QuizTaker({ quiz, onExit }: { quiz: Pick<QuizRow, "id">; onExit: () => void }) {
   const { t } = useI18n();
   const { toast } = useToast();
   // No answer/explanation columns are requested: the key lives server-side and is returned by submit_quiz_attempt.

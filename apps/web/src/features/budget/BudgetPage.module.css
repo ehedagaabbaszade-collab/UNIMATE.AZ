@@ -1,0 +1,8 @@
+.hero { display: grid; gap: var(--space-2); padding: var(--space-5); border-radius: var(--radius-lg); background: var(--primary); color: #fff; }
+.balance { font-size: 2.25rem; font-weight: 700; line-height: 1.1; }
+.split { display: flex; gap: var(--space-5); flex-wrap: wrap; }
+.perDay { padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: rgba(255, 255, 255, 0.16); font-weight: 600; }
+.bar { height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.fill { height: 100%; background: var(--primary); transform-origin: left; }
+.income { color: var(--success); font-weight: 700; white-space: nowrap; }
+.amount { font-weight: 700; white-space: nowrap; }

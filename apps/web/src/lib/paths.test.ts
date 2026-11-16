@@ -3,7 +3,7 @@ import { isAuthOnlyPath, isProtectedPath, safeNext } from "./paths";
 
 describe("route classification", () => {
   it("protects app routes and their children only", () => {
-    for (const p of ["/dashboard", "/documents", "/documents/abc", "/planner", "/focus", "/gpa", "/settings", "/onboarding", "/flashcards"]) expect(isProtectedPath(p)).toBe(true);
+    for (const p of ["/dashboard", "/documents", "/documents/abc", "/planner", "/focus", "/gpa", "/settings", "/onboarding", "/flashcards", "/teacher", "/teacher/classes", "/class/abc", "/classes", "/budget", "/study"]) expect(isProtectedPath(p)).toBe(true);
     for (const p of ["/", "/sign-in", "/legal/privacy", "/documents-x", "/auth/callback", "/reset-password"]) expect(isProtectedPath(p)).toBe(false);
   });
   it("bounces signed-in users from sign-in/up/forgot but not reset-password", () => {

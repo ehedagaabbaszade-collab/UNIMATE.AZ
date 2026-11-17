@@ -30,3 +30,9 @@ entrypoint = "./.build/functions/purge-accounts/index.ts"
 
 [functions.resource-url]
 entrypoint = "./.build/functions/resource-url/index.ts"
+
+[functions.write-assignment]
+entrypoint = "./.build/functions/write-assignment/index.ts"
+
+[functions.generate-exam]
+entrypoint = "./.build/functions/generate-exam/index.ts"

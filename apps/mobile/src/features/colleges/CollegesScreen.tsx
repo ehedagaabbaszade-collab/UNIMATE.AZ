@@ -6,6 +6,10 @@ import { AppText, Badge, Card, EmptyState, ErrorState, Input, Notice, PressableS
 import { NO_FILTERS, collegeLabel, filterPrograms, summarizeColleges, type CatalogFilters, type CollegeRow, type ProgramRow } from "../../lib/college-catalog";
 import { unwrap, useAsync } from "../../lib/use-async";
 import { useUser } from "../../state/session";
+import { CONTENT_MAX } from "../../theme/tokens";
+
+/** Centred and capped on tablets, like Screen. */
+const LIST = { padding: 16, gap: 12, width: "100%", maxWidth: CONTENT_MAX + 32, alignSelf: "center" } as const;
 
 const PROGRAM_COLS = "id,college_id,code,specialty,division,language,study_format,seats,tuition_azn,state_funded,special_ability,source_page,needs_verification";
 
@@ -147,9 +151,11 @@ export function CollegesScreen() {
     <Screen scroll={false} padded={false}>
       {view === "colleges" ? (
         <FlatList
+          automaticallyAdjustKeyboardInsets
+          keyboardDismissMode="on-drag"
           data={colleges}
           keyExtractor={(c) => c.id}
-          contentContainerStyle={{ padding: 16, gap: 12 }}
+          contentContainerStyle={LIST}
           keyboardShouldPersistTaps="handled"
           ListHeaderComponent={header}
           ListEmptyComponent={<EmptyState title={t("colleges.noResults")} />}
@@ -176,9 +182,11 @@ export function CollegesScreen() {
         />
       ) : (
         <FlatList
+          automaticallyAdjustKeyboardInsets
+          keyboardDismissMode="on-drag"
           data={programs}
           keyExtractor={(p) => p.id}
-          contentContainerStyle={{ padding: 16, gap: 12 }}
+          contentContainerStyle={LIST}
           keyboardShouldPersistTaps="handled"
           ListHeaderComponent={header}
           ListEmptyComponent={<EmptyState title={t("colleges.noResults")} />}
@@ -219,9 +227,11 @@ export function CollegeScreen({ id }: { id: string }) {
   return (
     <Screen scroll={false} padded={false}>
       <FlatList
+          automaticallyAdjustKeyboardInsets
+          keyboardDismissMode="on-drag"
         data={programs}
         keyExtractor={(p) => p.id}
-        contentContainerStyle={{ padding: 16, gap: 12 }}
+        contentContainerStyle={LIST}
         keyboardShouldPersistTaps="handled"
         ListHeaderComponent={
           <View style={{ gap: 16, paddingBottom: 12 }}>

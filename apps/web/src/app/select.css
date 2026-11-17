@@ -1,0 +1,85 @@
+/* Design-matched dropdown lists for every <select> on the site (language, theme, forms).
+   Customizable select (appearance: base-select) styles the open list itself in Chromium; other browsers keep their
+   native list, which is still usable. Kept in its own file: it applies site-wide, landing, auth and portal alike. */
+@supports (appearance: base-select) {
+  /* :is(.x, select) lifts specificity to (0,1,1) so it beats `.locale__select { appearance: none }` for every select. */
+  select:is(.locale__select, select),
+  ::picker(select) {
+    appearance: base-select;
+  }
+  /* Our selects already draw their own chevron as a background image. */
+  select::picker-icon {
+    display: none;
+  }
+  ::picker(select) {
+    margin-block: 6px;
+    padding: 6px;
+    min-width: anchor-size(width);
+    border: 1px solid var(--border, rgba(17, 21, 43, 0.1));
+    border-radius: 16px;
+    background: var(--surface, #fff);
+    color: var(--text, #11152b);
+    box-shadow: 0 18px 48px rgba(17, 21, 43, 0.16), 0 2px 6px rgba(17, 21, 43, 0.06);
+  }
+  select option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 40px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text, #11152b);
+    background: transparent;
+    cursor: pointer;
+  }
+  select option:hover,
+  select option:focus-visible {
+    background: var(--primary-soft, rgba(79, 70, 229, 0.1));
+    outline: none;
+  }
+  select option:checked {
+    background: var(--primary-soft, rgba(79, 70, 229, 0.1));
+    color: var(--primary, #4338ca);
+    font-weight: 600;
+  }
+  select option::checkmark {
+    order: 2;
+    margin-inline-start: auto;
+    color: var(--primary, #4338ca);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) ::picker(select) {
+      border-color: #252f49;
+      background: #11182b;
+      color: #f4f5ff;
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.5);
+    }
+    :root:not([data-theme="light"]) select option { color: #f4f5ff; }
+    :root:not([data-theme="light"]) select option:hover,
+    :root:not([data-theme="light"]) select option:checked { background: rgba(129, 140, 248, 0.16); }
+    :root:not([data-theme="light"]) select option:checked,
+    :root:not([data-theme="light"]) select option::checkmark { color: #a5b4fc; }
+  }
+  :root[data-theme="dark"] ::picker(select) {
+    border-color: #252f49;
+    background: #11182b;
+    color: #f4f5ff;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.5);
+  }
+  :root[data-theme="dark"] select option { color: #f4f5ff; }
+  :root[data-theme="dark"] select option:hover,
+  :root[data-theme="dark"] select option:checked { background: rgba(129, 140, 248, 0.16); }
+  :root[data-theme="dark"] select option:checked,
+  :root[data-theme="dark"] select option::checkmark { color: #a5b4fc; }
+}
+
+/* Language pill: shows the short code (AZ / EN / TR / RU), centred; the full names appear in the opened list.
+   The select keeps its pill box (hover, focus ring, click target) but its own text is hidden under the code. */
+.locale__select { width: 104px; color: transparent !important; text-shadow: none; }
+.locale--sm .locale__select { width: 92px; }
+.sidebar .locale__select { width: 100%; }
+.locale__code { position: absolute; top: 50%; left: 38px; transform: translateY(-50%); pointer-events: none; font-family: var(--font-body, "Geist"), system-ui, sans-serif; font-size: 13px; font-weight: 600; line-height: 1; letter-spacing: 0.06em; color: var(--sel-fg, var(--text)); }
+.locale--sm .locale__code { left: 32px; }

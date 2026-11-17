@@ -1,16 +1,15 @@
 "use client";
 
 import { createContext, useContext, useMemo, type ReactNode } from "react";
-import { catalogs, type Messages } from "./catalogs";
+import type { Messages } from "./catalogs";
 import { compareStrings, sortStrings } from "./collate";
 import { formatCurrency, formatDate, formatDateTime, formatNumber, formatPercent, formatRelativeTime, formatTime } from "./format";
 import type { Locale } from "./locales";
-import { createTranslator, type Translate } from "./translate";
+import { translatorFor, type Translate } from "./lookup";
 
 type DateInput = Date | string | number;
 export interface I18nValue {
   locale: Locale;
-  messages: Messages;
   t: Translate;
   date: (d: DateInput, opts?: Intl.DateTimeFormatOptions) => string;
   time: (d: DateInput, opts?: Intl.DateTimeFormatOptions) => string;
@@ -28,12 +27,12 @@ const Ctx = createContext<I18nValue | null>(null);
  * Pure provider: the caller decides the locale (web: cookie read by the server layout; mobile/admin: their own state).
  * It does no storage or network access. Persistence and sync live in the app (see docs/I18N.md).
  */
-export function I18nProvider({ locale, children }: { locale: Locale; children: ReactNode }) {
+/** `messages` is the active locale's catalog. Web passes it from the server so the client bundle carries one language only. */
+export function I18nProvider({ locale, messages, children }: { locale: Locale; messages: Messages; children: ReactNode }) {
   const value = useMemo<I18nValue>(
     () => ({
       locale,
-      messages: catalogs[locale],
-      t: createTranslator(locale),
+      t: translatorFor(locale, messages),
       date: (d, o) => formatDate(locale, d, o),
       time: (d, o) => formatTime(locale, d, o),
       dateTime: (d, o) => formatDateTime(locale, d, o),
@@ -44,7 +43,7 @@ export function I18nProvider({ locale, children }: { locale: Locale; children: R
       compare: (a, b) => compareStrings(locale, a, b),
       sort: (items, key) => sortStrings(locale, items, key),
     }),
-    [locale],
+    [locale, messages],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

@@ -221,7 +221,7 @@ export class GuardedProvider {
     );
   }
 
-  async embed(ctx: GuardContext, inputs: string[], opts: { route?: ResolvedRoute } = {}): Promise<GuardedEmbedResult> {
+  async embed(ctx: GuardContext, inputs: string[], opts: { route?: ResolvedRoute; inputType?: "query" | "passage" } = {}): Promise<GuardedEmbedResult> {
     const route = opts.route ?? (await this.resolve("embed", ctx.plan));
     const inTokens = estimateInputTokens(inputs);
     return this.execute(
@@ -229,7 +229,7 @@ export class GuardedProvider {
       route,
       (m) => estimateCostMicroUsd(m, inTokens, 0),
       async (provider, m) => {
-        const r = await provider.embed({ model: m.model, inputs });
+        const r = await provider.embed({ model: m.model, inputs, ...(opts.inputType ? { inputType: opts.inputType } : {}) });
         return { value: r, usage: r.usage };
       },
     );

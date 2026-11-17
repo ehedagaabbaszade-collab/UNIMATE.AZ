@@ -6,12 +6,14 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { useT } from "@unimate/i18n/react";
 import type { MessageKey } from "@unimate/i18n";
+import { homeFor, setModeCookie, type AppMode } from "@/lib/mode";
 import { safeNext } from "@/lib/paths";
 import { fieldErrors, signInSchema } from "@/lib/schemas";
 import { getBrowserClient } from "@/lib/supabase/browser";
 import { authErrorKey } from "./auth-errors";
+import { RoleSwitch } from "./RoleSwitch";
 
-export function SignInForm({ next, callbackError }: { next?: string; callbackError?: boolean }) {
+export function SignInForm({ as, next, callbackError }: { as: AppMode; next?: string; callbackError?: boolean }) {
   const t = useT();
   const router = useRouter();
   const [errors, setErrors] = useState<Record<string, MessageKey>>({});
@@ -35,15 +37,17 @@ export function SignInForm({ next, callbackError }: { next?: string; callbackErr
       setFormError(authErrorKey(error, "common.genericError"));
       return;
     }
-    router.replace(safeNext(next));
+    setModeCookie(as);
+    router.replace(safeNext(next, homeFor(as)));
     router.refresh();
   }
 
   return (
     <form onSubmit={onSubmit} noValidate className="stack">
+      <RoleSwitch as={as} path="/sign-in" {...(next ? { next } : {})} />
       <div>
-        <h1>{t("auth.signInTitle")}</h1>
-        <p className="um-muted">{t("auth.signInBody")}</p>
+        <h1>{t(as === "teacher" ? "auth.teacherSignInTitle" : "auth.signInTitle")}</h1>
+        <p className="um-muted">{t(as === "teacher" ? "auth.teacherSignInBody" : "auth.signInBody")}</p>
       </div>
       {formError ? (
         <p className="err-box" role="alert">
@@ -59,7 +63,7 @@ export function SignInForm({ next, callbackError }: { next?: string; callbackErr
         <Link href="/forgot-password">{t("auth.forgot")}</Link>
       </p>
       <p className="um-muted" style={{ fontSize: "var(--text-sm)" }}>
-        {t("auth.noAccount")} <Link href="/sign-up">{t("auth.signUpCta")}</Link>
+        {t("auth.noAccount")} <Link href={as === "teacher" ? "/sign-up?as=teacher" : "/sign-up"}>{t("auth.signUpCta")}</Link>
       </p>
     </form>
   );

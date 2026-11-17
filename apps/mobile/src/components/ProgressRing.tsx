@@ -6,7 +6,7 @@ import { AppText } from "./ui";
  * Circular progress (the Home "overall progress" ring). `fraction` is 0..1 and comes from real data (level progress);
  * the caller supplies the centre text so the number is formatted with the user's locale.
  */
-export function ProgressRing({ fraction, size = 96, stroke = 10, track, from, to, label, children }: { fraction: number; size?: number; stroke?: number; track: string; from: string; to: string; label: string; children?: string }) {
+export function ProgressRing({ fraction, size = 96, stroke = 10, track, from, to, label, labelColor, children }: { fraction: number; size?: number; stroke?: number; track: string; from: string; to: string; label: string; labelColor?: string; children?: string }) {
   const f = Number.isFinite(fraction) ? Math.min(1, Math.max(0, fraction)) : 0;
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
@@ -23,7 +23,7 @@ export function ProgressRing({ fraction, size = 96, stroke = 10, track, from, to
         <Circle cx={size / 2} cy={size / 2} r={r} stroke="url(#ring)" strokeWidth={stroke} fill="none" strokeLinecap="round" strokeDasharray={`${c * f} ${c}`} transform={`rotate(-90 ${size / 2} ${size / 2})`} />
       </Svg>
       {children ? (
-        <AppText variant="title" style={{ fontWeight: "800" }}>
+        <AppText variant="title" style={{ fontWeight: "800", ...(labelColor ? { color: labelColor } : null) }}>
           {children}
         </AppText>
       ) : null}

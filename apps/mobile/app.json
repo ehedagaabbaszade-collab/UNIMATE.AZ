@@ -2,6 +2,7 @@
   "expo": {
     "name": "UNIMATE.AZ",
     "slug": "unimate",
+    "platforms": ["ios", "android"],
     "scheme": "unimate",
     "version": "0.1.0",
     "orientation": "portrait",
@@ -16,10 +17,12 @@
     },
     "ios": {
       "bundleIdentifier": "az.unimate.app",
-      "supportsTablet": false,
+      "supportsTablet": true,
+      "requireFullScreen": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "CFBundleAllowMixedLocalizations": true
+        "CFBundleAllowMixedLocalizations": true,
+        "CADisableMinimumFrameDurationOnPhone": true
       }
     },
     "android": {
@@ -66,7 +69,9 @@
           "microphonePermission": false
         }
       ],
-      "./plugins/with-focus-lock"
+      "./plugins/with-focus-lock",
+      "expo-sharing",
+      "expo-status-bar"
     ],
     "experiments": {
       "typedRoutes": false

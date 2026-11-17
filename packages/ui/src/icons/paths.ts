@@ -104,12 +104,27 @@ const defs = {
 
   // ---- system
   home: icon("M3 11.5 12 4l9 7.5", "M5.5 10v9.5h13V10", "M10 19.5v-5h4v5"),
+  // Line versions of the iOS tab-bar symbols (sparkles = AI Study, institution = Campus) for in-app use.
+  sparkles: icon("M10.5 3c.7 4.2 2.3 5.8 6.5 6.5-4.2.7-5.8 2.3-6.5 6.5-.7-4.2-2.3-5.8-6.5-6.5 4.2-.7 5.8-2.3 6.5-6.5z", "M18 13.5c.35 1.9 1.1 2.65 3 3-1.9.35-2.65 1.1-3 3-.35-1.9-1.1-2.65-3-3 1.9-.35 2.65-1.1 3-3z", "M18.5 3v3", "M17 4.5h3"),
+  institution: icon("M3 9 12 4l9 5z", "M4 9h16", "M6.5 11v6.5", "M10.5 11v6.5", "M13.5 11v6.5", "M17.5 11v6.5", "M4 19.5h16", "M3 21.5h18"),
   notifications: BELL,
   add: icon("M12 5v14", "M5 12h14"),
+  moon: icon("M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"),
+  palette: icon("M12 3a9 9 0 1 0 0 18c1.2 0 1.8-.8 1.8-1.7 0-1.3-1.1-1.6-1.1-2.8 0-.9.7-1.5 1.6-1.5H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z", dot(7.5, 11), dot(10, 7.5), dot(14.5, 7.5)),
+  languages: icon("M4 5h9", "M8.5 3v2", "M6 5c.5 3.5 2.5 6 5.5 7.5", "M11.5 5c-.5 3.5-3 6.5-7 8", "M12.5 20l4-9 4 9", "M13.8 17h5.4"),
+  sun: icon(circle(12, 12, 4), "M12 2.5v2", "M12 19.5v2", "M2.5 12h2", "M19.5 12h2", "M5.3 5.3l1.4 1.4", "M17.3 17.3l1.4 1.4", "M5.3 18.7l1.4-1.4", "M17.3 6.7l1.4-1.4"),
+  smartphone: icon(rect(7, 2.5, 10, 19, 2.5), "M10.5 18.5h3"),
+  pencil: icon("M4 20l1-4.5L16.5 4a2.1 2.1 0 0 1 3 3L8 18.5z", "M14.5 6l3.5 3.5"),
+  camera: icon("M4.5 8h2.8l1.4-2h6.6l1.4 2h2.8a1 1 0 0 1 1 1v9.5a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z", circle(12, 13, 3.5)),
+  mic: icon("M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z", "M5.5 11.5a6.5 6.5 0 0 0 13 0", "M12 18v3"),
+  "arrow-up": icon("M12 19V5", "M6 11l6-6 6 6"),
   more: icon("M12 5.2v.8", "M12 11.6v.8", "M12 18v.8"),
+  "more-horizontal": icon("M5.2 12h.8", "M11.6 12h.8", "M18 12h.8"),
+  "chevron-left": icon("M15 5l-7 7 7 7"),
   "sign-out": icon("M9 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h4", "M16 8l4 4-4 4", "M20 12H9"),
   close: icon("M6 6l12 12", "M18 6 6 18"),
   check: icon("M5 12.5l4.5 4.5L19 7.5"),
+  wallet: icon("M4 7.5A2.5 2.5 0 0 1 6.5 5H17a1 1 0 0 1 1 1v1.5", "M4 7.5v10A2.5 2.5 0 0 0 6.5 20H19a1 1 0 0 0 1-1v-9.5a1 1 0 0 0-1-1H6.5A2.5 2.5 0 0 1 4 7.5z", dot(16, 14)),
   offline: icon("M2 8.8a15 15 0 0 1 20 0", "M5 12.5a10 10 0 0 1 14 0", "M8.5 16a5 5 0 0 1 7 0", dot(12, 20), "M3 3l18 18"),
 
   // ---- file types (glyph only; FileIcon adds the coloured tile + label)
@@ -144,7 +159,7 @@ export const ICON_GROUPS = {
   planner: ["calendar", "timetable", "tasks", "exams", "reminder", "pomodoro", "gpa"],
   career: ["jobs", "internship", "scholarship", "cv", "interview-prep", "development"],
   gamification: ["xp", "streak", "achievements", "challenges", "leaderboard", "rewards"],
-  system: ["home", "notifications", "search", "add", "more", "sign-out", "close", "check", "offline"],
+  system: ["home", "notifications", "search", "add", "more", "sign-out", "close", "check", "offline", "wallet"],
   file: ["file-pdf", "file-docx", "file-pptx", "file-xlsx", "file-image", "file-video", "file-audio", "file-zip"],
   status: ["success", "info", "warning", "error", "pending", "locked"],
 } as const satisfies Record<string, readonly IconName[]>;

@@ -74,3 +74,88 @@ export function fallbackList(locale: Locale, items: string[]): string {
   const head = items.slice(0, -1).join(", ");
   return `${head}${locale === "en" ? "," : ""} ${AND[locale]} ${items[items.length - 1]}`;
 }
+
+// ---- Date/time names for engines whose bundled ICU lacks the locale (e.g. Chrome without `az`) ----
+const sp = (s: string) => s.split(" ");
+const NAMES: Record<Exclude<Locale, "en">, { ml: string[]; ms: string[]; mn?: string[]; wl: string[]; ws: string[] }> = {
+  az: {
+    ml: sp("yanvar fevral mart aprel may iyun iyul avqust sentyabr oktyabr noyabr dekabr"),
+    ms: sp("yan fev mar apr may iyn iyl avq sen okt noy dek"),
+    wl: ["bazar ertəsi", "çərşənbə axşamı", "çərşənbə", "cümə axşamı", "cümə", "şənbə", "bazar"],
+    ws: ["B.e.", "Ç.a.", "Ç.", "C.a.", "C.", "Ş.", "B."],
+  },
+  tr: {
+    ml: sp("Ocak Şubat Mart Nisan Mayıs Haziran Temmuz Ağustos Eylül Ekim Kasım Aralık"),
+    ms: sp("Oca Şub Mar Nis May Haz Tem Ağu Eyl Eki Kas Ara"),
+    wl: sp("Pazartesi Salı Çarşamba Perşembe Cuma Cumartesi Pazar"),
+    ws: sp("Pzt Sal Çar Per Cum Cmt Paz"),
+  },
+  ru: {
+    ml: sp("января февраля марта апреля мая июня июля августа сентября октября ноября декабря"),
+    ms: sp("янв. февр. мар. апр. мая июн. июл. авг. сент. окт. нояб. дек."),
+    mn: sp("январь февраль март апрель май июнь июль август сентябрь октябрь ноябрь декабрь"),
+    wl: sp("понедельник вторник среда четверг пятница суббота воскресенье"),
+    ws: sp("пн вт ср чт пт сб вс"),
+  },
+};
+
+/** True when Intl.DateTimeFormat has no real data for the locale (it silently falls back to root: "M11 17"). */
+const probed = new Map<string, boolean>();
+/** Test hook: forget cached probe results. */
+export const resetDateLocaleProbe = () => probed.clear();
+/** True when the engine cannot really format dates for `tag`. Chrome claims "az" is supported (supportedLocalesOf and
+ *  resolvedOptions both say az) yet has no data and prints root patterns like "M1 15, Wed", so probe the output too. */
+export function dateLocaleUnsupported(tag: string): boolean {
+  const hit = probed.get(tag);
+  if (hit !== undefined) return hit;
+  let bad: boolean;
+  try {
+    if (Intl.DateTimeFormat.supportedLocalesOf([tag]).length === 0) bad = true;
+    else if (new Intl.DateTimeFormat(tag).resolvedOptions().locale.split("-")[0] !== tag.split("-")[0]) bad = true;
+    else {
+      const sample = new Date(Date.UTC(2020, 0, 15, 12));
+      const local = new Intl.DateTimeFormat(tag, { month: "long", timeZone: "UTC" }).format(sample);
+      bad = /^M\d+$/.test(local) || local === new Intl.DateTimeFormat("en-US", { month: "long", timeZone: "UTC" }).format(sample);
+    }
+  } catch {
+    bad = true;
+  }
+  probed.set(tag, bad);
+  return bad;
+}
+
+const WD = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+/** Manual CLDR-style date/time for az/tr/ru. Supports dateStyle/timeStyle and weekday/year/month/day/hour/minute/second. */
+export function fallbackDateTime(l: Exclude<Locale, "en">, d: Date, o: Intl.DateTimeFormatOptions, timeZone: string): string {
+  const p: Record<string, string> = {};
+  for (const x of new Intl.DateTimeFormat("en-US", { timeZone, year: "numeric", month: "numeric", day: "numeric", weekday: "short", hour: "numeric", minute: "numeric", second: "numeric", hourCycle: "h23" }).formatToParts(d)) p[x.type] = x.value;
+  const P = (k: string) => p[k] ?? "";
+  const n = NAMES[l];
+  const two = (v: string | number) => String(v).padStart(2, "0");
+  const mi = Number(P("month")) - 1;
+  const wi = WD.indexOf(P("weekday"));
+  const ds = o.dateStyle;
+  const ts = o.timeStyle;
+  const styled = ds || ts;
+  const f = {
+    weekday: ds === "full" ? "long" : styled ? undefined : o.weekday,
+    year: ds ? (ds === "short" && l !== "tr" && l !== "ru" ? "2-digit" : "numeric") : o.year,
+    month: ds ? (ds === "short" ? "2-digit" : ds === "medium" ? "short" : "long") : o.month,
+    day: ds ? (ds === "short" ? "2-digit" : "numeric") : o.day,
+    hour: ts ? "2-digit" : o.hour,
+    minute: ts ? "2-digit" : o.minute,
+    second: ts === "medium" || ts === "long" || ts === "full" ? "2-digit" : styled ? undefined : o.second,
+  };
+  const textual = f.month === "short" || f.month === "long";
+  const y = f.year ? (f.year === "2-digit" ? P("year").slice(-2) : P("year")) : "";
+  const dd = f.day ? (f.day === "2-digit" ? two(P("day")) : String(Number(P("day")))) : "";
+  const m = !f.month ? "" : textual ? (f.month === "long" ? (!dd && n.mn ? n.mn[mi]! : n.ml[mi]!) : n.ms[mi]!) : f.month === "2-digit" ? two(mi + 1) : String(mi + 1);
+  let date = (textual ? [dd, m, y && (l === "ru" ? `${y} г.` : y)].filter(Boolean).join(" ") : [dd, m, y].filter(Boolean).join("."));
+  if (f.weekday) {
+    const w = (f.weekday === "long" ? n.wl : n.ws)[wi]!;
+    date = !date ? w : l === "ru" ? `${w}, ${date}` : l === "tr" ? `${date} ${w}` : `${date}${ds === "full" ? "" : ","} ${w}`;
+  }
+  const time = f.hour || f.minute || f.second ? [f.hour && two(P("hour")), f.minute && two(P("minute")), f.second && two(P("second"))].filter(Boolean).join(":") : "";
+  return [date, time].filter(Boolean).join(l === "tr" && !ts ? " " : ", ");
+}

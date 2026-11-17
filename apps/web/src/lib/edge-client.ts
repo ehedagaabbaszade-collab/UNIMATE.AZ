@@ -1,6 +1,6 @@
 "use client";
 
-import { CvFeedbackResultSchema, InterviewQuestionsResultSchema, InterviewScoreResultSchema, type CvLanguage, type InterviewLevel } from "@unimate/core";
+import { ExamGenResultSchema, type ExamGenRequest, CvFeedbackResultSchema, DocumentDraftSchema, InterviewQuestionsResultSchema, InterviewScoreResultSchema, SlidesDraftSchema, type CvLanguage, type InterviewLevel, type WritingRequest } from "@unimate/core";
 import { z } from "zod";
 import { callEdge, askResultSchema, flashcardsResultSchema, processResponseSchema, importResourceResponseSchema, resourceUrlResponseSchema, quizResultSchema, summaryResultSchema, type EdgeResult } from "./edge";
 import { getBrowserClient } from "./supabase/browser";
@@ -36,3 +36,8 @@ export const interviewQuestions = (role: string, level: InterviewLevel, outputLa
   call("interview-prep", { mode: "questions", role, level, ...(outputLanguage ? { outputLanguage } : {}), ...(count ? { count } : {}) }, InterviewQuestionsResultSchema);
 export const interviewScore = (role: string, level: InterviewLevel, question: string, answer: string, outputLanguage?: CvLanguage) =>
   call("interview-prep", { mode: "score", role, level, question, answer, ...(outputLanguage ? { outputLanguage } : {}) }, InterviewScoreResultSchema);
+
+const writingResultSchema = z.object({ kind: z.string(), result: z.union([SlidesDraftSchema, DocumentDraftSchema]) });
+export const writeAssignment = (req: WritingRequest) => call("write-assignment", req, writingResultSchema);
+/** Teacher: AI-drafted exam questions with their answer key (same function as mobile). The reply is parsed, never trusted. */
+export const generateExamQuestions = (req: ExamGenRequest) => call("generate-exam", req as Record<string, unknown>, ExamGenResultSchema);

@@ -156,6 +156,7 @@ export async function askDocument(
       64,
       undefined,
       guard ? { guard, plan, requestBase } : undefined,
+      "query",
     );
     spent = true; // the embedding call is paid: nothing after this point refunds (including zero retrieval)
     const retrieved = await repo.matchChunks(input.userId, qVec!, input.documentId, deps.topK ?? 6);

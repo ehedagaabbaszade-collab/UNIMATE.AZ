@@ -1,4 +1,4 @@
-import { changeLocale, reconcileLocale, resolveLocale, type Locale } from "@unimate/i18n";
+import { catalogs, changeLocale, reconcileLocale, resolveLocale, type Locale } from "@unimate/i18n";
 import { I18nProvider } from "@unimate/i18n/react";
 import { getLocales } from "expo-localization";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -66,7 +66,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
   const value = useMemo(() => ({ locale, setLocale }), [locale, setLocale]);
   return (
     <LocaleCtx.Provider value={value}>
-      <I18nProvider locale={locale}>{children}</I18nProvider>
+      <I18nProvider locale={locale} messages={catalogs[locale]}>{children}</I18nProvider>
     </LocaleCtx.Provider>
   );
 }

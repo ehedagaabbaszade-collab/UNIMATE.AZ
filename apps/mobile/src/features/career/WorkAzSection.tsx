@@ -6,6 +6,7 @@ import { careerPrefsKey, kv } from "../../lib/storage";
 import { unwrap, useAsync } from "../../lib/use-async";
 import { EMPLOYMENT_KINDS, EMPTY_PREFS, INTERESTS, recommend, searchUrl, type CareerPrefs, type EmploymentKind, type Reason, type Recommendation } from "../../lib/workaz";
 import { useUser } from "../../state/session";
+import { useTheme } from "../../theme/ThemeProvider";
 import { myCvSkills } from "./api";
 
 function parsePrefs(raw: string | null): CareerPrefs {
@@ -36,6 +37,7 @@ export function WorkAzSection() {
   const { t } = useI18n();
   const { user, profile, supabase: sb } = useUser();
   const { toast } = useToast();
+  const { theme } = useTheme();
   const [prefs, setPrefs] = useState<CareerPrefs>(EMPTY_PREFS);
   const [loaded, setLoaded] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -54,12 +56,7 @@ export function WorkAzSection() {
   const signals = useAsync(async () => {
     const major = profile?.major_id ? ((unwrap(await sb.from("majors").select("name, faculties(name)").eq("id", profile.major_id).maybeSingle()) as { name: string; faculties: { name: string } | { name: string }[] | null } | null) ?? null) : null;
     const fac = major ? (Array.isArray(major.faculties) ? major.faculties[0]?.name : major.faculties?.name) ?? null : null;
-    let skills: string[] = [];
-    try {
-      skills = await myCvSkills(sb);
-    } catch {
-      skills = [];
-    }
+    const skills = await myCvSkills(sb).catch(() => [] as string[]);
     return { major: major?.name ?? null, faculty: fac, skills };
   }, [user.id, profile?.major_id]);
 
@@ -131,7 +128,7 @@ export function WorkAzSection() {
                   <AppText variant="caption" muted>
                     {t("workaz.source")}
                   </AppText>
-                  <AppText variant="label" style={{ color: "#06B6DA" }}>
+                  <AppText variant="label" style={{ color: theme.active }}>
                     {t("workaz.open")} {"↗"}
                   </AppText>
                 </View>

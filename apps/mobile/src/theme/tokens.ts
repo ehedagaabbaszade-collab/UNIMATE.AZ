@@ -6,7 +6,7 @@
  */
 export type ThemeMode = "light" | "dark";
 export type ThemePref = ThemeMode | "system";
-export const DEFAULT_THEME_PREF: ThemePref = "dark";
+export const DEFAULT_THEME_PREF: ThemePref = "system"; // Apple HIG: follow the device appearance
 
 export interface Palette {
   mode: ThemeMode;
@@ -21,6 +21,8 @@ export interface Palette {
   text: string;
   textMuted: string;
   primary: string;
+  secondary: string;
+  accent: string;
   primarySoft: string;
   onPrimary: string;
   /** Active tab / accent highlight. */
@@ -36,73 +38,87 @@ export interface Palette {
   inputBg: string;
   overlay: string;
   tabBar: string;
+  /** Near-black data card (progress), white text on top in both modes. */
+  ink: string;
   gradient: readonly [string, string, string];
 }
 
-/** Official brand accents (indigo, purple, blue, cyan). Used for buttons, active states, progress and the hero banner only. */
-export const BRAND = { indigo: "#4F46E5", purple: "#7C3AED", blue: "#3882F6", cyan: "#06B6DA", lightText: "#F1F5FF" } as const;
-const brandGradient = [BRAND.indigo, BRAND.purple, BRAND.blue] as const;
-
+/** Midnight Indigo palette (light + dark). */
 export const palettes: Readonly<Record<ThemeMode, Palette>> = {
   dark: {
     mode: "dark",
-    bgGradient: ["#000000", "#040406", "#0A0A0F"],
-    bg: "#000000",
-    surface: "#0F0F12",
-    card: "rgba(255,255,255,0.055)",
-    cardBorder: "rgba(255,255,255,0.09)",
-    cardStrong: "rgba(255,255,255,0.10)",
-    text: "#F1F5FF",
-    textMuted: "#A1A1AA",
-    primary: "#4F46E5",
-    primarySoft: "rgba(79,70,229,0.24)",
-    onPrimary: "#FFFFFF",
-    active: "#06B6DA",
-    border: "rgba(255,255,255,0.12)",
+    bgGradient: ["#090D1A", "#090D1A", "#090D1A"],
+    bg: "#090D1A",
+    surface: "#11182B",
+    card: "#11182B",
+    cardBorder: "#252F49",
+    cardStrong: "#19223A",
+    text: "#F4F5FF",
+    textMuted: "#9BA5C1",
+    primary: "#818CF8",
+    secondary: "#6366F1",
+    accent: "#A78BFA",
+    primarySoft: "rgba(129,140,248,0.18)",
+    onPrimary: "#090D1A", // white on #818CF8 is 2.98:1; dark ink gives 6.49:1
+    active: "#818CF8",
+    border: "#252F49",
     danger: "#FF8597",
     dangerSoft: "rgba(255,107,129,0.18)",
     success: "#4FDDBA",
     successSoft: "rgba(33,201,168,0.18)",
     warning: "#F7C265",
     warningSoft: "rgba(247,194,101,0.18)",
-    info: "#3882F6",
-    inputBg: "rgba(255,255,255,0.07)",
-    overlay: "rgba(0,0,0,0.75)",
-    tabBar: "rgba(10,10,12,0.96)",
-    gradient: brandGradient,
+    info: "#818CF8",
+    inputBg: "#19223A",
+    overlay: "rgba(0,0,0,0.6)",
+    tabBar: "rgba(17,24,43,0.96)",
+    ink: "#19223A",
+    gradient: ["#818CF8", "#6366F1", "#A78BFA"],
   },
   light: {
     mode: "light",
-    bgGradient: ["#F7F7F8", "#F2F2F4", "#ECECEF"],
-    bg: "#F7F7F8",
+    bgGradient: ["#F8F9FE", "#F8F9FE", "#F8F9FE"],
+    bg: "#F8F9FE",
     surface: "#FFFFFF",
     card: "#FFFFFF",
-    cardBorder: "#DDE2EE",
-    cardStrong: "#F4F6FD",
-    text: "#10182B",
-    textMuted: "#4B556B",
-    primary: "#4F46E5",
-    primarySoft: "#E8E9FF",
+    cardBorder: "#E8EAF4",
+    cardStrong: "#EEF0FA",
+    text: "#11152B",
+    textMuted: "#6A718C", // given #747B96 is 3.98:1 on #F8F9FE; this is the nearest shade at 4.59:1
+    primary: "#4338CA",
+    secondary: "#6366F1",
+    accent: "#8B5CF6",
+    primarySoft: "#E9E8FA",
     onPrimary: "#FFFFFF",
-    active: "#4F46E5",
-    border: "#DDE2EE",
+    active: "#4338CA",
+    border: "#E8EAF4",
     danger: "#C5283D",
     dangerSoft: "#FDE6E9",
     success: "#0A7060",
     successSoft: "#D9F5EE",
     warning: "#8F5200",
     warningSoft: "#FDF0D5",
-    info: "#1F5FBF",
-    inputBg: "#FFFFFF",
-    overlay: "rgba(16,24,43,0.5)",
+    info: "#4338CA",
+    inputBg: "#F1F3FC",
+    overlay: "rgba(17,21,43,0.5)",
     tabBar: "rgba(255,255,255,0.97)",
-    gradient: brandGradient,
+    ink: "#11152B",
+    gradient: ["#4338CA", "#6366F1", "#8B5CF6"],
   },
 };
 
 /** Apple-inspired rhythm: 4pt grid, generous radii. */
 export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 } as const;
-export const radii = { sm: 10, md: 16, lg: 22, xl: 28, pill: 999 } as const;
+
+/** Responsive layout: content never grows wider than this (tablets, landscape), it is centred instead. */
+export const CONTENT_MAX = 640;
+/** Width available to content on a screen of `screenW` (gutters on both sides, capped at CONTENT_MAX). */
+export const contentWidth = (screenW: number) => Math.min(screenW - spacing.lg * 2, CONTENT_MAX);
+/** Hero title size: 42 on a 390pt phone, down to 32 on 320pt (iPhone SE 1st gen / small Android), up to 48 on tablets. */
+export const heroFontSize = (screenW: number) => Math.round(Math.min(48, Math.max(32, screenW * 0.108)));
+/** Icon grid columns: 3 on phones, 4 from large phones in landscape / small tablets, 5 on wide tablets. */
+export const gridColumns = (contentW: number) => (contentW >= 600 ? 5 : contentW >= 480 ? 4 : 3);
+export const radii = { sm: 10, md: 16, lg: 22, xl: 28, xxl: 32, pill: 999 } as const;
 /** Base sizes in dp; Text scales with the user's font-size setting (allowFontScaling), so layouts use minHeight not height. */
 export const fontSizes = { xs: 12, sm: 14, base: 16, lg: 18, xl: 22, xxl: 28 } as const;
 export const MIN_TOUCH = 44;

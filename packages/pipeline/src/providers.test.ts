@@ -24,6 +24,20 @@ describe("OpenAiCompatProvider (mocked fetch)", () => {
     expect(body(f)).toEqual({ model: "llama-x", messages: [{ role: "system", content: "SYS" }, { role: "user", content: "Q" }], max_tokens: 99 });
   });
 
+  it("disableThinking: sends chat_template_kwargs + /no_think and strips a leaked <think> block", async () => {
+    const f = mockFetch(json({ choices: [{ message: { content: "<think>hmm</think>\n{\"a\":1}" } }] }));
+    const r = await new OpenAiCompatProvider({ apiKey: "k", fetch: f, disableThinking: true }).generate({ task: "quiz", model: "m", system: "S", prompt: "Q" });
+    expect(r.text).toBe('{"a":1}');
+    expect(body(f).chat_template_kwargs).toEqual({ enable_thinking: false, thinking: false });
+    expect(body(f).messages[0]).toEqual({ role: "system", content: "/no_think\nS" });
+  });
+
+  it("AI_DISABLE_THINKING=true reaches the chat request through the env factory", async () => {
+    const f = mockFetch(json({ choices: [{ message: { content: "x" } }] }));
+    await createProviderFromEnv({ AI_API_KEY: "k", AI_DISABLE_THINKING: "true" }, f).generate({ task: "chat", model: "m", prompt: "p" });
+    expect(body(f).chat_template_kwargs).toEqual({ enable_thinking: false, thinking: false });
+  });
+
   it("omits system and max_tokens when not given", async () => {
     const f = mockFetch(json({ choices: [{ message: { content: "ok" } }] }));
     await new OpenAiCompatProvider({ apiKey: "k", fetch: f }).generate({ task: "chat", model: "m", prompt: "Q" });
@@ -39,6 +53,22 @@ describe("OpenAiCompatProvider (mocked fetch)", () => {
     expect(r.usage).toEqual({ inputTokens: 7, outputTokens: 0 });
     expect(body(f)).toEqual({ model: "emb", input: ["a", "b"], dimensions: 1536 });
     expect(f.mock.calls[0]![0]).toMatch(/\/embeddings$/);
+  });
+
+  it("nvidia embeddings: sends input_type/truncate, never dimensions; slices to target and L2-renormalises", async () => {
+    const f = mockFetch(json({ data: [{ index: 0, embedding: [3, 4, 100, 100] }] }));
+    const p = new OpenAiCompatProvider({ apiKey: "k", fetch: f, embedProtocol: "nvidia", embedDimensions: 2 });
+    const r = await p.embed({ model: "nvidia/nemotron-3-embed-1b", inputs: ["Salam"], inputType: "query" });
+    expect(body(f)).toEqual({ model: "nvidia/nemotron-3-embed-1b", input: ["Salam"], input_type: "query", encoding_format: "float", truncate: "END" });
+    expect(r.vectors[0]![0]).toBeCloseTo(0.6);
+    expect(r.vectors[0]![1]).toBeCloseTo(0.8);
+  });
+
+  it("nvidia embeddings: missing inputType, short or zero vectors are errors", async () => {
+    const p = (emb: number[]) => new OpenAiCompatProvider({ apiKey: "k", fetch: mockFetch(json({ data: [{ index: 0, embedding: emb }] })), embedProtocol: "nvidia", embedDimensions: 2 });
+    await expect(p([1, 1]).embed({ model: "e", inputs: ["a"] })).rejects.toMatchObject({ code: "embed_input_type" });
+    await expect(p([1]).embed({ model: "e", inputs: ["a"], inputType: "passage" })).rejects.toMatchObject({ code: "embed_dims" });
+    await expect(p([0, 0, 5]).embed({ model: "e", inputs: ["a"], inputType: "passage" })).rejects.toMatchObject({ code: "provider_bad_response" });
   });
 
   it("embeddings: wrong count or malformed payload is an error", async () => {
@@ -125,6 +155,15 @@ describe("createProviderFromEnv", () => {
     await p.generate({ task: "chat", model: "m", prompt: "p" });
     expect(f.mock.calls[0]![0]).toBe("https://openrouter.ai/api/v1/chat/completions");
   });
+  it("AI_EMBED_PROTOCOL=nvidia wires the NVIDIA embedding shape through the env factory", async () => {
+    const f = mockFetch(json({ data: [{ index: 0, embedding: [1, 0, 9] }] }));
+    const p = createProviderFromEnv({ AI_API_KEY: "k", AI_BASE_URL: "https://integrate.api.nvidia.com/v1", AI_EMBED_PROTOCOL: "nvidia", AI_EMBED_DIMENSIONS: "2" }, f);
+    const r = await p.embed({ model: "e", inputs: ["x"], inputType: "passage" });
+    expect(f.mock.calls[0]![0]).toBe("https://integrate.api.nvidia.com/v1/embeddings");
+    expect(body(f).input_type).toBe("passage");
+    expect(body(f).dimensions).toBeUndefined();
+    expect(r.vectors).toEqual([[1, 0]]);
+  });
   it("anthropic chat + separate OpenAI-compatible embeddings", async () => {
     const f = mockFetch(() => (f.mock.calls.length === 1 ? json({ content: [{ type: "text", text: "hi" }] }) : json({ data: [{ index: 0, embedding: [1] }] })));
     const p = createProviderFromEnv({ AI_PROVIDER: "anthropic", AI_API_KEY: "a", EMBED_API_KEY: "e", EMBED_BASE_URL: "https://emb.example/v1" }, f);
@@ -135,6 +174,8 @@ describe("createProviderFromEnv", () => {
   it("rejects unknown provider and bad dimensions; model defaults/overrides", () => {
     expect(() => createProviderFromEnv({ AI_PROVIDER: "nope" })).toThrow(RangeError);
     expect(() => createProviderFromEnv({ AI_API_KEY: "k", AI_EMBED_DIMENSIONS: "abc" })).toThrow(RangeError);
+    expect(() => createProviderFromEnv({ AI_API_KEY: "k", AI_EMBED_PROTOCOL: "gemini" })).toThrow(RangeError);
+    expect(() => createProviderFromEnv({ AI_API_KEY: "k", AI_EMBED_PROTOCOL: "nvidia" })).toThrow(RangeError); // needs AI_EMBED_DIMENSIONS
     expect(modelsFromEnv({ AI_MODEL_SMALL: "s" }).small).toBe("s");
     expect(modelsFromEnv({}).embed).toBeTruthy();
   });

@@ -1,4 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { resetDateLocaleProbe } from "./intl-fallback";
+import { bcp47 } from "./locales";
 import { formatCurrency, formatDate, formatDateTime, formatNumber, formatPercent, formatRelativeTime, formatTime } from "./index";
 
 // Intl output uses NBSP / NNBSP in places; compare with plain spaces. The time zone is pinned: tests must not depend on the machine.
@@ -68,5 +70,40 @@ describe("numbers, percent and AZN", () => {
     expect(sp(formatCurrency("tr", 1234.5))).toBe("AZN 1.234,50");
     expect(sp(formatCurrency("ru", 1234.5))).toBe("1 234,50 AZN");
     expect(sp(formatCurrency("en", 5, "USD"))).toContain("$5.00");
+  });
+});
+
+describe("dates when the engine has no ICU data for the locale", () => {
+  const t = new Date("2026-11-17T01:53:00Z"); // 05:53 Tue in Baku
+  const force = () => {
+    resetDateLocaleProbe();
+    return vi.spyOn(Intl.DateTimeFormat, "supportedLocalesOf").mockReturnValue([]);
+  };
+  afterEach(() => {
+    vi.restoreAllMocks();
+    resetDateLocaleProbe();
+  });
+
+  it("az", () => {
+    force();
+    expect(formatDate("az", t)).toBe("17 noy 2026");
+    expect(formatDate("az", t, { dateStyle: "long" })).toBe("17 noyabr 2026");
+    expect(formatDate("az", t, { dateStyle: "short" })).toBe("17.11.26");
+    expect(formatDate("az", t, { weekday: "long", day: "numeric", month: "long" })).toBe("17 noyabr, çərşənbə axşamı");
+    expect(formatDate("az", t, { month: "long", year: "numeric" })).toBe("noyabr 2026");
+    expect(formatDate("az", t, { day: "numeric", month: "short" })).toBe("17 noy");
+    expect(formatTime("az", t)).toBe("05:53");
+    expect(formatDateTime("az", t)).toBe("17 noy 2026, 05:53");
+  });
+  it("tr and ru", () => {
+    force();
+    expect(formatDate("tr", t, { dateStyle: "long" })).toBe("17 Kasım 2026");
+    expect(formatDate("ru", t, { dateStyle: "long" })).toBe("17 ноября 2026 г.");
+    expect(formatDate("ru", t, { weekday: "long", day: "numeric", month: "long" })).toBe("вторник, 17 ноября");
+    expect(formatDate("ru", t, { month: "long", year: "numeric" })).toBe("ноябрь 2026 г.");
+  });
+  it("supported path is untouched", () => {
+    expect(formatDate("az", t, { dateStyle: "medium" })).toBe(new Intl.DateTimeFormat("az-AZ", { timeZone: "Asia/Baku", dateStyle: "medium" }).format(t));
+    expect(formatDate("en", t)).toBe(new Intl.DateTimeFormat(bcp47("en"), { timeZone: "Asia/Baku", dateStyle: "medium" }).format(t));
   });
 });

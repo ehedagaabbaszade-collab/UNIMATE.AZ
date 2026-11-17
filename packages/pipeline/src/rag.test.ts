@@ -38,6 +38,7 @@ describe("askDocument", () => {
     const p = new Dim1536FakeProvider((req) => `Mitoxondri enerji istehsal edir [${idsInPrompt(req.prompt)[0]}].`);
     const r = await askDocument(deps(p), { userId: ids.alice, documentId: docA, question: "Mitoxondri nədir?" });
     expect(r.grounded).toBe(true);
+    expect(p.calls.filter((c) => "inputs" in c).map((c) => (c as { inputType?: string }).inputType)).toEqual(["query"]); // the question is a query
     expect(r.citations).toHaveLength(1);
     expect(r.citations[0]).toMatchObject({ page_start: 1 });
     const [m] = await assistantMsgs(r.conversationId);

@@ -214,7 +214,7 @@ export function PostDetailScreen({ id }: { id: string }) {
         </View>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
           {!p.is_mine ? (
-            <Button small variant={p.my_liked ? "primary" : "secondary"} title={`${p.my_liked ? t("campus.post.liked") : t("campus.post.like")} · ${p.like_count}`} accessibilityLabel={`${t("campus.post.like")}, ${t("campus.post.likes", { n: p.like_count })}`} onPress={async () => { try { await react(sb, "post", id, "like", !p.my_liked); post.reload(); } catch (e) { onError(e); } }} />
+            <Button small variant={p.my_liked ? "primary" : "secondary"} title={`${p.my_liked ? t("campus.post.liked") : t("campus.post.like")} · ${p.like_count}`} accessibilityLabel={`${t("campus.post.like")}, ${t("campus.post.likes", { n: p.like_count })}`} onPress={async () => { if (p.is_mine) { toast(t("campus.post.ownLike")); return; } try { await react(sb, "post", id, "like", !p.my_liked); post.reload(); } catch (e) { onError(e); } }} />
           ) : null}
           {p.is_mine ? (
             <>

@@ -231,5 +231,16 @@ export function notificationHref(n: { kind: string; params?: Record<string, unkn
 }
 
 /** Study-group invite codes are 10 chars of A-Z0-9; accept pasted lower case and spaces. */
-export const normalizeInviteCode = (raw: string): string => raw.replace(/\s+/g, "").toUpperCase();
-export const isInviteCode = (raw: string): boolean => /^[A-Z0-9]{10}$/.test(normalizeInviteCode(raw));
+/** Server invite codes (campus_gen_invite_code): 20 characters A-Z0-9 today; the column accepts 16-64. */
+export const INVITE_CODE_MIN = 16;
+export const INVITE_CODE_MAX = 64;
+/**
+ * Typed or pasted invite code -> canonical form. A pasted share message ("... qoşul: kod HKEUF32IZD81TI41A34N") yields
+ * the last standalone code-length token; a code typed with spaces or dashes is joined up.
+ */
+export const normalizeInviteCode = (raw: string): string => {
+  const up = raw.toUpperCase();
+  const token = up.split(/[^A-Z0-9]+/).filter((t) => t.length >= INVITE_CODE_MIN && t.length <= INVITE_CODE_MAX).pop();
+  return (token ?? up.replace(/[^A-Z0-9]+/g, "")).slice(0, INVITE_CODE_MAX);
+};
+export const isInviteCode = (raw: string): boolean => new RegExp(`^[A-Z0-9]{${INVITE_CODE_MIN},${INVITE_CODE_MAX}}$`).test(normalizeInviteCode(raw));

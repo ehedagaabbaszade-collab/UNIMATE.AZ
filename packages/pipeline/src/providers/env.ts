@@ -43,6 +43,9 @@ const nonEmpty = (v: string | undefined) => (v && v.trim() ? v.trim() : undefine
  *   EMBED_API_KEY, EMBED_BASE_URL   embeddings endpoint (OpenAI-compatible); defaults to the chat settings when
  *                      the chat provider is OpenAI-compatible. Required for AI_PROVIDER=anthropic.
  *   AI_EMBED_DIMENSIONS  optional `dimensions` for embeddings (DB column is vector(1536))
+ *   AI_EMBED_PROTOCOL  "openai" (default) | "nvidia": NVIDIA retrieval embedders get input_type and are sliced to
+ *                      AI_EMBED_DIMENSIONS instead of receiving `dimensions` (see OpenAiCompatOptions.embedProtocol)
+ *   AI_DISABLE_THINKING  "true": chat asks hybrid reasoning models to answer without a thinking phase
  * With no key this returns a NotConfiguredProvider (calls throw ProviderNotConfiguredError); it never fabricates output.
  */
 export function createProviderFromEnv(env: Env, fetchFn?: FetchFn): AiProvider {
@@ -51,7 +54,15 @@ export function createProviderFromEnv(env: Env, fetchFn?: FetchFn): AiProvider {
   const common = fetchFn ? { fetch: fetchFn } : {};
   const dims = nonEmpty(env.AI_EMBED_DIMENSIONS) ? Number(env.AI_EMBED_DIMENSIONS) : undefined;
   if (dims !== undefined && (!Number.isInteger(dims) || dims < 1)) throw new RangeError("AI_EMBED_DIMENSIONS must be a positive integer");
-  const dimOpt = dims ? { embedDimensions: dims } : {};
+  const protocol = (nonEmpty(env.AI_EMBED_PROTOCOL) ?? "openai").toLowerCase();
+  if (protocol !== "openai" && protocol !== "nvidia") throw new RangeError(`Unknown AI_EMBED_PROTOCOL "${protocol}"`);
+  if (protocol === "nvidia" && dims === undefined) throw new RangeError("AI_EMBED_PROTOCOL=nvidia needs AI_EMBED_DIMENSIONS (the DB column size)");
+  const noThink = ["1", "true", "yes"].includes((nonEmpty(env.AI_DISABLE_THINKING) ?? "").toLowerCase());
+  const dimOpt = {
+    ...(dims ? { embedDimensions: dims } : {}),
+    ...(protocol === "nvidia" ? { embedProtocol: "nvidia" as const } : {}),
+    ...(noThink ? { disableThinking: true } : {}),
+  };
 
   if (kind === "anthropic") {
     const key = nonEmpty(env.AI_API_KEY) ?? nonEmpty(env.ANTHROPIC_API_KEY);

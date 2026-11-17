@@ -18,7 +18,7 @@ describe("supabase auth email templates", () => {
     for (const l of LOCALES) {
       const html = read(type, l);
       it(`${type}_${l}: logo URL, action link, lang, native-review header`, () => {
-        expect(html).toContain('src="{{ .SiteURL }}/brand/logo-light.png"');
+        expect(html).toContain('src="{{ .SiteURL }}/brand/full-logo.png"');
         expect(html).toContain('href="{{ .ConfirmationURL }}"');
         expect(html).toContain(`<html lang="${l}"`);
         expect(html.slice(0, 400)).toMatch(/NATIVE-SPEAKER REVIEW NEEDED/);

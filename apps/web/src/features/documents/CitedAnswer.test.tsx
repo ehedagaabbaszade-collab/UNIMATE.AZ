@@ -2,6 +2,7 @@
 import "@/test/dom";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { catalogs } from "@unimate/i18n";
 import { I18nProvider } from "@unimate/i18n/react";
 import { CitedAnswer } from "./CitedAnswer";
 
@@ -11,7 +12,7 @@ const FAKE = "99999999-9999-4999-8999-999999999999";
 
 const renderIt = (answer: string, citations: Array<{ chunk_id: string; page_start: number | null; page_end: number | null }>, onSelect = vi.fn()) =>
   render(
-    <I18nProvider locale="en">
+    <I18nProvider locale="en" messages={catalogs.en}>
       <CitedAnswer answer={answer} citations={citations} onSelect={onSelect} />
     </I18nProvider>,
   );

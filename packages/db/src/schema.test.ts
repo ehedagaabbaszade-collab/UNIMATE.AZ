@@ -31,7 +31,7 @@ describe("schema shape", () => {
        where n.nspname = 'public' and c.relkind in ('r', 'p') order by 1`,
     );
     console.info(`public tables: ${tables.length}`);
-    expect(tables.length).toBe(85); // +admission_sources, admission_colleges, college_programs (…5000); +system_config_versions, notification_template_versions (…4700); +account_suspensions (…4600); +campus_actions, campus_notified, community_invites, event_rsvps, event_planner_links (…4400); +organizations, opportunities, opportunity_tracking, cv_documents, career_ai_cache (…4310); +shared_quizzes, shared_quiz_questions, shared_quiz_keys, shared_decks, shared_deck_cards (…4200); +achievements, user_achievements, challenges, user_challenge_progress (…4000); +quiz_first_attempts (…3800); +8 AI cost tables (…1900); +3 i18n (…3300); +question_keys (…3500)
+    expect(tables.length).toBe(90); // +class_exams, class_exam_keys, class_exam_attempts, class_assignments, assignment_submissions (…5300); +admission_sources, admission_colleges, college_programs (…5000); +system_config_versions, notification_template_versions (…4700); +account_suspensions (…4600); +campus_actions, campus_notified, community_invites, event_rsvps, event_planner_links (…4400); +organizations, opportunities, opportunity_tracking, cv_documents, career_ai_cache (…4310); +shared_quizzes, shared_quiz_questions, shared_quiz_keys, shared_decks, shared_deck_cards (…4200); +achievements, user_achievements, challenges, user_challenge_progress (…4000); +quiz_first_attempts (…3800); +8 AI cost tables (…1900); +3 i18n (…3300); +question_keys (…3500)
     expect(tables.filter((t) => !t.relrowsecurity).map((t) => t.relname)).toEqual([]);
     expect(tables.filter((t) => t.policies === 0).map((t) => t.relname)).toEqual([]);
   });

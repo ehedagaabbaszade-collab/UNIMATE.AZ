@@ -4,7 +4,8 @@ import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { Icon } from "../../components/Icon";
-import { AppText, Button, Card, EmptyState, ErrorState, Input, Screen, Segmented, Skeleton, useOnline, useToast, PressableScale } from "../../components/ui";
+import { AppText, Button, Card, EmptyState, ErrorState, ExpandCard, HeroTitle, Input, ListGroup, ListRow, PillRow, Screen, SearchField, Skeleton, useOnline, useToast, PressableScale } from "../../components/ui";
+import { MIN_TOUCH, spacing } from "../../theme/tokens";
 import { useAsync } from "../../lib/use-async";
 import { useUser } from "../../state/session";
 import { useTheme } from "../../theme/ThemeProvider";
@@ -132,18 +133,19 @@ function FeedTab({ onDiscover }: { onDiscover: () => void }) {
   const mine = useAsync(() => myCommunities(sb), [sb]);
   const feed = usePagedPosts((cursor) => homeFeed(sb, { cursor, kind, language }), `${kind}|${language}`);
   return (
-    <View style={{ gap: 12 }}>
+    <View style={{ gap: spacing.lg }}>
       <UniversityOffer mine={mine.data} onJoined={() => { mine.reload(); feed.reload(); }} />
       <Composer communities={mine.data ?? []} onPosted={feed.reload} />
-      <Chips label={t("campus.feed.filterLabel")} value={kind} onChange={setKind} options={[{ value: "", label: t("campus.feed.filterAll") }, { value: "post", label: t("campus.feed.filterPosts") }, { value: "question", label: t("campus.feed.filterQuestions") }]} />
-      <Chips label={t("campus.feed.language")} value={language} onChange={setLanguage} options={languageOptions(t("campus.feed.languageAll"))} />
+      {/* One line of filters: post kind, then the post language (the "all" chip of each row is first). */}
+      <PillRow role="radiogroup" label={t("campus.feed.filterLabel")} value={kind} onChange={setKind} options={[{ value: "", label: t("campus.feed.filterAll") }, { value: "post", label: t("campus.feed.filterPosts") }, { value: "question", label: t("campus.feed.filterQuestions") }]} />
+      <PillRow role="radiogroup" label={t("campus.feed.language")} value={language} onChange={setLanguage} options={languageOptions(t("campus.feed.languageAll"))} />
       {!online ? (
         <AppText variant="caption" muted>
           {t("campus.offline")}
         </AppText>
       ) : null}
       {feed.loading && feed.items.length === 0 ? (
-        <View style={{ gap: 12 }}>
+        <View style={{ gap: spacing.lg }}>
           <Skeleton height={130} />
           <Skeleton height={130} />
         </View>
@@ -152,7 +154,7 @@ function FeedTab({ onDiscover }: { onDiscover: () => void }) {
       ) : feed.items.length === 0 ? (
         <EmptyState title={t("campus.feed.empty")} description={t("campus.feed.emptyBody")} action={<Button title={t("campus.tabs.communities")} variant="secondary" onPress={onDiscover} />} />
       ) : (
-        <View style={{ gap: 12 }}>
+        <View style={{ gap: spacing.lg }}>
           {feed.items.map((p) => (
             <PostCardView
               key={p.id}
@@ -195,10 +197,9 @@ function CommunitiesTab() {
   const [busy, setBusy] = useState(false);
   const bad = textError(t as (k: string) => string, name, description, rules);
   return (
-    <View style={{ gap: 12 }}>
-      <Input label={t("campus.communities.searchLabel")} placeholder={t("campus.communities.searchPlaceholder")} value={f.q} onChangeText={(q) => setF((p) => ({ ...p, q }))} returnKeyType="search" autoCorrect={false} />
-      <Chips label={t("campus.communities.kindLabel")} value={f.kind} onChange={(kindV) => setF((p) => ({ ...p, kind: kindV }))} options={[{ value: "", label: t("campus.communities.kind.all") }, ...COMMUNITY_KINDS.map((k) => ({ value: k as CommunityKind, label: t(`campus.communities.kind.${k}`) }))]} />
-      <Chips label={t("campus.communities.scopeLabel")} value={f.joined} onChange={(joined) => setF((p) => ({ ...p, joined }))} options={[{ value: "all", label: t("campus.communities.scopeAll") }, { value: "joined", label: t("campus.communities.scopeJoined") }, { value: "not", label: t("campus.communities.scopeNotJoined") }]} />
+    <View style={{ gap: spacing.lg }}>
+      <PillRow role="radiogroup" label={t("campus.communities.kindLabel")} value={f.kind} onChange={(kindV) => setF((p) => ({ ...p, kind: kindV }))} options={[{ value: "", label: t("campus.communities.kind.all") }, ...COMMUNITY_KINDS.map((k) => ({ value: k as CommunityKind, label: t(`campus.communities.kind.${k}`) }))]} />
+      <PillRow role="radiogroup" label={t("campus.communities.scopeLabel")} value={f.joined} onChange={(joined) => setF((p) => ({ ...p, joined }))} options={[{ value: "all", label: t("campus.communities.scopeAll") }, { value: "joined", label: t("campus.communities.scopeJoined") }, { value: "not", label: t("campus.communities.scopeNotJoined") }]} />
       {!creating ? (
         <Button title={t("campus.communities.create")} variant="secondary" icon={<Icon name="add" size="sm" />} onPress={() => setCreating(true)} />
       ) : (
@@ -244,7 +245,7 @@ function CommunitiesTab() {
       ) : (list.data ?? []).length === 0 ? (
         <EmptyState title={t("campus.communities.empty")} description={t("campus.communities.emptyBody")} />
       ) : (
-        <View style={{ gap: 12 }}>
+        <View style={{ gap: spacing.lg }}>
           {(list.data ?? []).map((c) => (
             <CommunityCardView key={c.id} c={c} onOpen={() => router.push(`/campus/community/${c.id}`)} />
           ))}
@@ -314,8 +315,8 @@ function EventsTab() {
   const mine = useAsync(() => myCommunities(sb), [sb]);
   const [creating, setCreating] = useState(false);
   return (
-    <View style={{ gap: 12 }}>
-      <Chips label={t("campus.events.scopeLabel")} value={scope} onChange={setScope} options={[{ value: "upcoming", label: t("campus.events.upcoming") }, { value: "going", label: t("campus.events.going") }, { value: "mine", label: t("campus.events.mine") }]} />
+    <View style={{ gap: spacing.lg }}>
+      <PillRow role="radiogroup" label={t("campus.events.scopeLabel")} value={scope} onChange={setScope} options={[{ value: "upcoming", label: t("campus.events.upcoming") }, { value: "going", label: t("campus.events.going") }, { value: "mine", label: t("campus.events.mine") }]} />
       {!creating ? (
         <Button title={t("campus.events.create")} variant="secondary" icon={<Icon name="add" size="sm" />} onPress={() => setCreating(true)} />
       ) : (
@@ -344,7 +345,7 @@ function EventsTab() {
       ) : (list.data ?? []).length === 0 ? (
         <EmptyState title={t("campus.events.empty")} description={t("campus.events.emptyBody")} />
       ) : (
-        <View style={{ gap: 12 }}>
+        <View style={{ gap: spacing.lg }}>
           {(list.data ?? []).map((e: EventRow) => (
             <EventCardView key={e.id} e={e} onOpen={() => router.push(`/campus/event/${e.id}`)} />
           ))}
@@ -367,11 +368,23 @@ function GroupsTab() {
   const [busy, setBusy] = useState<"create" | "join" | null>(null);
   const bad = textError(t as (k: string) => string, name);
   return (
-    <View style={{ gap: 12 }}>
+    <View style={{ gap: spacing.lg }}>
       <AppText muted>{t("campus.groups.intro")}</AppText>
-      <Card>
-        <AppText variant="heading">{t("campus.groups.joinTitle")}</AppText>
-        <Input label={t("campus.groups.codeLabel")} placeholder={t("campus.groups.codePlaceholder")} value={code} onChangeText={(v) => setCode(normalizeInviteCode(v).slice(0, 10))} autoCapitalize="characters" autoCorrect={false} />
+      {groups.loading && !groups.data ? (
+        <Skeleton height={80} />
+      ) : groups.error && !groups.data ? (
+        <ErrorState title={t("campus.loadFailed")} action={<Button title={t("common.retry")} onPress={groups.reload} />} />
+      ) : (groups.data ?? []).length === 0 ? (
+        <EmptyState title={t("campus.groups.empty")} />
+      ) : (
+        <View style={{ gap: spacing.lg }}>
+          {(groups.data ?? []).map((c) => (
+            <CommunityCardView key={c.id} c={c} onOpen={() => router.push(`/campus/community/${c.id}`)} />
+          ))}
+        </View>
+      )}
+      <ExpandCard label={t("campus.groups.joinTitle")} header={<AppText variant="heading">{t("campus.groups.joinTitle")}</AppText>}>
+        <Input label={t("campus.groups.codeLabel")} placeholder={t("campus.groups.codePlaceholder")} value={code} onChangeText={(v) => setCode(normalizeInviteCode(v))} autoCapitalize="characters" autoCorrect={false} />
         <Button
           title={t("campus.groups.joinSubmit")}
           loading={busy === "join"}
@@ -390,9 +403,8 @@ function GroupsTab() {
             }
           }}
         />
-      </Card>
-      <Card>
-        <AppText variant="heading">{t("campus.groups.createTitle")}</AppText>
+      </ExpandCard>
+      <ExpandCard label={t("campus.groups.createTitle")} header={<AppText variant="heading">{t("campus.groups.createTitle")}</AppText>}>
         <Input label={t("campus.groups.createName")} value={name} onChangeText={setName} maxLength={CAMPUS_LIMITS.communityName} error={bad} />
         <Button
           title={t("campus.groups.createSubmit")}
@@ -411,21 +423,7 @@ function GroupsTab() {
             }
           }}
         />
-      </Card>
-      <AppText variant="heading">{t("campus.groups.mine")}</AppText>
-      {groups.loading && !groups.data ? (
-        <Skeleton height={80} />
-      ) : groups.error && !groups.data ? (
-        <ErrorState title={t("campus.loadFailed")} action={<Button title={t("common.retry")} onPress={groups.reload} />} />
-      ) : (groups.data ?? []).length === 0 ? (
-        <EmptyState title={t("campus.groups.empty")} />
-      ) : (
-        <View style={{ gap: 12 }}>
-          {(groups.data ?? []).map((c) => (
-            <CommunityCardView key={c.id} c={c} onOpen={() => router.push(`/campus/community/${c.id}`)} />
-          ))}
-        </View>
-      )}
+      </ExpandCard>
     </View>
   );
 }
@@ -442,30 +440,20 @@ function SearchResults({ q }: { q: string }) {
   if (res.error && !res.data) return <ErrorState title={t("campus.loadFailed")} action={<Button title={t("common.retry")} onPress={res.reload} />} />;
   if (empty) return <EmptyState title={t("campus.search.empty")} />;
   const row = (key: string, title: string, sub: string, href: string, icon: "group" | "post" | "profile") => (
-    <PressableScale key={key} onPress={() => router.push(href)} accessibilityRole="button" accessibilityLabel={`${title}. ${sub}`}>
-      <Card>
-        <View style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
-          <Icon name={icon} size="sm" color={theme.active} />
-          <View style={{ flex: 1 }}>
-            <AppText variant="label">{title}</AppText>
-            {sub ? (
-              <AppText variant="caption" muted numberOfLines={2}>
-                {sub}
-              </AppText>
-            ) : null}
-          </View>
-        </View>
-      </Card>
-    </PressableScale>
+    <ListRow key={key} icon={icon} iconColor={theme.active} title={title} {...(sub ? { subtitle: sub } : null)} onPress={() => router.push(href)} accessibilityLabel={`${title}. ${sub}`} />
   );
+  const section = (heading: string, rows: React.ReactNode[]) =>
+    rows.length ? (
+      <View style={{ gap: spacing.sm }}>
+        <AppText variant="heading">{heading}</AppText>
+        <ListGroup>{rows}</ListGroup>
+      </View>
+    ) : null;
   return (
-    <View style={{ gap: 10 }}>
-      {res.data!.communities.length ? <AppText variant="heading">{t("campus.search.communities")}</AppText> : null}
-      {res.data!.communities.map((c) => row(c.id, c.name, t(`campus.communities.kind.${c.kind}`), `/campus/community/${c.id}`, "group"))}
-      {res.data!.posts.length ? <AppText variant="heading">{t("campus.search.posts")}</AppText> : null}
-      {res.data!.posts.map((p) => row(p.id, p.title, `${p.community_name} · ${p.snippet}`, `/campus/post/${p.id}`, "post"))}
-      {res.data!.people.length ? <AppText variant="heading">{t("campus.search.people")}</AppText> : null}
-      {res.data!.people.map((p) => row(p.id, p.display_name ?? p.username ?? "", p.university_name ?? "", `/campus/user/${p.id}`, "profile"))}
+    <View style={{ gap: spacing.lg }}>
+      {section(t("campus.search.communities"), res.data!.communities.map((c) => row(c.id, c.name, t(`campus.communities.kind.${c.kind}`), `/campus/community/${c.id}`, "group")))}
+      {section(t("campus.search.posts"), res.data!.posts.map((p) => row(p.id, p.title, `${p.community_name} · ${p.snippet}`, `/campus/post/${p.id}`, "post")))}
+      {section(t("campus.search.people"), res.data!.people.map((p) => row(p.id, p.display_name ?? p.username ?? "", p.university_name ?? "", `/campus/user/${p.id}`, "profile")))}
     </View>
   );
 }
@@ -475,6 +463,9 @@ export function CampusScreen() {
   const { t } = useI18n();
   const router = useRouter();
   const { user } = useUser();
+  const { theme } = useTheme();
+  const roundBtn = { width: MIN_TOUCH, height: MIN_TOUCH, borderRadius: MIN_TOUCH / 2, backgroundColor: theme.card, alignItems: "center", justifyContent: "center" } as const;
+  const tabs: { value: Tab; label: string }[] = [{ value: "feed", label: t("campus.tabs.feed") }, { value: "communities", label: t("campus.tabs.communities") }, { value: "events", label: t("campus.tabs.events") }, { value: "groups", label: t("campus.tabs.groups") }];
   const [tab, setTab] = useState<Tab>("feed");
   const [q, setQ] = useState("");
   const [debounced, setDebounced] = useState("");
@@ -484,32 +475,26 @@ export function CampusScreen() {
     return () => clearTimeout(id);
   }, [q]);
   return (
-    <Screen>
-      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+    <Screen ambient>
+      <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: spacing.md }}>
         <View style={{ flex: 1 }}>
-          <AppText variant="title" accessibilityRole="header">
-            {t("campus.title")}
-          </AppText>
-          <AppText muted>{t("campus.subtitle")}</AppText>
+          <HeroTitle muted={t("mobile.campus.heroMuted")} strong={t("mobile.campus.heroStrong")} />
         </View>
-        <PressableScale onPress={() => router.push(`/campus/user/${user.id}`)} accessibilityRole="button" accessibilityLabel={t("campus.profile.title")} hitSlop={8} style={{ minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center" }}>
-          <Icon name="profile" size="md" />
-        </PressableScale>
-        <PressableScale onPress={() => router.push("/notifications")} accessibilityRole="button" accessibilityLabel={t("notifications.bell")} hitSlop={8} style={{ minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center" }}>
-          <Icon name="notifications" size="md" />
-        </PressableScale>
+        <View style={{ flexDirection: "row", gap: 8, paddingTop: 4 }}>
+          <PressableScale onPress={() => router.push(`/campus/user/${user.id}`)} accessibilityRole="button" accessibilityLabel={t("campus.profile.title")} style={roundBtn}>
+            <Icon name="profile" color={theme.text} />
+          </PressableScale>
+          <PressableScale onPress={() => router.push("/notifications")} accessibilityRole="button" accessibilityLabel={t("notifications.bell")} style={roundBtn}>
+            <Icon name="notifications" color={theme.text} />
+          </PressableScale>
+        </View>
       </View>
-      <Input label={t("campus.search.label")} placeholder={t("campus.search.placeholder")} value={q} onChangeText={setQ} returnKeyType="search" autoCorrect={false} hint={q.length > 0 && q.trim().length < 2 ? t("campus.search.hint") : undefined} />
+      <SearchField label={t("campus.search.label")} placeholder={t("campus.search.placeholder")} value={q} onChangeText={setQ} returnKeyType="search" autoCorrect={false} hint={q.length > 0 && q.trim().length < 2 ? t("campus.search.hint") : undefined} />
       {searching ? (
         <SearchResults q={debounced.trim()} />
       ) : (
         <>
-          <Segmented
-            label={t("campus.tabs.label")}
-            value={tab}
-            onChange={setTab}
-            options={[{ value: "feed", label: t("campus.tabs.feed") }, { value: "communities", label: t("campus.tabs.communities") }, { value: "events", label: t("campus.tabs.events") }, { value: "groups", label: t("campus.tabs.groups") }]}
-          />
+          <PillRow label={t("campus.tabs.label")} value={tab} onChange={setTab} options={tabs} />
           {tab === "feed" ? <FeedTab onDiscover={() => setTab("communities")} /> : tab === "communities" ? <CommunitiesTab /> : tab === "events" ? <EventsTab /> : <GroupsTab />}
         </>
       )}

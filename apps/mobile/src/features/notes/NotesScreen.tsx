@@ -3,9 +3,9 @@ import { useI18n } from "@unimate/i18n/react";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { View } from "react-native";
-import { Icon, ModuleIcon } from "../../components/Icon";
+import { Icon } from "../../components/Icon";
 import { PickerField } from "../../components/PickerField";
-import { AppText, Badge, Button, Card, EmptyState, ErrorState, Input, Screen, Segmented, Skeleton, useOnline, PressableScale } from "../../components/ui";
+import { AppText, Badge, Button, Card, EmptyState, ErrorState, Input, Screen, ScreenHeader, Segmented, Skeleton, useOnline, PressableScale } from "../../components/ui";
 import { useAsync } from "../../lib/use-async";
 import { useUser } from "../../state/session";
 import { listCourses, listMyUploads, listSaved, searchNotes, type Course } from "./api";
@@ -160,15 +160,9 @@ export function NotesScreen() {
   const courses = useAsync(() => listCourses(sb, user.id), [sb, user.id]);
   return (
     <Screen>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <ModuleIcon icon="notes" module="notes" size={48} />
-        <View style={{ flex: 1 }}>
-          <AppText variant="display" accessibilityRole="header">
-            {t("notes.title")}
-          </AppText>
-          <AppText muted>{t("notes.subtitle")}</AppText>
-        </View>
-      </View>
+      {/* Pushed from Home: the native header carries the title and the back button. */}
+      <ScreenHeader title={t("notes.title")} />
+      <AppText muted>{t("notes.subtitle")}</AppText>
       <Button title={t("notes.uploadCta")} icon={<Icon name="upload" size="sm" />} onPress={() => router.push("/notes/upload")} />
       <Segmented
         label={t("notes.tabs.label")}

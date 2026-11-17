@@ -18,3 +18,8 @@ export * from "./career/career";
 export * from "./career/ai";
 export * from "./career/cv-html";
 export * from "./campus/campus";
+export * from "./student/semester";
+export * from "./student/budget";
+export * from "./planner/agenda";
+export * from "./study/writing";
+export * from "./study/exam";

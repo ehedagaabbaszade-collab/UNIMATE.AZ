@@ -1,6 +1,7 @@
 import * as Haptics from "expo-haptics";
-import { useEffect, useRef, useState } from "react";
-import { AccessibilityInfo, Animated, Easing, Platform } from "react-native";
+import { useEffect, useState } from "react";
+import { AccessibilityInfo, Easing, Platform } from "react-native";
+import { Easing as REasing, cubicBezier } from "react-native-reanimated";
 
 /** Spring presets (native driver friendly: only transform/opacity are animated with them). */
 export const springs = {
@@ -9,7 +10,13 @@ export const springs = {
   bouncy: { damping: 9, stiffness: 220, mass: 0.7 },
 } as const;
 
-export const easings = { out: Easing.out(Easing.cubic), inOut: Easing.inOut(Easing.cubic) } as const;
+/** Strong ease-out for UI, ease-in-out for on-screen moves (never ease-in on UI). */
+/** Reanimated curves (expo-animation tables): CSS transitions take cubicBezier, layout/timing animations take Easing.bezier. */
+export const CSS_EASE_OUT = cubicBezier(0.23, 1, 0.32, 1);
+export const CSS_EASE_IN_OUT = cubicBezier(0.77, 0, 0.175, 1);
+export const EASE_OUT = REasing.bezier(0.23, 1, 0.32, 1);
+
+export const easings = { out: Easing.bezier(0.23, 1, 0.32, 1), inOut: Easing.bezier(0.77, 0, 0.175, 1) } as const;
 
 /** Tracks the OS "reduce motion" setting. Animations collapse to instant/opacity-only when true. */
 export function useReducedMotion(): boolean {
@@ -40,29 +47,4 @@ export const haptic = {
   error: () => safe(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)),
 };
 
-/** Press scale spring: returns the animated value and press handlers. */
-export function usePressScale(to = 0.96) {
-  const reduced = useReducedMotion();
-  const scale = useRef(new Animated.Value(1)).current;
-  const run = (v: number) => {
-    if (reduced) return scale.setValue(1);
-    Animated.spring(scale, { toValue: v, ...springs.press, useNativeDriver: true }).start();
-  };
-  return { scale, onPressIn: () => run(to), onPressOut: () => run(1) };
-}
 
-/** Fade + rise on mount; instant when reduced motion is on. `delay` staggers siblings. */
-export function useEnter(delay = 0, distance = 14) {
-  const reduced = useReducedMotion();
-  const v = useRef(new Animated.Value(reduced ? 1 : 0)).current;
-  useEffect(() => {
-    if (reduced) return v.setValue(1);
-    const a = Animated.timing(v, { toValue: 1, duration: 380, delay, easing: easings.out, useNativeDriver: true });
-    a.start();
-    return () => a.stop();
-  }, [reduced, delay, v]);
-  return {
-    opacity: v,
-    transform: [{ translateY: v.interpolate({ inputRange: [0, 1], outputRange: [distance, 0] }) }],
-  };
-}

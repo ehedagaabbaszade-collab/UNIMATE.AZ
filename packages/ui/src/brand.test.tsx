@@ -10,28 +10,30 @@ afterEach(() => cleanup());
 const srcs = (c: HTMLElement) => [...c.querySelectorAll("img")].map((i) => i.getAttribute("src"));
 
 describe("BrandLogo", () => {
-  it("light uses logo-light.png only, with explicit size and a single accessible name", () => {
+  it("light uses full-logo.png only, with explicit size and a single accessible name", () => {
     const { container } = render(<BrandLogo label="UNIMATE.AZ logo" variant="light" height={100} />);
-    expect(srcs(container)).toEqual(["/brand/logo-light.png"]);
+    expect(srcs(container)).toEqual(["/brand/full-logo.png"]);
     const img = container.querySelector("img")!;
     expect(img).toHaveAttribute("height", "100");
-    expect(img).toHaveAttribute("width", "120"); // 800/665 * 100
+    expect(img).toHaveAttribute("width", "118"); // 800/678 * 100
     expect(img).toHaveAttribute("alt", "");
     expect(screen.getAllByRole("img", { name: "UNIMATE.AZ logo" })).toHaveLength(1);
   });
-  it("dark uses mark-tile.png + wordmark-white.png only", () => {
+  it("dark uses full-logo-white.png only", () => {
     const { container } = render(<BrandLogo label="UNIMATE.AZ logo" variant="dark" />);
-    expect(srcs(container)).toEqual(["/brand/mark-tile.png", "/brand/wordmark-white.png"]);
+    expect(srcs(container)).toEqual(["/brand/full-logo-white.png"]);
   });
   it("auto renders both artworks, switched by theme CSS, still one accessible image", () => {
     const { container } = render(<BrandLogo label="UNIMATE.AZ logo" />);
-    expect(srcs(container)).toEqual(["/brand/logo-light.png", "/brand/mark-tile.png", "/brand/wordmark-white.png"]);
+    expect(srcs(container)).toEqual(["/brand/full-logo.png", "/brand/full-logo-white.png"]);
     expect(container.firstElementChild).toHaveClass("um-brand--auto");
     expect(container.querySelector(".um-brand__light")).not.toBeNull();
     expect(container.querySelector(".um-brand__dark")).not.toBeNull();
     expect(screen.getAllByRole("img", { name: "UNIMATE.AZ logo" })).toHaveLength(1);
   });
-  it("row layout lays the dark lockup out horizontally", () => {
+  it("row layout pairs mark + wordmark per theme", () => {
+    expect(srcs(render(<BrandLogo label="x" layout="row" />).container)).toEqual(["/brand/mark.png", "/brand/wordmark.png", "/brand/mark-white.png", "/brand/wordmark-white.png"]);
+    cleanup();
     const { container } = render(<BrandLogo label="x" variant="dark" layout="row" height={32} />);
     expect(container.firstElementChild).toHaveClass("um-brand--row");
     expect(container.querySelector("img")).toHaveAttribute("height", "32");
@@ -46,14 +48,14 @@ describe("BrandLogo", () => {
 });
 
 describe("BrandMark", () => {
-  it("light = mark.png, dark = mark-tile.png", () => {
+  it("light = mark.png, dark = mark-white.png", () => {
     expect(srcs(render(<BrandMark label="m" variant="light" />).container)).toEqual(["/brand/mark.png"]);
     cleanup();
-    expect(srcs(render(<BrandMark label="m" variant="dark" />).container)).toEqual(["/brand/mark-tile.png"]);
+    expect(srcs(render(<BrandMark label="m" variant="dark" />).container)).toEqual(["/brand/mark-white.png"]);
   });
   it("keeps the intrinsic aspect ratio", () => {
     const { container } = render(<BrandMark label="m" variant="light" height={38} />);
-    expect(container.querySelector("img")).toHaveAttribute("width", "32"); // 320/380 * 38
+    expect(container.querySelector("img")).toHaveAttribute("width", "32"); // 320/375 * 38
   });
 });
 

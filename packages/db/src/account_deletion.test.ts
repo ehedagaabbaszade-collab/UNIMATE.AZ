@@ -48,6 +48,7 @@ const OVERRIDES: Record<string, Record<string, string>> = {
   ai_usage: { feature: "'chat'" },
   ai_rate_limits: { task: "'chat'" },
   ai_reservations: { request_id: "'req-' || gen_random_uuid()::text", plan: "'free'" },
+  class_exams: { questions: `'[{"id":"q1","kind":"open","text":"x","options":[],"points":1}]'::jsonb` },
   generation_cache: { params_hash: "'hash-' || substr(md5(random()::text), 1, 12)", output: "'{}'::jsonb" },
   prompt_versions: { name: "'seed-' || gen_random_uuid()::text", version: "1", template: "'t'" },
   usage_counters: { kind: "'ai_message'" },

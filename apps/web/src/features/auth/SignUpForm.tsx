@@ -6,12 +6,14 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { useLocale, useT } from "@unimate/i18n/react";
 import type { MessageKey } from "@unimate/i18n";
+import { setModeCookie, type AppMode } from "@/lib/mode";
 import { fieldErrors, signUpSchema } from "@/lib/schemas";
 import { getBrowserClient } from "@/lib/supabase/browser";
 import { AcademicPicker, type AcademicValue } from "../academic/AcademicPicker";
 import { authErrorKey } from "./auth-errors";
+import { RoleSwitch } from "./RoleSwitch";
 
-export function SignUpForm() {
+export function SignUpForm({ as }: { as: AppMode }) {
   const t = useT();
   const locale = useLocale();
   const router = useRouter();
@@ -46,7 +48,7 @@ export function SignUpForm() {
       email: v.email,
       password: v.password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding&as=${as}`,
         data: { display_name: v.displayName, locale, ...(v.universityId ? { university_id: v.universityId } : {}), ...(v.majorId ? { major_id: v.majorId } : {}) },
       },
     });
@@ -55,6 +57,7 @@ export function SignUpForm() {
       setFormError(authErrorKey(error, "auth.signUpFailed"));
       return;
     }
+    setModeCookie(as);
     if (data.session) {
       router.replace("/onboarding");
       router.refresh();
@@ -65,9 +68,10 @@ export function SignUpForm() {
 
   return (
     <form onSubmit={onSubmit} noValidate className="stack">
+      <RoleSwitch as={as} path="/sign-up" />
       <div>
-        <h1>{t("auth.signUpTitle")}</h1>
-        <p className="um-muted">{t("auth.signUpBody")}</p>
+        <h1>{t(as === "teacher" ? "auth.teacherSignUpTitle" : "auth.signUpTitle")}</h1>
+        <p className="um-muted">{t(as === "teacher" ? "auth.teacherSignUpBody" : "auth.signUpBody")}</p>
       </div>
       {formError ? (
         <p className="err-box" role="alert">
@@ -83,7 +87,7 @@ export function SignUpForm() {
         {t("auth.signUpCta")}
       </Button>
       <p className="um-muted" style={{ fontSize: "var(--text-sm)" }}>
-        {t("auth.hasAccount")} <Link href="/sign-in">{t("auth.signInCta")}</Link>
+        {t("auth.hasAccount")} <Link href={as === "teacher" ? "/sign-in?as=teacher" : "/sign-in"}>{t("auth.signInCta")}</Link>
       </p>
     </form>
   );

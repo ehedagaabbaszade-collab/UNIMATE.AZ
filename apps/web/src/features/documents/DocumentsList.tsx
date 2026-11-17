@@ -2,7 +2,7 @@
 
 import { Badge, Button, Card, EmptyState, ErrorState, FileIcon, Icon, Skeleton, fileKindFromMime, useToast, type BadgeTone } from "@unimate/ui";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useUser } from "@/components/user";
 import type { MessageKey } from "@unimate/i18n";
 import { formatBytes } from "@unimate/i18n";
@@ -11,6 +11,7 @@ import type { DocStatus, DocumentRow } from "@/lib/db";
 import { edgeErrorMessageKey } from "@/lib/edge";
 import { processDocument } from "@/lib/edge-client";
 import { getBrowserClient } from "@/lib/supabase/browser";
+import { useVisibleInterval } from "@/lib/use-visible-interval";
 import { unwrap, useAsync } from "@/lib/use-async";
 import { precheckFile, storagePathFor } from "./upload";
 import { UsageMeter } from "./UsageMeter";
@@ -33,11 +34,7 @@ export function DocumentsList() {
   // Live status: poll while anything is still being processed (Realtime is not enabled for these tables).
   const anyInFlight = docs.data?.some((d) => isInFlight(d.status)) ?? false;
   const reload = docs.reload;
-  useEffect(() => {
-    if (!anyInFlight) return;
-    const id = setInterval(reload, 4000);
-    return () => clearInterval(id);
-  }, [anyInFlight, reload]);
+  useVisibleInterval(reload, 4000, anyInFlight);
 
   async function onFile(file: File) {
     setUploadError(null);

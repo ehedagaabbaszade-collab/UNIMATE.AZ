@@ -36,6 +36,8 @@ Status legend: **T** implemented + tested (automated), **U** implemented, untest
 6. E2E/prod builds, deployment + EAS + store metadata + beta instructions + FINAL_DELIVERY_REPORT.md.
 3c STATUS (T): items (a)(b)(c)(d web+admin metadata)(f)(g) done and tested; see docs/BRAND_IDENTITY.md. Still open: mobile app.json/theme + react-native-svg wrapper, admin header/login (admin UI not built), true PNG originals.
 
+Transformation work (2026-11-14 onward): see docs/TRANSFORMATION_PROGRESS.md.
+
 ## Known external blockers
 AI provider key; Supabase project (not created - needs approval); Deno for edge functions; Android/EAS account; Apple toolchain (macOS).
 

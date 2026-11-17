@@ -2,6 +2,7 @@
 
 import { Badge, Button, EmptyState, ErrorState, Input, Select, Skeleton, Tabs, useOnlineStatus, useToast } from "@unimate/ui";
 import { useState, type FormEvent } from "react";
+import { useSearchParams } from "next/navigation";
 import { useUser } from "@/components/user";
 import type { MessageKey } from "@unimate/i18n";
 import { useI18n } from "@unimate/i18n/react";
@@ -209,6 +210,7 @@ export function Planner() {
   const online = useOnlineStatus();
   const s = useSchedule();
   const editable = online && s.source === "live";
+  const tab = useSearchParams().get("tab"); // deep links from the dashboard and command palette
 
   return (
     <div className="stack-lg">
@@ -222,6 +224,8 @@ export function Planner() {
         <ErrorState title={t("planner.loadFailed")} description={s.error ?? undefined} action={<Button onClick={s.reload}>{t("common.retry")}</Button>} />
       ) : (
         <Tabs
+          key={tab ?? "timetable"}
+          defaultId={tab === "tasks" || tab === "exams" ? tab : "timetable"}
           label={t("planner.tabs.label")}
           items={[
             { id: "timetable", label: t("planner.tabs.timetable"), content: <TimetableTab rows={s.data.timetable} editable={editable} reload={s.reload} /> },

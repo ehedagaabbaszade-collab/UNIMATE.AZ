@@ -3,10 +3,11 @@
 import { Button, Select, useToast } from "@unimate/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { LOCALES, LOCALE_NAMES, createTranslator, type Locale } from "@unimate/i18n";
+import { LOCALES, LOCALE_NAMES, type Locale } from "@unimate/i18n";
 import { useI18n } from "@unimate/i18n/react";
 import { persistLocale } from "@/i18n/client";
 import { writeCookie } from "@/lib/cookies";
+import { homeFor, readModeCookie } from "@/lib/mode";
 import { getBrowserClient } from "@/lib/supabase/browser";
 import { AcademicPicker, type AcademicValue } from "../academic/AcademicPicker";
 
@@ -29,7 +30,7 @@ export function Onboarding({ userId, initial }: { userId: string; initial: { uni
   // Persist on change (profiles.locale + cookie), not only at the end, so the choice survives leaving the flow.
   const setLocale = (l: Locale) => {
     void persistLocale(l, userId).then((ok) => {
-      if (!ok) toast(createTranslator(l)("language.saveFailed"), "error");
+      if (!ok) toast(t("language.saveFailed"), "error");
     });
     router.refresh();
   };
@@ -58,13 +59,13 @@ export function Onboarding({ userId, initial }: { userId: string; initial: { uni
     }
     // Without a chosen university the (app) layout would bounce back here, so completing the flow also clears the gate.
     writeCookie(SKIP_COOKIE, "1");
-    router.replace("/dashboard");
+    router.replace(homeFor(readModeCookie()));
     router.refresh();
   }
 
   function skip() {
     writeCookie(SKIP_COOKIE, "1");
-    router.replace("/dashboard");
+    router.replace(homeFor(readModeCookie()));
     router.refresh();
   }
 

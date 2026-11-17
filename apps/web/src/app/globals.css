@@ -653,7 +653,7 @@ html { scroll-behavior: smooth; }
 input, select, textarea { min-width: 0; max-width: 100%; }
 input[type="time"], input[type="date"], input[type="datetime-local"], input[type="month"] { -webkit-appearance: none; appearance: none; width: 100%; min-width: 0; display: block; text-align: left; }
 input::-webkit-date-and-time-value { text-align: left; min-width: 0; }
-.shell main, .shell__main, .page { min-width: 0; overflow-x: clip; }
+.shell main, .shell__main, .page { min-width: 0; overflow-x: hidden; overflow-x: clip; }
 .page > *, .um-card, .um-field, .panel, .list-item, .form-grid > *, .grid-2 > *, .grid-auto > *, .grid-stats > *, .choice-grid > * { min-width: 0; }
 .um-field { grid-template-columns: minmax(0, 1fr); }
 .um-tablist, .seg__row, .quick, .pills { max-width: 100%; min-width: 0; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
@@ -661,3 +661,13 @@ input::-webkit-date-and-time-value { text-align: left; min-width: 0; }
 .seg__row { display: flex; width: max-content; max-width: 100%; }
 .seg__item, .um-tab { flex-shrink: 0; }
 .page h1, .page h2, .page h3, .page p { overflow-wrap: anywhere; }
+
+/* Global safety net (older WebKit lacks overflow:clip; media/tables/code never widen the page). */
+html, body { overflow-x: clip; }
+img, svg, video, canvas { max-width: 100%; }
+.shell main :where(table) { display: block; max-width: 100%; overflow-x: auto; }
+.shell main :where(pre, code, kbd) { max-width: 100%; overflow-x: auto; overflow-wrap: anywhere; }
+.shell main :where(p, li, td, dd, h1, h2, h3, a, label) { overflow-wrap: break-word; }
+.shell main :where(.row, .list-item, .panel__head, .palette__option) > :where(span, div, p, label, a, h2, h3) { min-width: 0; }
+.palette__option > span { min-width: 0; overflow-wrap: anywhere; }
+.palette, .um-dialog { max-width: calc(100vw - 32px); }

@@ -80,8 +80,8 @@ export function SignUpForm({ as }: { as: AppMode }) {
       ) : null}
       <Input name="displayName" autoComplete="name" label={t("auth.displayName")} error={errors.displayName && t(errors.displayName)} />
       <Input name="email" type="email" autoComplete="email" label={t("auth.email")} error={errors.email && t(errors.email)} />
-      <Input name="password" type="password" autoComplete="new-password" label={t("auth.password")} hint={t("validation.passwordMin")} error={errors.password && t(errors.password)} />
-      <Input name="confirmPassword" type="password" autoComplete="new-password" label={t("auth.confirmPassword")} error={errors.confirmPassword && t(errors.confirmPassword)} />
+      <Input name="password" type="password" reveal={{ show: t("mobile.auth.showPassword"), hide: t("mobile.auth.hidePassword") }} autoComplete="new-password" label={t("auth.password")} hint={t("validation.passwordMin")} error={errors.password && t(errors.password)} />
+      <Input name="confirmPassword" type="password" reveal={{ show: t("mobile.auth.showPassword"), hide: t("mobile.auth.hidePassword") }} autoComplete="new-password" label={t("auth.confirmPassword")} error={errors.confirmPassword && t(errors.confirmPassword)} />
       <AcademicPicker value={academic} onChange={setAcademic} />
       <Button type="submit" block loading={busy}>
         {t("auth.signUpCta")}

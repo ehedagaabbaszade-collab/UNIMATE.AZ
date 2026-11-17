@@ -130,7 +130,25 @@
 
 @media (min-width: 900px) {
   :root { --um-bottom-offset: 0px; }
-  .shell { grid-template-columns: 252px minmax(0, 1fr); }
+  .shell { grid-template-columns: 252px minmax(0, 1fr); transition: grid-template-columns var(--dur) var(--ease); }
+  .shell--collapsed { grid-template-columns: 72px minmax(0, 1fr); }
+  .sidebar { overflow: hidden; }
+  .sidebar__top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); min-width: 0; }
+  .sidebar__toggle { flex: none; display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: 99px; background: none; color: inherit; cursor: pointer; }
+  .sidebar__toggle:hover { background: rgb(255 255 255 / 0.08); }
+  .sidebar__toggle svg { transition: transform var(--dur) var(--ease); }
+  .sidebar__tip { position: fixed; transform: translateY(-50%); z-index: 100; padding: 6px 10px; border-radius: var(--radius-md); background: #0b1020; color: #fff; border: 1px solid #2e3a63; font-size: var(--text-sm); font-weight: 500; white-space: nowrap; pointer-events: none; box-shadow: 0 8px 24px rgb(0 0 0 / 0.35); }
+  .shell--collapsed .sidebar { padding-inline: var(--space-2); }
+  .shell--collapsed .sidebar__top { flex-direction: column; justify-content: center; }
+  .shell--collapsed .sidebar__toggle svg { transform: rotate(180deg); }
+  .shell--collapsed .sidebar .brand { padding: 0; display: grid; place-items: center; }
+  .shell--collapsed .sidebar__label, .shell--collapsed .sidebar__search kbd, .shell--collapsed .sidebar__name, .shell--collapsed .sidebar__foot .um-field { display: none; }
+  .shell--collapsed .navlink, .shell--collapsed .sidebar__search { justify-content: center; padding: 0; margin-inline: 0; }
+  .shell--collapsed .navlink svg, .shell--collapsed .sidebar__search svg { flex: none; }
+  .shell--collapsed .navlink > span, .shell--collapsed .sidebar__search > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .shell--collapsed .sidebar__user { flex-direction: column; padding: 0; }
+  .shell--collapsed .navlink[aria-current="page"] { box-shadow: none; }
+  @media (prefers-reduced-motion: reduce) { .shell, .sidebar__toggle svg { transition: none; } }
   .shell__main { padding-bottom: 0; }
   .tabbar { display: none; }
   .mobilebar { display: none; }
@@ -671,3 +689,7 @@ img, svg, video, canvas { max-width: 100%; }
 .shell main :where(.row, .list-item, .panel__head, .palette__option) > :where(span, div, p, label, a, h2, h3) { min-width: 0; }
 .palette__option > span { min-width: 0; overflow-wrap: anywhere; }
 .palette, .um-dialog { max-width: calc(100vw - 32px); }
+
+/* Sign-in / sign-up: way back to the public site. */
+.auth__back { display: inline-flex; align-items: center; gap: 6px; margin-bottom: var(--space-3); font-size: 14px; font-weight: 500; color: var(--text-muted, inherit); text-decoration: none; }
+.auth__back:hover { color: var(--text); text-decoration: underline; }

@@ -1,26 +1,10 @@
+import { DEFAULT_FOCUS_PLAN, FOCUS_PRESETS, clampPlan, planDurationMs, planFor as corePlanFor, type FocusPlan, type FocusPresetId } from "@unimate/core";
 import { DURATION_MS, type TimerMode } from "./timer";
 
-/** Focus/break presets in minutes. `custom` is user-defined. */
-export const PRESETS = [
-  { id: "25-5", work: 25, brk: 5 },
-  { id: "45-10", work: 45, brk: 10 },
-  { id: "60-10", work: 60, brk: 10 },
-  { id: "90-15", work: 90, brk: 15 },
-] as const;
-export type PresetId = (typeof PRESETS)[number]["id"] | "custom";
-
-export const clampMinutes = (n: number, lo = 1, hi = 240): number => (Number.isFinite(n) ? Math.min(hi, Math.max(lo, Math.round(n))) : lo);
-
-export interface FocusPlan {
-  workMin: number;
-  breakMin: number;
-}
-export const planFor = (id: PresetId, custom: FocusPlan): FocusPlan => {
-  const p = PRESETS.find((x) => x.id === id);
-  return p ? { workMin: p.work, breakMin: p.brk } : { workMin: clampMinutes(custom.workMin), breakMin: clampMinutes(custom.breakMin, 1, 60) };
-};
-export const durationMs = (mode: TimerMode, plan: FocusPlan): number =>
-  mode === "work" ? plan.workMin * 60_000 : mode === "shortBreak" ? plan.breakMin * 60_000 : Math.max(plan.breakMin * 3, 15) * 60_000;
+export type PresetId = FocusPresetId;
+export type { FocusPlan };
+export const durationMs = planDurationMs;
+export const planFor = (preset: PresetId, custom: FocusPlan): FocusPlan => corePlanFor({ preset, custom });
 
 /** What survives an app kill: enough to rebuild the timer from the wall clock. */
 export interface PersistedFocus {
@@ -32,6 +16,8 @@ export interface PersistedFocus {
   endAt: number | null;
   /** ms left when paused/idle */
   remainingMs: number;
+  /** length of the block on screen (a plan change never alters it); falls back to the plan when absent */
+  plannedMs?: number;
   /** ISO start of the current focus block, for saving the session */
   startedAt: string | null;
   blocks: number;
@@ -44,15 +30,17 @@ export function parsePersisted(raw: string | null): PersistedFocus | null {
   try {
     const o = JSON.parse(raw) as Partial<PersistedFocus>;
     if (o.v !== 1 || !MODES.includes(o.mode as TimerMode)) return null;
-    const preset = o.preset === "custom" || PRESETS.some((p) => p.id === o.preset) ? (o.preset as PresetId) : "25-5";
+    const preset = o.preset === "custom" || FOCUS_PRESETS.some((p) => p.id === o.preset) ? (o.preset as PresetId) : "classic";
     const num = (x: unknown, d: number) => (typeof x === "number" && Number.isFinite(x) ? x : d);
     return {
       v: 1,
       preset,
-      custom: { workMin: clampMinutes(num(o.custom?.workMin, 25)), breakMin: clampMinutes(num(o.custom?.breakMin, 5), 1, 60) },
+      // older saves stored one break length (breakMin); it becomes the short break
+      custom: clampPlan({ workMin: num(o.custom?.workMin, DEFAULT_FOCUS_PLAN.workMin), shortMin: num(o.custom?.shortMin ?? (o.custom as { breakMin?: number } | undefined)?.breakMin, DEFAULT_FOCUS_PLAN.shortMin), longMin: num(o.custom?.longMin, DEFAULT_FOCUS_PLAN.longMin) }),
       mode: o.mode as TimerMode,
       endAt: o.endAt === null || o.endAt === undefined ? null : num(o.endAt, 0) || null,
       remainingMs: Math.max(0, num(o.remainingMs, DURATION_MS.work)),
+      plannedMs: typeof o.plannedMs === "number" && o.plannedMs > 0 ? o.plannedMs : undefined,
       startedAt: typeof o.startedAt === "string" ? o.startedAt : null,
       blocks: Math.max(0, Math.floor(num(o.blocks, 0))),
       lock: o.lock === true,

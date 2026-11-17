@@ -19,6 +19,9 @@ export default async function AuthLayout({ children }: { children: ReactNode }) 
       </aside>
       <main className="auth__main" id="main">
         <div className="auth__card">
+          <Link href="/" className="auth__back">
+            <span aria-hidden="true">←</span> {t("auth.backHome")}
+          </Link>
           <div className="auth__top">
             <Link href="/" className="auth__brand">
               <AppLogo kind="logo" height={84} />

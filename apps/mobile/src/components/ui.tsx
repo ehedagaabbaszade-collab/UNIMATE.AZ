@@ -383,9 +383,7 @@ export function Input({ label, error, hint, style, secure, ...rest }: TextInputP
         />
         {secure ? (
           <Pressable onPress={() => setShown((s) => !s)} accessibilityRole="button" accessibilityLabel={shown ? t("mobile.auth.hidePassword") : t("mobile.auth.showPassword")} hitSlop={8} style={{ paddingHorizontal: spacing.md, minHeight: MIN_TOUCH, justifyContent: "center" }}>
-            <AppText variant="caption" style={{ color: theme.active, fontWeight: "700" }}>
-              {shown ? t("mobile.auth.hidePassword") : t("mobile.auth.showPassword")}
-            </AppText>
+            <Icon name={shown ? "eye-off" : "eye"} size={22} color={shown ? theme.text : theme.textMuted} />
           </Pressable>
         ) : null}
       </View>

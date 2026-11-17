@@ -3,7 +3,7 @@
 import { Icon, OfflineBanner, Avatar, useOnlineStatus } from "@unimate/ui";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useCallback, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useI18n } from "@unimate/i18n/react";
 import { body, head } from "@/app/fonts";
 import { useSignOut } from "./sign-out";
@@ -37,16 +37,50 @@ export function AppShell({ displayName, mode, children }: { displayName: string 
 
   const signOut = useSignOut(mode);
 
+  const [collapsed, setCollapsed] = useState(false);
+  const [tip, setTip] = useState<{ text: string; top: number; left: number } | null>(null);
+  useEffect(() => {
+    try { setCollapsed(localStorage.getItem("um.sidebar.collapsed") === "1"); } catch { /* storage blocked */ }
+  }, []);
+  function toggleSidebar() {
+    setTip(null);
+    setCollapsed((c) => {
+      try { localStorage.setItem("um.sidebar.collapsed", c ? "0" : "1"); } catch { /* storage blocked */ }
+      return !c;
+    });
+  }
+  // Fixed-position tooltip: the nav scroll container would clip an absolutely positioned bubble.
+  function showTip(e: React.SyntheticEvent) {
+    const el = (e.target as HTMLElement).closest<HTMLElement>(".navlink, .sidebar__search, .sidebar__toggle");
+    const text = el?.getAttribute("data-tip");
+    if (!collapsed || !el || !text) return setTip(null);
+    const r = el.getBoundingClientRect();
+    setTip({ text, top: r.top + r.height / 2, left: r.right + 10 });
+  }
+
   return (
-    <div className={`shell ${head.variable} ${body.className}`}>
+    <div className={`shell ${collapsed ? "shell--collapsed " : ""}${head.variable} ${body.className}`}>
       <a className="um-skip" href="#main">
         {t("common.skipToContent")}
       </a>
-      <aside className="sidebar">
-        <Link href={homeFor(mode)} className="brand">
-          <AppLogo kind="logo" layout="row" height={34} />
-        </Link>
-        <button type="button" className="sidebar__search" onClick={() => setPaletteOpen(true)}>
+      <aside id="app-sidebar" className="sidebar" onMouseOver={showTip} onMouseLeave={() => setTip(null)} onFocus={showTip} onBlur={() => setTip(null)}>
+        <div className="sidebar__top">
+          <Link href={homeFor(mode)} className="brand">
+            {collapsed ? <AppLogo kind="mark" height={32} /> : <AppLogo kind="logo" layout="row" height={34} />}
+          </Link>
+          <button
+            type="button"
+            className="sidebar__toggle"
+            onClick={toggleSidebar}
+            aria-expanded={!collapsed}
+            aria-controls="app-sidebar"
+            aria-label={t(collapsed ? "nav.expand" : "nav.collapse")}
+            data-tip={t(collapsed ? "nav.expand" : "nav.collapse")}
+          >
+            <Icon name="chevron-left" size={18} />
+          </button>
+        </div>
+        <button type="button" className="sidebar__search" onClick={() => setPaletteOpen(true)} data-tip={t("palette.open")} aria-label={t("palette.open")}>
           <Icon name="search" size={18} />
           <span>{t("palette.open")}</span>
           <kbd aria-hidden="true">{"Ctrl K"}</kbd>
@@ -56,7 +90,7 @@ export function AppShell({ displayName, mode, children }: { displayName: string 
             <div key={g.id} className="sidebar__group" role="group" aria-label={g.label ? t(g.label) : undefined}>
               {g.label ? <p className="sidebar__label" aria-hidden="true">{t(g.label)}</p> : null}
               {g.items.map(({ href, key, icon }) => (
-                <Link key={href} href={href} className="navlink" aria-current={current(href)}>
+                <Link key={href} href={href} className="navlink" aria-current={current(href)} data-tip={t(key)}>
                   <Icon name={icon} size={20} />
                   <span>{t(key)}</span>
                 </Link>
@@ -65,19 +99,19 @@ export function AppShell({ displayName, mode, children }: { displayName: string 
           ))}
         </nav>
         <div className="sidebar__foot">
-          <Link href={SETTINGS_ITEM.href} className="navlink" aria-current={current(SETTINGS_ITEM.href)}>
+          <Link href={SETTINGS_ITEM.href} className="navlink" aria-current={current(SETTINGS_ITEM.href)} data-tip={t(SETTINGS_ITEM.key)}>
             <Icon name={SETTINGS_ITEM.icon} size={20} />
             <span>{t(SETTINGS_ITEM.key)}</span>
           </Link>
-          <Link href="/?site=1" className="navlink">
+          <Link href="/?site=1" className="navlink" data-tip={t("nav.publicSite")}>
             <Icon name="home" size={20} />
             <span>{t("nav.publicSite")}</span>
           </Link>
-          <button type="button" className="navlink navlink--button" onClick={switchMode}>
+          <button type="button" className="navlink navlink--button" onClick={switchMode} data-tip={t(`landing.switchTo.${other}`)}>
             <Icon name="group" size={20} />
             <span>{t(`landing.switchTo.${other}`)}</span>
           </button>
-          <button type="button" className="navlink navlink--button" onClick={signOut}>
+          <button type="button" className="navlink navlink--button" onClick={signOut} data-tip={t("nav.signOut")}>
             <Icon name="sign-out" size={20} />
             <span>{t("nav.signOut")}</span>
           </button>
@@ -88,6 +122,7 @@ export function AppShell({ displayName, mode, children }: { displayName: string 
           </div>
           <LocaleSwitcher compact />
         </div>
+        {tip ? <div className="sidebar__tip" role="presentation" style={{ top: tip.top, left: tip.left }}>{tip.text}</div> : null}
       </aside>
       <div className="shell__main">
         <header className="mobilebar">

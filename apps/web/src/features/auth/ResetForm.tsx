@@ -71,8 +71,8 @@ export function ResetForm() {
           {t(formError)}
         </p>
       ) : null}
-      <Input name="password" type="password" autoComplete="new-password" label={t("auth.password")} hint={t("validation.passwordMin")} error={errors.password && t(errors.password)} />
-      <Input name="confirmPassword" type="password" autoComplete="new-password" label={t("auth.confirmPassword")} error={errors.confirmPassword && t(errors.confirmPassword)} />
+      <Input name="password" type="password" reveal={{ show: t("mobile.auth.showPassword"), hide: t("mobile.auth.hidePassword") }} autoComplete="new-password" label={t("auth.password")} hint={t("validation.passwordMin")} error={errors.password && t(errors.password)} />
+      <Input name="confirmPassword" type="password" reveal={{ show: t("mobile.auth.showPassword"), hide: t("mobile.auth.hidePassword") }} autoComplete="new-password" label={t("auth.confirmPassword")} error={errors.confirmPassword && t(errors.confirmPassword)} />
       <Button type="submit" block loading={busy} disabled={hasSession === null}>
         {t("auth.resetCta")}
       </Button>

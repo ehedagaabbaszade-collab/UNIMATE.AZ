@@ -1,4 +1,5 @@
 import { Icon } from "./icons";
+import { RevealInput } from "./interactive";
 import {
   forwardRef,
   useId,
@@ -80,19 +81,19 @@ export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 
   hint?: string;
   error?: string | undefined;
   id?: string;
+  /** Password fields: labels for the show/hide toggle (eye when hidden, crossed eye when shown). */
+  reveal?: { show: string; hide: string };
 }
-export const Input = forwardRef<HTMLInputElement, InputProps>(function Input({ label, hint, error, id, className, ...rest }, ref) {
+export const Input = forwardRef<HTMLInputElement, InputProps>(function Input({ label, hint, error, id, className, reveal, type, ...rest }, ref) {
   const ids = useFieldIds(id);
+  const props = { ...rest, id: ids.id, "aria-invalid": error ? true : undefined, "aria-describedby": describedBy(ids, hint, error) };
   return (
     <FieldShell label={label} hint={hint} error={error} ids={ids}>
-      <input
-        ref={ref}
-        id={ids.id}
-        className={cx("um-input", className)}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={describedBy(ids, hint, error)}
-        {...rest}
-      />
+      {reveal ? (
+        <RevealInput ref={ref} reveal={reveal} className={cx("um-input", "um-input--reveal", className)} {...props} />
+      ) : (
+        <input ref={ref} type={type} className={cx("um-input", className)} {...props} />
+      )}
     </FieldShell>
   );
 });

@@ -1,4 +1,5 @@
-import { DEFAULT_POMODORO_XP, pomodoroXp } from "@unimate/core";
+import { DEFAULT_FOCUS_PLAN, DEFAULT_POMODORO_XP, FOCUS_LIMITS, FOCUS_PRESETS, clampMinutes, pomodoroXp, type FocusPlan } from "@unimate/core";
+import type { MessageKey } from "@unimate/i18n";
 import { zonedDayStart, zonedDayStartOffset } from "@unimate/i18n";
 import { useI18n } from "@unimate/i18n/react";
 import * as Notifications from "expo-notifications";
@@ -7,7 +8,7 @@ import { Animated, Platform, Pressable, ScrollView, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 import FocusLock, { type FocusLockApp, type FocusLockStatus } from "../../../modules/focus-lock";
 import { AppText, Button, Card, Dialog, ExpandCard, Input, Notice, Segmented, Skeleton, useToast } from "../../components/ui";
-import { PRESETS, clampMinutes, durationMs, parsePersisted, planFor, recover, type PersistedFocus, type PresetId } from "../../lib/focus-session";
+import { durationMs, parsePersisted, planFor, recover, type PersistedFocus, type PresetId } from "../../lib/focus-session";
 import type { StudySessionRow } from "../../lib/db";
 import { easings, haptic, useReducedMotion } from "../../lib/motion";
 import { KEYS, kv } from "../../lib/storage";
@@ -17,6 +18,12 @@ import { useUser } from "../../state/session";
 import { useTheme } from "../../theme/ThemeProvider";
 
 const MODES: TimerMode[] = ["work", "shortBreak", "longBreak"];
+const PRESET_LABEL: Record<string, MessageKey> = { classic: "focus.presetClassic", deep: "focus.presetDeep", sprint: "focus.presetSprint", custom: "focus.custom" };
+const CUSTOM_FIELDS: { key: keyof FocusPlan; label: MessageKey }[] = [
+  { key: "workMin", label: "focus.customMin" },
+  { key: "shortMin", label: "focus.customShort" },
+  { key: "longMin", label: "focus.customLong" },
+];
 const END_ID = "um-focus-end";
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -69,11 +76,12 @@ export function Pomodoro() {
   const { user, supabase: sb } = useUser();
   const { toast } = useToast();
   const { theme } = useTheme();
-  const [preset, setPreset] = useState<PresetId>("25-5");
-  const [custom, setCustom] = useState({ workMin: 30, breakMin: 5 });
+  const [preset, setPreset] = useState<PresetId>("classic");
+  const [custom, setCustom] = useState<FocusPlan>(DEFAULT_FOCUS_PLAN);
   const [mode, setMode] = useState<TimerMode>("work");
   const [running, setRunning] = useState(false);
   const [remaining, setRemaining] = useState(25 * 60_000);
+  const [planned, setPlanned] = useState(25 * 60_000);
   const [blocks, setBlocks] = useState(0);
   const [lastXp, setLastXp] = useState<number | null>(null);
   const [lockWanted, setLockWanted] = useState(false);
@@ -141,6 +149,7 @@ export function Pomodoro() {
     (m: TimerMode, p = plan) => {
       setMode(m);
       setRemaining(durationMs(m, p));
+      setPlanned(durationMs(m, p));
       setRunning(false);
     },
     [plan],
@@ -153,7 +162,7 @@ export function Pomodoro() {
       await FocusLock.stopBlocking();
       setLockActive(false);
       if (finished === "work") {
-        await save(Math.floor(durationMs("work", plan) / 1000));
+        await save(Math.floor(planned / 1000));
         setBlocks((b) => b + 1);
       }
       const next = nextMode(finished, finished === "work" ? blocks + 1 : blocks);
@@ -162,7 +171,7 @@ export function Pomodoro() {
       haptic.success();
       toast(t(finished === "work" ? "focus.doneFocus" : "focus.doneBreak"), "info");
     },
-    [blocks, goTo, plan, save, t, toast],
+    [blocks, goTo, planned, save, t, toast],
   );
 
   // tick from the wall clock
@@ -187,6 +196,7 @@ export function Pomodoro() {
         setBlocks(saved.blocks);
         setLockWanted(saved.lock);
         setMode(saved.mode);
+        setPlanned(saved.plannedMs ?? durationMs(saved.mode, planFor(saved.preset, saved.custom)));
         if (saved.startedAt) startedAt.current = new Date(saved.startedAt);
         const rec = recover(saved, Date.now());
         if (rec.kind === "running") {
@@ -202,7 +212,10 @@ export function Pomodoro() {
           setRemaining(0);
           setRunning(true);
         }
-      } else setRemaining(durationMs("work", planFor("25-5", { workMin: 30, breakMin: 5 })));
+      } else {
+        setRemaining(durationMs("work", DEFAULT_FOCUS_PLAN));
+        setPlanned(durationMs("work", DEFAULT_FOCUS_PLAN));
+      }
       setHydrated(true);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -211,7 +224,7 @@ export function Pomodoro() {
   // persist on structural changes (not every tick: the wall-clock endAt is enough to rebuild the timer)
   useEffect(() => {
     if (!hydrated) return;
-    const s: PersistedFocus = { v: 1, preset, custom, mode, endAt: running ? endAt.current : null, remainingMs: remaining, startedAt: startedAt.current?.toISOString() ?? null, blocks, lock: lockWanted };
+    const s: PersistedFocus = { v: 1, preset, custom, mode, endAt: running ? endAt.current : null, remainingMs: remaining, plannedMs: planned, startedAt: startedAt.current?.toISOString() ?? null, blocks, lock: lockWanted };
     void kv.setItem(KEYS.focus, JSON.stringify(s)).catch(() => undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated, preset, custom, mode, running, blocks, lockWanted]);
@@ -237,16 +250,18 @@ export function Pomodoro() {
     void applyLock(mode, 0, false);
     startedAt.current = null;
     setRemaining(durationMs(mode, plan));
+    setPlanned(durationMs(mode, plan));
   }
   async function finishEarly() {
     setConfirmEnd(false);
-    const secs = focusedSeconds(durationMs("work", plan), running ? remainingMs(endAt.current, Date.now()) : remaining);
+    const secs = focusedSeconds(planned, running ? remainingMs(endAt.current, Date.now()) : remaining);
     setRunning(false);
     cancelEnd();
     await applyLock("work", 0, false);
     await save(secs);
     startedAt.current = null;
     setRemaining(durationMs("work", plan));
+    setPlanned(durationMs("work", plan));
   }
   async function emergencyExit() {
     haptic.warning();
@@ -261,17 +276,25 @@ export function Pomodoro() {
     startedAt.current = null;
     goTo(m);
   }
+  /** A preset/custom change is stored at once; an untouched idle timer follows it, otherwise it applies on the next reset or mode switch. */
   function pickPreset(p: PresetId) {
-    if (running) return;
     setPreset(p);
+    if (running || remaining !== planned) return;
     startedAt.current = null;
     setMode("work");
-    setRemaining(durationMs("work", planFor(p, custom)));
+    const ms = durationMs("work", planFor(p, custom));
+    setRemaining(ms);
+    setPlanned(ms);
   }
-  function setCustomPart(part: "workMin" | "breakMin", raw: string) {
-    const n = clampMinutes(Number(raw.replace(/\D/g, "")) || 1, 1, part === "workMin" ? 240 : 60);
-    setCustom({ ...custom, [part]: n });
-    if (!running && mode === "work" && part === "workMin") setRemaining(n * 60_000);
+  function setCustomPart(part: keyof FocusPlan, raw: string) {
+    const n = clampMinutes(Number(raw.replace(/\D/g, "")) || 1, FOCUS_LIMITS[part]);
+    const next = { ...custom, [part]: n };
+    setCustom(next);
+    if (preset === "custom" && !running && remaining === planned) {
+      const ms = durationMs(mode, next);
+      setRemaining(ms);
+      setPlanned(ms);
+    }
   }
 
   async function enableLock() {
@@ -304,29 +327,32 @@ export function Pomodoro() {
     void refreshLock();
   }
 
-  const planned = durationMs(mode, plan);
   const pristine = remaining === planned;
-  const presetLabel = (id: PresetId) => (id === "custom" ? t("focus.custom") : id.replace("-", "/"));
+  const presetLabel = (id: PresetId) => t(PRESET_LABEL[id] as MessageKey);
   const lockProblem = lockWanted && !lockActive ? (!lockStatus?.supported ? t("focus.lockNeedsBuild") : !lockStatus.authorized ? t("focus.lockNeedsPermission") : null) : null;
-  const presetIds: PresetId[] = [...PRESETS.map((p) => p.id), "custom"];
+  const presetIds: PresetId[] = [...FOCUS_PRESETS.map((p) => p.id), "custom"];
 
   return (
     <View style={{ gap: 16 }}>
-      <AppText muted>{t("focus.subtitle")}</AppText>
+      <AppText muted>{t("focus.subtitlePlan", { work: plan.workMin, brk: plan.shortMin })}</AppText>
       <Card style={{ gap: 16 }}>
         <AppText variant="label" muted>
           {t("focus.presets")}
         </AppText>
         <Segmented label={t("focus.presets")} value={preset} onChange={pickPreset} options={presetIds.map((id) => ({ value: id, label: presetLabel(id) }))} />
         {preset === "custom" ? (
-          <View style={{ flexDirection: "row", gap: 12 }}>
-            <View style={{ flex: 1 }}>
-              <Input label={t("focus.customMin")} keyboardType="number-pad" value={String(custom.workMin)} onChangeText={(v) => setCustomPart("workMin", v)} editable={!running} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Input label={t("focus.customBreak")} keyboardType="number-pad" value={String(custom.breakMin)} onChangeText={(v) => setCustomPart("breakMin", v)} editable={!running} />
-            </View>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
+            {CUSTOM_FIELDS.map(({ key, label }) => (
+              <View key={key} style={{ flexGrow: 1, flexBasis: 96, minWidth: 0 }}>
+                <Input label={t(label)} keyboardType="number-pad" value={String(custom[key])} onChangeText={(v) => setCustomPart(key, v)} />
+              </View>
+            ))}
           </View>
+        ) : null}
+        {(running || remaining !== planned) && planned !== durationMs(mode, plan) ? (
+          <AppText variant="caption" muted>
+            {t("focus.planNote")}
+          </AppText>
         ) : null}
         <Segmented label={t("focus.title")} value={mode} onChange={pickMode} options={MODES.map((m) => ({ value: m, label: t(`focus.${m}`) }))} />
         <Ring progress={planned > 0 ? (planned - remaining) / planned : 0} label={`${t("focus.remaining")}: ${formatClock(remaining)}`}>

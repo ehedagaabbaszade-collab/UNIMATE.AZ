@@ -300,3 +300,10 @@ textarea.um-input { min-height: 96px; resize: vertical; }
 .um-filetile { display: inline-grid; place-items: center; flex: none; border-radius: 22%; color: #fff; font-weight: 800; letter-spacing: 0.02em; line-height: 1; font-family: var(--font-sans); }
 .um-langchip { display: inline-flex; align-items: center; gap: 6px; min-height: 24px; padding: 0 10px 0 8px; border-radius: var(--radius-full); border: 1px solid var(--border-strong); background: var(--surface-2); color: var(--text); font-size: var(--text-xs); font-weight: 700; letter-spacing: 0.04em; line-height: 1; }
 .um-langchip::before { content: ""; width: 4px; height: 14px; border-radius: 2px; background: var(--chip-accent, var(--um-indigo)); }
+
+/* Password show/hide toggle inside the field. */
+.um-input-wrap { position: relative; min-width: 0; }
+.um-input-wrap .um-input--reveal { width: 100%; padding-inline-end: 48px; }
+.um-input-reveal { position: absolute; inset-block: 0; inset-inline-end: 4px; display: grid; place-items: center; width: 44px; border: 0; background: transparent; color: var(--text-muted); cursor: pointer; border-radius: 10px; }
+.um-input-reveal:hover, .um-input-reveal[aria-pressed="true"] { color: var(--text); }
+.um-input-reveal:focus-visible { outline: 2px solid var(--focus); outline-offset: -4px; }

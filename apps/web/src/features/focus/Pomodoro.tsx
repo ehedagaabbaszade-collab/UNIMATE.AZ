@@ -1,16 +1,24 @@
 "use client";
 
-import { Button, Card, ProgressRing, Skeleton, useToast } from "@unimate/ui";
-import { DEFAULT_POMODORO_XP, pomodoroXp } from "@unimate/core";
+import { Button, Card, Input, ProgressRing, Skeleton, useToast } from "@unimate/ui";
+import { DEFAULT_FOCUS_PREF, DEFAULT_POMODORO_XP, FOCUS_LIMITS, FOCUS_PRESETS, clampMinutes, focusPrefSchema, planDurationMs, planFor, pomodoroXp, type FocusPlan, type FocusPresetId } from "@unimate/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useUser } from "@/components/user";
 import { useI18n } from "@unimate/i18n/react";
+import type { MessageKey } from "@unimate/i18n";
 import type { StudySessionRow } from "@/lib/db";
+import { useLocalValue } from "@/lib/local-value";
 import { getBrowserClient } from "@/lib/supabase/browser";
 import { unwrap, useAsync } from "@/lib/use-async";
-import { DURATION_MS, focusedSeconds, formatClock, nextMode, remainingMs, type TimerMode } from "./timer";
+import { focusedSeconds, formatClock, nextMode, remainingMs, type TimerMode } from "./timer";
 
 const MODES: TimerMode[] = ["work", "shortBreak", "longBreak"];
+const PRESET_LABEL: Record<Exclude<FocusPresetId, "custom">, MessageKey> = { classic: "focus.presetClassic", deep: "focus.presetDeep", sprint: "focus.presetSprint" };
+const CUSTOM_FIELDS: { key: keyof FocusPlan; label: MessageKey }[] = [
+  { key: "workMin", label: "focus.customMin" },
+  { key: "shortMin", label: "focus.customShort" },
+  { key: "longMin", label: "focus.customLong" },
+];
 
 export function Pomodoro() {
   const { t, dateTime, number } = useI18n();
@@ -18,11 +26,24 @@ export function Pomodoro() {
   const { toast } = useToast();
   const [mode, setMode] = useState<TimerMode>("work");
   const [running, setRunning] = useState(false);
-  const [remaining, setRemaining] = useState(DURATION_MS.work);
+  const pref = useLocalValue(`um.focus.plan.${user.id}`, focusPrefSchema, DEFAULT_FOCUS_PREF);
+  const plan = planFor(pref.value);
+  const dur = (m: TimerMode) => planDurationMs(m, plan);
+  const [remaining, setRemaining] = useState(dur("work"));
+  // length of the block on screen: fixed when it is set up, so a plan change never alters a running or paused block
+  const [planned, setPlanned] = useState(dur("work"));
   const [lastXp, setLastXp] = useState<number | null>(null);
   const [blocks, setBlocks] = useState(0);
   const endAt = useRef(0);
   const startedAt = useRef<Date | null>(null);
+
+  // stored choice arrives after mount: adopt it while the timer is still untouched
+  useEffect(() => {
+    if (!pref.ready || running || remaining !== planned) return;
+    setRemaining(dur(mode));
+    setPlanned(dur(mode));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pref.ready]);
 
   const sessions = useAsync<StudySessionRow[]>(async () => {
     const since = new Date();
@@ -54,16 +75,18 @@ export function Pomodoro() {
     async (finished: TimerMode) => {
       setRunning(false);
       if (finished === "work") {
-        await save(focusedSeconds(DURATION_MS.work, 0));
+        await save(focusedSeconds(planned, 0));
         setBlocks((b) => b + 1);
       }
       const next = nextMode(finished, finished === "work" ? blocks + 1 : blocks);
       setMode(next);
-      setRemaining(DURATION_MS[next]);
+      setRemaining(dur(next));
+      setPlanned(dur(next));
       startedAt.current = null;
       toast(t("focus.notifyDone"), "info");
     },
-    [blocks, save, t, toast],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [blocks, planned, plan.workMin, plan.shortMin, plan.longMin, save, t, toast],
   );
 
   useEffect(() => {
@@ -87,32 +110,64 @@ export function Pomodoro() {
   }
   function reset() {
     setRunning(false);
-    setRemaining(DURATION_MS[mode]);
+    setRemaining(dur(mode));
+    setPlanned(dur(mode));
     startedAt.current = null;
   }
   async function finishEarly() {
-    const secs = focusedSeconds(DURATION_MS.work, running ? remainingMs(endAt.current, Date.now()) : remaining);
+    const secs = focusedSeconds(planned, running ? remainingMs(endAt.current, Date.now()) : remaining);
     setRunning(false);
     await save(secs);
-    setRemaining(DURATION_MS.work);
+    setRemaining(dur("work"));
+    setPlanned(dur("work"));
     startedAt.current = null;
   }
   function pick(m: TimerMode) {
     if (running) return;
     setMode(m);
-    setRemaining(DURATION_MS[m]);
+    setRemaining(dur(m));
+    setPlanned(dur(m));
     startedAt.current = null;
   }
-
-  const planned = DURATION_MS[mode];
+  /** Persist a new choice; an untouched idle timer follows it at once, otherwise it applies on the next reset or mode switch. */
+  function choose(next: (p: typeof pref.value) => typeof pref.value) {
+    if (!pref.update(next)) return;
+    if (!running && remaining === planned) {
+      const p = planFor(next(pref.value));
+      const ms = planDurationMs(mode, p);
+      setRemaining(ms);
+      setPlanned(ms);
+    }
+  }
   const pristine = remaining === planned;
   return (
     <div className="stack-lg">
       <div className="page-head">
         <h1>{t("focus.title")}</h1>
-        <p>{t("focus.subtitle")}</p>
+        <p>{t("focus.subtitlePlan", { work: plan.workMin, brk: plan.shortMin })}</p>
       </div>
       <Card className="timer-card">
+        <div className="seg__row" role="group" aria-label={t("focus.presets")}>
+          {[...FOCUS_PRESETS.map((p) => p.id), "custom" as const].map((id) => (
+            <button key={id} type="button" className="um-tab" aria-pressed={pref.value.preset === id} onClick={() => choose((v) => ({ ...v, preset: id }))}>
+              {id === "custom" ? t("focus.custom") : t(PRESET_LABEL[id])}
+            </button>
+          ))}
+        </div>
+        {pref.value.preset === "custom" ? (
+          <div className="grid-2" style={{ width: "100%", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 140px), 1fr))", textAlign: "start" }}>
+            {CUSTOM_FIELDS.map(({ key, label }) => {
+              const [lo, hi] = FOCUS_LIMITS[key];
+              const val = pref.value.custom[key];
+              return (
+                <div key={`${key}-${val}`} style={{ minWidth: 0 }}>
+                  <Input type="number" inputMode="numeric" min={lo} max={hi} label={t(label)} defaultValue={val} onBlur={(e) => choose((v) => ({ ...v, custom: { ...v.custom, [key]: clampMinutes(Number(e.target.value), [lo, hi]) } }))} />
+                </div>
+              );
+            })}
+          </div>
+        ) : null}
+        {(running || remaining !== planned) && planned !== dur(mode) ? <p className="um-hint">{t("focus.planNote")}</p> : null}
         <div className="seg__row" role="group" aria-label={t("focus.title")}>
           {MODES.map((m) => (
             <button key={m} type="button" className="um-tab" aria-pressed={mode === m} disabled={running} onClick={() => pick(m)}>

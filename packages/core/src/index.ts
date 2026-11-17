@@ -10,6 +10,7 @@ export * from "./planner/gpa";
 export * from "./validation/upload";
 export * from "./gamification/xp";
 export * from "./gamification/pomodoro";
+export * from "./gamification/focus-plan";
 export * from "./gamification/level";
 export * from "./gamification/progress";
 export * from "./study/srs";

@@ -3,6 +3,8 @@
 import { Icon } from "./icons";
 import {
   createContext,
+  forwardRef,
+  type InputHTMLAttributes,
   useCallback,
   useContext,
   useEffect,
@@ -161,3 +163,16 @@ function subscribeOnline(cb: () => void) {
 export function useOnlineStatus(): boolean {
   return useSyncExternalStore(subscribeOnline, () => navigator.onLine, () => true);
 }
+
+// ---------------------------------------------------------------- password reveal (client state; Input stays server-safe)
+export const RevealInput = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement> & { reveal: { show: string; hide: string } }>(function RevealInput({ reveal, ...rest }, ref) {
+  const [shown, setShown] = useState(false);
+  return (
+    <div className="um-input-wrap">
+      <input ref={ref} {...rest} type={shown ? "text" : "password"} />
+      <button type="button" className="um-input-reveal" aria-label={shown ? reveal.hide : reveal.show} aria-pressed={shown} onClick={() => setShown((v) => !v)}>
+        <Icon name={shown ? "eye-off" : "eye"} size={20} />
+      </button>
+    </div>
+  );
+});

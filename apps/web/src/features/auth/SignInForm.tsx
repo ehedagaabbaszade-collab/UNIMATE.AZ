@@ -55,7 +55,7 @@ export function SignInForm({ as, next, callbackError }: { as: AppMode; next?: st
         </p>
       ) : null}
       <Input name="email" type="email" autoComplete="email" label={t("auth.email")} error={errors.email && t(errors.email)} />
-      <Input name="password" type="password" autoComplete="current-password" label={t("auth.password")} error={errors.password && t(errors.password)} />
+      <Input name="password" type="password" reveal={{ show: t("mobile.auth.showPassword"), hide: t("mobile.auth.hidePassword") }} autoComplete="current-password" label={t("auth.password")} error={errors.password && t(errors.password)} />
       <Button type="submit" block loading={busy}>
         {t("auth.signInCta")}
       </Button>

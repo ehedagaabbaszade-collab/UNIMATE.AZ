@@ -78,8 +78,8 @@
 
 /* Language pill: shows the short code (AZ / EN / TR / RU), centred; the full names appear in the opened list.
    The select keeps its pill box (hover, focus ring, click target) but its own text is hidden under the code. */
-.locale__select { width: 104px; color: transparent !important; text-shadow: none; }
+.locale__select { width: 104px; color: transparent !important; -webkit-text-fill-color: transparent; text-shadow: none; }
 .locale--sm .locale__select { width: 92px; }
 .sidebar .locale__select { width: 100%; }
-.locale__code { position: absolute; top: 50%; left: 38px; transform: translateY(-50%); pointer-events: none; font-family: var(--font-body, "Geist"), system-ui, sans-serif; font-size: 13px; font-weight: 600; line-height: 1; letter-spacing: 0.06em; color: var(--sel-fg, var(--text)); }
+.locale__code { z-index: 2; position: absolute; top: 50%; left: 38px; transform: translateY(-50%); pointer-events: none; font-family: var(--font-body, "Geist"), system-ui, sans-serif; font-size: 13px; font-weight: 600; line-height: 1; letter-spacing: 0.06em; color: var(--sel-fg, var(--text)); }
 .locale--sm .locale__code { left: 32px; }

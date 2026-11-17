@@ -59,7 +59,7 @@ export function ResetForm() {
     );
 
   return (
-    <form onSubmit={onSubmit} noValidate className="stack">
+    <form method="post" onSubmit={onSubmit} noValidate className="stack">
       <h1>{t("auth.resetTitle")}</h1>
       {done ? (
         <p className="ok-box" role="status">

@@ -36,7 +36,7 @@ export function ForgotForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate className="stack">
+    <form method="post" onSubmit={onSubmit} noValidate className="stack">
       <div>
         <h1>{t("auth.forgotTitle")}</h1>
         <p className="um-muted">{t("auth.forgotBody")}</p>

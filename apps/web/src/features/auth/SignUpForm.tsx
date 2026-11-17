@@ -67,7 +67,7 @@ export function SignUpForm({ as }: { as: AppMode }) {
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate className="stack">
+    <form method="post" onSubmit={onSubmit} noValidate className="stack">
       <RoleSwitch as={as} path="/sign-up" />
       <div>
         <h1>{t(as === "teacher" ? "auth.teacherSignUpTitle" : "auth.signUpTitle")}</h1>

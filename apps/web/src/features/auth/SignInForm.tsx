@@ -43,7 +43,7 @@ export function SignInForm({ as, next, callbackError }: { as: AppMode; next?: st
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate className="stack">
+    <form method="post" onSubmit={onSubmit} noValidate className="stack">
       <RoleSwitch as={as} path="/sign-in" {...(next ? { next } : {})} />
       <div>
         <h1>{t(as === "teacher" ? "auth.teacherSignInTitle" : "auth.signInTitle")}</h1>

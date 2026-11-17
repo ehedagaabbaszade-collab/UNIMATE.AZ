@@ -72,7 +72,7 @@ export const ACTIONS: readonly NavItem[] = [
   { href: "/notes/upload", key: "palette.shareNote", icon: "notes" },
 ];
 
-export const PAGES: readonly NavItem[] = [...NAV_GROUPS.flatMap((g) => g.items), SETTINGS_ITEM, { href: "/notifications", key: "notifications.title", icon: "notifications" }];
+export const PAGES: readonly NavItem[] = [...NAV_GROUPS.flatMap((g) => g.items), { href: "/profile", key: "brand.module.profile", icon: "profile" }, SETTINGS_ITEM, { href: "/notifications", key: "notifications.title", icon: "notifications" }];
 
 export const isActive = (pathname: string, href: string) => pathname === href || pathname.startsWith(`${href}/`);
 

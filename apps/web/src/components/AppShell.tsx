@@ -99,6 +99,9 @@ export function AppShell({ displayName, mode, children }: { displayName: string 
               <Icon name="search" size={22} />
             </button>
             <NotificationBell unread={unread} />
+            <Link href="/profile" className="iconbtn" aria-label={t("brand.module.profile")}>
+              <Avatar name={displayName} size={28} />
+            </Link>
           </div>
         </header>
         <OfflineBanner online={online} message={t("common.offline")} />

@@ -646,10 +646,3 @@ html { scroll-behavior: smooth; }
 @keyframes theme-reveal { from { clip-path: circle(0 at var(--vt-x, 50%) var(--vt-y, 0)); } to { clip-path: circle(150vmax at var(--vt-x, 50%) var(--vt-y, 0)); } }
 @media (prefers-reduced-motion: reduce) { .theme-switch svg { transition: none; } ::view-transition-new(root) { animation: none; } }
 
-/* Row logo on light backgrounds: there is no official light horizontal lockup, so show the tile + wordmark pair and
-   darken the white wordmark (the stacked fallback is unreadably small at navbar height). */
-.um-brand--row.um-brand--auto .um-brand__light { display: none; }
-.um-brand--row.um-brand--auto .um-brand__dark { display: inline-flex; }
-.um-brand--row.um-brand--auto .um-brand__dark img + img { filter: brightness(0) opacity(0.88); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .um-brand--row.um-brand--auto .um-brand__dark img + img { filter: none; } }
-:root[data-theme="dark"] .um-brand--row.um-brand--auto .um-brand__dark img + img { filter: none; }

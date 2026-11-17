@@ -11,10 +11,10 @@ icon data and tokens are shaped so they need no new drawings.
 
 | Asset (`apps/*/public/brand/`) | Size | Use |
 | - | - | - |
-| `logo-light.png` | 800x665 | Primary stacked logo (mark + UNIMATE.AZ + "Tələbə Platforması") on light backgrounds. Auth, landing, onboarding, error screens, emails (`{{ .SiteURL }}/brand/logo-light.png`). |
+| `full-logo.png` / `full-logo-white.png` | 800x678 | Official stacked logo (gradient for light, white for dark backgrounds). Emails use `{{ .SiteURL }}/brand/full-logo.png`. |
 | `mark.png` | 320x380 | Brandmark (graduation cap "U") on light backgrounds. Small spaces. |
-| `mark-tile.png` | 320x320 | Brandmark on its rounded tile, for dark backgrounds. |
-| `wordmark-white.png` | 640x113 | White "UNIMATE.AZ" wordmark for dark backgrounds, always next to `mark-tile.png`. |
+| `mark-white.png` | 320x375 | Official Icon_Only, white, for dark backgrounds. |
+| `wordmark.png` / `wordmark-white.png` | 640x131 | Official wordmark (gradient / white). |
 | `og-image.png`, `icons/*`, `app/icon.png`, `app/apple-icon.png` | | Social card, PWA/maskable icons, favicons. Generated. |
 
 Rules: keep clear space of at least half the mark height; never recolour, stretch, rotate, add effects or place the light logo on a
@@ -24,9 +24,9 @@ Components (`packages/ui/src/Brand.tsx`, exported from `@unimate/ui`):
 
 - `BrandLogo({ label, variant, layout, height })`: `variant` is `light`, `dark` or `auto` (both artworks are rendered and CSS switches them with the
   same selectors as the theme tokens, so `data-theme` overrides and `prefers-color-scheme` both work with no JS and no flash).
-  `layout="stacked"` (default): light = `logo-light.png`; dark = `mark-tile.png` above `wordmark-white.png`.
+  `layout="stacked"` (default): light = `full-logo.png`; dark = `full-logo-white.png`. `layout="row"`: mark + wordmark per theme.
   `layout="row"`: dark lockup side by side (used in the always-dark sidebar and mobile top bar). There is no official horizontal light lockup.
-- `BrandMark({ label, variant, height })`: light = `mark.png`, dark = `mark-tile.png`.
+- `BrandMark({ label, variant, height })`: light = `mark.png`, dark = `mark-white.png`.
 - Both set explicit `width`/`height` from the real PNG sizes (no layout shift), `alt=""` on the images and one `role="img"` + `aria-label` on the wrapper.
 - In `apps/web` use `AppLogo` (`components/brand.tsx`): it supplies the translated label (`brand.logo`, `brand.mark`).
 
@@ -101,7 +101,7 @@ and app icon files. Run it only when the originals change. Then re-read PNG size
 
 - The three originals were received as WebP (board 2000x1125, not 3840x2160). True PNG/SVG originals are needed for a lossless pipeline and a vector logo.
 - There is no SVG logo; the logo is a PNG at 800 px wide, fine up to about 400 CSS px on 2x screens.
-- The native dark-mode logo is a derivative: `mark-tile.png` (the mark on a white-ish tile) plus `wordmark-white.png`. It is not an official dark lockup; ask the brand owner to confirm.
+- All logos come from `assets/branding/official` (the user's brand pack) via `npm run brand:build`; never redraw or recolour them.
 - No official horizontal light lockup exists, so light surfaces use the stacked logo or the mark alone.
 - Module tile colours for Notes, Gamification and Career follow the board's warm/purple tints, darkened for 3:1 contrast with the white glyph; the glyphs are redrawn in a single line style and are not pixel copies of the board's 3D icons.
 - Language chips are text, not flags.

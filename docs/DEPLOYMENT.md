@@ -13,7 +13,7 @@ In `supabase/functions`: `process-document`, `ask-document`, `generate-study-mat
 ```
 supabase functions deploy <name>
 ```
-Secrets (`supabase secrets set NAME=value`), server-only: `SUPABASE_SERVICE_ROLE_KEY`, `ALLOWED_ORIGIN` (exact web origin, required, no `*`), `WORKER_SECRET` (long random), and the AI variables `AI_PROVIDER`, `AI_API_KEY`, `AI_BASE_URL`, `EMBED_API_KEY`, `EMBED_BASE_URL`, `AI_EMBED_MODEL`, `AI_EMBED_DIMENSIONS` (1536), optional `TESSERACT_LANG_PATH`. The functions read `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` (`_shared/runtime.ts`); whether hosted Supabase injects the first two and the service key automatically was not verified, so set any that are missing. Model names and prices are DB config, not secrets.
+Secrets (`supabase secrets set NAME=value`), server-only: `SUPABASE_SERVICE_ROLE_KEY`, `ALLOWED_ORIGIN` (comma-separated list of exact web origins, required, no `*`; the request Origin is echoed only if listed, otherwise the first entry is sent; a trailing comma or empty entry makes every function fail at start-up, which the browser reports as a CORS error), `WORKER_SECRET` (long random), and the AI variables `AI_PROVIDER`, `AI_API_KEY`, `AI_BASE_URL`, `EMBED_API_KEY`, `EMBED_BASE_URL`, `AI_EMBED_MODEL`, `AI_EMBED_DIMENSIONS` (1536), optional `TESSERACT_LANG_PATH`. The functions read `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` (`_shared/runtime.ts`); whether hosted Supabase injects the first two and the service key automatically was not verified, so set any that are missing. Model names and prices are DB config, not secrets.
 
 ## 3. Scheduled work
 Nothing in the repository schedules these yet; you must.

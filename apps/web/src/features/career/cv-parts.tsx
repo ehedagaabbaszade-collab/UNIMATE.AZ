@@ -15,9 +15,11 @@ export function AiWrite({ kind, language, context, current, onText }: { kind: Cv
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const run = async () => {
+    const ctx = Object.fromEntries(Object.entries(context).map(([k, v]) => [k, v.trim().slice(0, 200)]).filter(([, v]) => v));
+    // the server refuses to write from nothing (no invented facts); say so instead of a generic failure
+    if (!Object.keys(ctx).length && !current.trim()) return setError(t("career.cv.ai.needContext"));
     setBusy(true);
     setError(null);
-    const ctx = Object.fromEntries(Object.entries(context).map(([k, v]) => [k, v.trim().slice(0, 200)]).filter(([, v]) => v));
     const r = await cvDescribe({ kind, language, context: ctx, ...(current.trim() ? { current: current.trim().slice(0, 1500) } : {}) });
     setBusy(false);
     if (r.ok) onText(r.data.text);

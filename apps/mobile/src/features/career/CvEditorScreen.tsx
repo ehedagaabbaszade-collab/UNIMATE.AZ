@@ -66,6 +66,8 @@ function AiWrite({ kind, language, context, current, max, asLines, onText }: { k
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const run = async () => {
+    // the server refuses to write from nothing (no invented facts); say so instead of a generic failure
+    if (!Object.values(context).some((v) => v.trim()) && !current.trim()) return setMsg(t("career.cv.ai.needContext"));
     setBusy(true);
     setMsg("");
     const r = await cvDescribe({ kind, language, context, ...(current.trim() ? { current: current.slice(0, 1500) } : {}) });

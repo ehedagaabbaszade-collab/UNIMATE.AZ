@@ -4,18 +4,18 @@
 //
 // POST { cvId, opportunityId?, outputLanguage? } -> 200 { feedback, cached }
 import { cvFeedback, parseCvFeedbackRequest } from "@unimate/pipeline";
-import { authenticate, careerDeps, corsHeaders, errorResponse, json, readBody } from "../_shared/runtime.ts";
+import { authenticate, careerDeps, preflight, errorResponse, json, readBody } from "../_shared/runtime.ts";
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
+  if (req.method === "OPTIONS") return preflight(req);
+  if (req.method !== "POST") return json(req, 405, { error: "method_not_allowed" });
   try {
     const userId = await authenticate(req);
-    if (!userId) return json(401, { error: "unauthorized" });
+    if (!userId) return json(req, 401, { error: "unauthorized" });
     const q = parseCvFeedbackRequest(await readBody(req));
     const r = await cvFeedback(careerDeps(), { userId, cvId: q.cvId, opportunityId: q.opportunityId, outputLanguage: q.outputLanguage });
-    return json(200, { feedback: r.output, cached: r.cached });
+    return json(req, 200, { feedback: r.output, cached: r.cached });
   } catch (e) {
-    return errorResponse(e);
+    return errorResponse(req, e);
   }
 });

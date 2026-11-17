@@ -5,7 +5,7 @@
 // POST { action: "work" } + x-worker-secret (cron)      -> recovers stuck jobs, runs ONE queued job per invocation
 //   (a single job stays well inside the stale-lock window; cron calls again for the next one)
 import { documentJobRunner, submitDocument, TesseractOcrEngine } from "@unimate/pipeline";
-import { aiConfig, authenticate, corsHeaders, errorResponse, json, ocrLangPath, readBody, repository, safeEqual, storageReader, uuidField } from "../_shared/runtime.ts";
+import { aiConfig, authenticate, preflight, errorResponse, json, ocrLangPath, readBody, repository, safeEqual, storageReader, uuidField } from "../_shared/runtime.ts";
 
 declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void } | undefined;
 
@@ -18,22 +18,22 @@ const makeRunner = () => {
 };
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
+  if (req.method === "OPTIONS") return preflight(req);
+  if (req.method !== "POST") return json(req, 405, { error: "method_not_allowed" });
   try {
     const body = await readBody(req);
 
     if (body.action === "work") {
       const secret = Deno.env.get("WORKER_SECRET");
-      if (!secret || !safeEqual(req.headers.get("x-worker-secret") ?? "", secret)) return json(401, { error: "unauthorized" });
+      if (!secret || !safeEqual(req.headers.get("x-worker-secret") ?? "", secret)) return json(req, 401, { error: "unauthorized" });
       const runner = makeRunner();
       const recovered = await runner.recoverStuck(new Date());
       const r = await runner.runOnce(new Date());
-      return json(200, { recovered: recovered.length, results: r.status === "idle" ? [] : [r.status] });
+      return json(req, 200, { recovered: recovered.length, results: r.status === "idle" ? [] : [r.status] });
     }
 
     const userId = await authenticate(req);
-    if (!userId) return json(401, { error: "unauthorized" });
+    if (!userId) return json(req, 401, { error: "unauthorized" });
     const documentId = uuidField(body, "documentId");
 
     const { job, created } = await submitDocument({ repo: repository() }, { documentId, userId });
@@ -41,8 +41,8 @@ Deno.serve(async (req) => {
       const work = makeRunner().runOnce(new Date(), ["extract_text"]).catch((e) => console.error("job run failed", e instanceof Error ? e.name : "unknown"));
       if (typeof EdgeRuntime !== "undefined") EdgeRuntime.waitUntil(work);
     }
-    return json(202, { jobId: job.id, created });
+    return json(req, 202, { jobId: job.id, created });
   } catch (e) {
-    return errorResponse(e);
+    return errorResponse(req, e);
   }
 });

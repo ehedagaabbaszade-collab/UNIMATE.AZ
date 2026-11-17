@@ -18,7 +18,8 @@ import {
   RateLimitedError,
   SqlAiLedger,
   SqlCareerStore,
-  parseAllowedOrigin,
+  parseAllowedOrigins,
+  corsOriginFor,
   publicError,
   tesseractLangPathFromEnv,
   safeEqual,
@@ -38,16 +39,21 @@ export const BUCKET = "documents";
 
 export { safeEqual };
 
-// Fail closed: ALLOWED_ORIGIN must be an explicit origin. There is no "*" default (the function throws at start-up).
-export const corsHeaders = {
-  "access-control-allow-origin": parseAllowedOrigin(Deno.env.get("ALLOWED_ORIGIN")),
+// Fail closed: ALLOWED_ORIGIN must be an explicit comma-separated origin list. No "*" default (throws at start-up).
+const allowedOrigins = parseAllowedOrigins(Deno.env.get("ALLOWED_ORIGIN"));
+
+/** Fresh per-request CORS headers: echoes the request Origin only if allow-listed, else the first allowed origin. */
+export const corsHeadersFor = (req: Request): Record<string, string> => ({
+  "access-control-allow-origin": corsOriginFor(req.headers.get("origin"), allowedOrigins),
   vary: "Origin",
   "access-control-allow-headers": "authorization, content-type, x-client-info, apikey",
   "access-control-allow-methods": "POST, OPTIONS",
-};
+});
 
-export const json = (status: number, body: unknown): Response =>
-  new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "content-type": "application/json" } });
+export const json = (req: Request, status: number, body: unknown): Response =>
+  new Response(JSON.stringify(body), { status, headers: { ...corsHeadersFor(req), "content-type": "application/json" } });
+
+export const preflight = (req: Request): Response => new Response(null, { headers: corsHeadersFor(req) });
 
 /** Verifies the caller's JWT with Supabase Auth. Returns the user id, or null when missing/invalid. */
 export async function authenticate(req: Request): Promise<string | null> {
@@ -141,8 +147,8 @@ export function careerDeps() {
 }
 
 /** Maps pipeline errors to HTTP. Internal details are never returned. */
-export function errorResponse(e: unknown): Response {
-  if (e instanceof ProviderNotConfiguredError) return json(503, { error: "ai_not_configured" });
+export function errorResponse(req: Request, e: unknown): Response {
+  if (e instanceof ProviderNotConfiguredError) return json(req, 503, { error: "ai_not_configured" });
   if (e instanceof PipelineError) {
     const status =
       e.code === "not_found" ? 404 :
@@ -157,10 +163,10 @@ export function errorResponse(e: unknown): Response {
     // Client gets a fixed message for provider/enqueue/storage failures; the redacted detail goes to server logs only.
     console.error("pipeline error", sanitizeError(e));
     const pub = publicError(e);
-    return json(status, { error: pub.code, message: pub.message, ...(e instanceof RateLimitedError ? { retryAfterSeconds: e.retryAfterSeconds } : {}), ...(e instanceof BudgetExceededError ? { scope: e.scope, period: e.period } : {}) });
+    return json(req, status, { error: pub.code, message: pub.message, ...(e instanceof RateLimitedError ? { retryAfterSeconds: e.retryAfterSeconds } : {}), ...(e instanceof BudgetExceededError ? { scope: e.scope, period: e.period } : {}) });
   }
   console.error("unhandled", e instanceof Error ? e.name : "unknown"); // name only: no message/stack with possible secrets
-  return json(500, { error: "internal_error" });
+  return json(req, 500, { error: "internal_error" });
 }
 
 export async function readBody(req: Request): Promise<Record<string, unknown>> {

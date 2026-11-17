@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { PipelineError, publicError, sanitizeError } from "./errors";
 import { parseGenerateRequest } from "./generate";
 import { stripForeignUuids } from "./rag";
-import { parseAllowedOrigin, safeEqual } from "./security";
+import { corsOriginFor, parseAllowedOrigin, parseAllowedOrigins, safeEqual } from "./security";
 import { tesseractLangPathFromEnv } from "./ocr";
 
 describe("error leakage", () => {
@@ -64,6 +64,15 @@ describe("safeEqual / ALLOWED_ORIGIN / tesseract langPath", () => {
     expect(() => parseAllowedOrigin("not a url")).toThrow();
     expect(parseAllowedOrigin("https://app.example.com")).toBe("https://app.example.com");
     expect(parseAllowedOrigin("https://app.example.com/")).toBe("https://app.example.com");
+    expect(parseAllowedOrigins("http://localhost:3000, http://localhost:3011/,http://localhost:3000")).toEqual(["http://localhost:3000", "http://localhost:3011"]);
+    for (const bad of ["", "a,,b", "http://a.com,*", "http://a.com,nope", "http://a.com/x", "https://*.a.com"]) expect(() => parseAllowedOrigins(bad)).toThrow();
+    expect(() => parseAllowedOrigin("http://a.com,http://b.com")).toThrow();
+    const list = ["http://localhost:3000", "https://x.trycloudflare.com"];
+    expect(corsOriginFor("https://x.trycloudflare.com", list)).toBe("https://x.trycloudflare.com");
+    expect(corsOriginFor("https://evil.com", list)).toBe(list[0]);
+    expect(corsOriginFor(null, list)).toBe(list[0]);
+    expect(corsOriginFor("HTTP://LOCALHOST:3000", list)).toBe(list[0]);
+    expect(corsOriginFor("http://localhost:3000/", list)).toBe(list[0]);
   });
   it("tesseract langPath comes from env and must be https", () => {
     expect(tesseractLangPathFromEnv({})).toBeUndefined();

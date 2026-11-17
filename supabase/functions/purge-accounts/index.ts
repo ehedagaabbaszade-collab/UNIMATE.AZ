@@ -10,7 +10,7 @@
 // Any failure (including the storage cap) records the attempt via record_account_purge_failure and skips the user;
 // later users are still purged. The service-role key stays server-side (serviceClient reads it from the function env).
 import { purgeDueAccounts } from "@unimate/pipeline";
-import { BUCKET, corsHeaders, errorResponse, json, safeEqual, serviceClient } from "../_shared/runtime.ts";
+import { BUCKET, preflight, errorResponse, json, safeEqual, serviceClient } from "../_shared/runtime.ts";
 
 /**
  * Buckets with "<uid>/..." folders that the documents-bucket walk in the pipeline does not cover. avatars and resources
@@ -37,11 +37,11 @@ async function removeUserFolder(sb: ReturnType<typeof serviceClient>, bucket: st
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
+  if (req.method === "OPTIONS") return preflight(req);
+  if (req.method !== "POST") return json(req, 405, { error: "method_not_allowed" });
   try {
     const secret = Deno.env.get("WORKER_SECRET");
-    if (!secret || !safeEqual(req.headers.get("x-worker-secret") ?? "", secret)) return json(401, { error: "unauthorized" });
+    if (!secret || !safeEqual(req.headers.get("x-worker-secret") ?? "", secret)) return json(req, 401, { error: "unauthorized" });
 
     const sb = serviceClient();
     const rpc = async <T>(fn: string, args: Record<string, unknown>): Promise<T> => {
@@ -70,8 +70,8 @@ Deno.serve(async (req) => {
       },
       { limit: 25 },
     );
-    return json(200, summary);
+    return json(req, 200, summary);
   } catch (e) {
-    return errorResponse(e);
+    return errorResponse(req, e);
   }
 });

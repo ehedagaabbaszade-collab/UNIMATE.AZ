@@ -5,10 +5,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useState, type ReactNode } from "react";
 import { useI18n } from "@unimate/i18n/react";
-import { clearSchedule } from "@/features/planner/offline-cache";
-import { getBrowserClient } from "@/lib/supabase/browser";
 import { body, head } from "@/app/fonts";
-import { useUser } from "./user";
+import { useSignOut } from "./sign-out";
 import { AppLogo } from "./brand";
 import { NotificationBell, useUnreadCount } from "@/features/gamification/NotificationBell";
 import { LocaleSwitcher } from "./prefs";
@@ -21,7 +19,6 @@ export function AppShell({ displayName, mode, children }: { displayName: string 
   const pathname = usePathname();
   const router = useRouter();
   const online = useOnlineStatus();
-  const user = useUser();
   const unread = useUnreadCount();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const togglePalette = useCallback(() => setPaletteOpen((o) => !o), []);
@@ -38,12 +35,7 @@ export function AppShell({ displayName, mode, children }: { displayName: string 
     router.refresh();
   }
 
-  async function signOut() {
-    await clearSchedule(user.id); // do not leave one user's schedule on a shared device
-    await getBrowserClient().auth.signOut();
-    router.replace(mode === "teacher" ? "/sign-in?as=teacher" : "/sign-in");
-    router.refresh();
-  }
+  const signOut = useSignOut(mode);
 
   return (
     <div className={`shell ${head.variable} ${body.className}`}>
@@ -76,6 +68,10 @@ export function AppShell({ displayName, mode, children }: { displayName: string 
           <Link href={SETTINGS_ITEM.href} className="navlink" aria-current={current(SETTINGS_ITEM.href)}>
             <Icon name={SETTINGS_ITEM.icon} size={20} />
             <span>{t(SETTINGS_ITEM.key)}</span>
+          </Link>
+          <Link href="/?site=1" className="navlink">
+            <Icon name="home" size={20} />
+            <span>{t("nav.publicSite")}</span>
           </Link>
           <button type="button" className="navlink navlink--button" onClick={switchMode}>
             <Icon name="group" size={20} />

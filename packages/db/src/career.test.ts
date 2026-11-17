@@ -360,6 +360,14 @@ describe("cv_documents", () => {
     expect((await insert(S1, S1, JSON.stringify({ summary: "x".repeat(50_000) })))[0]!.id).toBeTruthy(); // positive control: big but under the cap
     await raw("delete from public.cv_documents where user_id = $1", [S1]);
   });
+  it("accepts the Europass sections (hobbies, honours, activities) and still rejects unknown keys", async () => {
+    const ok = JSON.stringify({ hobbies: [{ title: "Chess" }], honours: [{ title: "Award" }], activities: [{ title: "Club" }], personal: { fullName: "X" } });
+    expect((await insert(S1, S1, ok, ""))[0]!.id).toBeTruthy();
+    await fails(S1, "insert into public.cv_documents (user_id, data) values ($1, '{\"hobbies\": \"chess\"}')", [S1]);
+    await fails(S1, "insert into public.cv_documents (user_id, data) values ($1, '{\"hobbies\": [], \"secrets\": []}')", [S1]);
+    await fails(S1, "insert into public.cv_documents (user_id, data) values ($1, $2::jsonb)", [S1, JSON.stringify({ honours: Array.from({ length: 31 }, () => ({})) })]);
+    await raw("delete from public.cv_documents where user_id = $1", [S1]);
+  });
   it("limits an account to 5 CVs", async () => {
     for (let i = 0; i < 5; i++) await insert(S2, S2);
     expect(await fails(S2, "insert into public.cv_documents (user_id, data) values ($1, '{}')", [S2])).toMatch(/at most 5/);

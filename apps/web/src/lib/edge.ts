@@ -111,7 +111,7 @@ export interface EdgeDeps {
 
 export async function callEdge<S extends z.ZodType>(
   deps: EdgeDeps,
-  name: "process-document" | "ask-document" | "generate-study-material" | "import-resource" | "resource-url" | "cv-feedback" | "interview-prep" | "write-assignment" | "generate-exam",
+  name: "process-document" | "ask-document" | "generate-study-material" | "import-resource" | "resource-url" | "cv-feedback" | "cv-describe" | "interview-prep" | "write-assignment" | "generate-exam",
   body: Record<string, unknown>,
   schema: S,
 ): Promise<EdgeResult<z.infer<S>>> {

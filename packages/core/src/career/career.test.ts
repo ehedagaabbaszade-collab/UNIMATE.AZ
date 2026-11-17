@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  CV_PRINT_LABEL_KEYS,
+  CV_DEFAULT_TEMPLATE,
+  CV_TEMPLATES,
+  CvDescribeRequestSchema,
+  buildCvDescribeData,
+  cvMissingRequired,
   CvDataSchema,
   CvFeedbackSchema,
   InterviewRequestSchema,
@@ -94,7 +100,7 @@ describe("CV schema", () => {
     const cv = emptyCv();
     expect(cv.personal.fullName).toBe("");
     expect(cv.education).toEqual([]);
-    expect(Object.keys(cv).sort()).toEqual(["certificates", "education", "experience", "languages", "personal", "projects", "skills", "summary"]);
+    expect(Object.keys(cv).sort()).toEqual(["activities", "certificates", "education", "experience", "hobbies", "honours", "languages", "personal", "projects", "skills", "summary"]);
   });
   it("rejects non-https links, too many items, over-long text and unknown shapes", () => {
     expect(CvDataSchema.safeParse({ personal: { linkedin: "http://x.org" } }).success).toBe(false);
@@ -173,7 +179,7 @@ describe("AI contracts", () => {
 });
 
 describe("CV html export", () => {
-  const labels = { personal: "Contact", summary: "Summary", education: "Education", experience: "Experience", skills: "Skills", languages: "Languages", projects: "Projects", certificates: "Certificates", present: "Present" };
+  const labels = Object.fromEntries(CV_PRINT_LABEL_KEYS.map((k) => [k, k.charAt(0).toUpperCase() + k.slice(1)])) as Record<(typeof CV_PRINT_LABEL_KEYS)[number], string>;
   it("escapes every user field and only links https URLs", () => {
     const evil = `<script>alert(1)</script>"&'`;
     const cv = CvDataSchema.parse({
@@ -185,8 +191,11 @@ describe("CV html export", () => {
       projects: [{ name: evil, link: "https://example.org/p", description: evil, tech: [evil] }],
       certificates: [{ name: evil }],
       languages: [{ name: evil, level: evil }],
+      honours: [{ title: evil, issuer: evil, description: evil }],
+      hobbies: [{ title: evil, description: evil }],
+      activities: [{ title: evil, place: evil, description: evil }],
     });
-    for (const template of ["classic", "modern", "compact", "minimal", "executive", "corporate", "creative", "ats"] as const) {
+    for (const template of CV_TEMPLATES) {
       const html = renderCvBodyHtml(cv, { template, labels });
       expect(html).not.toContain("<script>");
       expect(html).toContain("&lt;script&gt;");
@@ -203,5 +212,119 @@ describe("CV html export", () => {
     expect(html).toContain("<h2>Skills</h2>");
     expect(html).not.toContain("Education");
     expect(html).not.toContain("Experience");
+  });
+});
+
+describe("Europass template", () => {
+  const labels = Object.fromEntries(CV_PRINT_LABEL_KEYS.map((k) => [k, k.charAt(0).toUpperCase() + k.slice(1)])) as Record<(typeof CV_PRINT_LABEL_KEYS)[number], string>;
+  const evil = `<img src=x>"&'`;
+  const base = {
+    personal: { fullName: "Aysel Mammadova", email: "a@x.az", phone: "+994", socials: [{ platform: "GitHub", value: "https://github.com/a" }, { platform: "Instagram", value: "@aysel" }] },
+    experience: [{ role: "Finance Assistant", company: "Asor Group MMC", location: "Baku", start: "01/2025", current: true, bullets: ["Prepared reports"] }],
+    languages: [{ name: "Azerbaijani", native: true }, { name: "English", listening: "B2", reading: "B2", spokenProduction: "B1", spokenInteraction: "B1", writing: "B1" }, { name: "German", level: "A2 school" }],
+    certificates: [{ name: "Excel", issuer: "Coursera", mode: "Online", description: "Pivot tables" }],
+  };
+  const render = (data: object, assets?: { logoSrc?: string; photoSrc?: string }) => renderCvBodyHtml(CvDataSchema.parse(data), { template: "europass", labels, assets });
+
+  it("is the first and default template", () => {
+    expect(CV_TEMPLATES[0]).toBe("europass");
+    expect(CV_DEFAULT_TEMPLATE).toBe("europass");
+  });
+  it("renders the photo and logo when given and escapes the src", () => {
+    const html = render(base, { photoSrc: "https://x.az/p.png?a=1&b=2", logoSrc: "/brand/full-logo.png" });
+    expect(html).toContain('class="eu-photo" src="https://x.az/p.png?a=1&amp;b=2"');
+    expect(html).toContain('class="eu-logo" src="/brand/full-logo.png"');
+    expect(html).toContain("<b>GitHub:</b>");
+    expect(html).toContain("Finance Assistant – Asor Group MMC");
+    expect(html).toContain("<td colspan=\"5\">A2 school</td>");
+  });
+  it("emits no photo element at all without a photo", () => {
+    const html = render(base, { logoSrc: "/brand/full-logo.png" });
+    expect(html).not.toContain("<img class=\"eu-photo\"");
+    expect(html).not.toMatch(/<img[^>]*eu-photo/);
+  });
+  it("drops javascript:, http: and protocol-relative image sources, accepts data URIs", () => {
+    for (const bad of ["javascript:alert(1)", "http://x.az/p.png", "//evil.az/p.png", "data:image/svg+xml;base64,AAAA", "data:text/html;base64,AAAA"]) {
+      const html = render(base, { photoSrc: bad, logoSrc: bad });
+      expect(html).not.toContain("<img");
+    }
+    expect(render({ ...base, personal: { ...base.personal, photoUrl: "https://x.az/me.jpg" } })).toContain('src="https://x.az/me.jpg"');
+    expect(render(base, { photoSrc: "data:image/png;base64,iVBORw0KGgo=" })).toContain('src="data:image/png;base64,iVBORw0KGgo="');
+  });
+  it("escapes XSS in every new field", () => {
+    const html = render({
+      personal: { fullName: "N", idNumber: evil, birthDate: evil, nationality: evil, gender: evil, address: evil, socials: [{ platform: evil, value: evil }] },
+      education: [{ institution: evil, degree: evil, city: evil, eqfLevel: evil, field: evil }],
+      languages: [{ name: evil, listening: "B1" }, { name: evil, native: true }],
+      certificates: [{ name: evil, issuer: evil, mode: evil, description: evil, date: evil }],
+      honours: [{ title: evil, issuer: evil, date: evil, description: evil }],
+      hobbies: [{ title: evil, description: evil }],
+      activities: [{ title: evil, place: evil, date: evil, description: evil }],
+    });
+    expect(html).not.toContain("<img src=x>");
+    expect(html).toContain("&lt;img src=x&gt;");
+  });
+  it("omits empty sections and shows the new ones", () => {
+    expect(render({ personal: { fullName: "N" } })).not.toContain("<section");
+    const html = render({ hobbies: [{ title: "Chess" }], honours: [{ title: "Dean's list" }], activities: [{ title: "Volunteer" }] });
+    for (const h of ["Hobbies", "Honours", "Activities"]) expect(html).toContain("<h2>" + h + "</h2>");
+  });
+  it("old templates render the new sections and socials without crashing", () => {
+    const cv = CvDataSchema.parse({ ...base, hobbies: [{ title: "Chess" }], honours: [{ title: "Award" }], activities: [{ title: "Club" }] });
+    const html = renderCvBodyHtml(cv, { template: "classic", labels });
+    expect(html).toContain("Chess");
+    expect(html).toContain("GitHub: https://github.com/a");
+  });
+});
+
+describe("CV schema additions", () => {
+  it("parses old rows that lack every new key", () => {
+    const cv = CvDataSchema.parse({ personal: { fullName: "X" }, languages: [{ name: "EN", level: "B2" }], certificates: [{ name: "C" }], education: [{ institution: "U" }] });
+    expect(cv.hobbies).toEqual([]);
+    expect(cv.personal.socials).toEqual([]);
+    expect(cv.languages[0]).toMatchObject({ native: false, listening: "" });
+  });
+  it("rejects invalid CEFR levels, non-https photos and more than 10 socials", () => {
+    expect(CvDataSchema.safeParse({ languages: [{ name: "EN", writing: "D9" }] }).success).toBe(false);
+    expect(CvDataSchema.safeParse({ personal: { photoUrl: "http://x.az/p.png" } }).success).toBe(false);
+    expect(CvDataSchema.safeParse({ personal: { socials: Array.from({ length: 11 }, () => ({ platform: "a", value: "b" })) } }).success).toBe(false);
+  });
+  it("cvMissingRequired reports empty or blank name, e-mail and phone", () => {
+    expect(cvMissingRequired(emptyCv())).toEqual(["fullName", "email", "phone"]);
+    expect(cvMissingRequired(CvDataSchema.parse({ personal: { fullName: "A", email: "  ", phone: "1" } }))).toEqual(["email"]);
+    expect(cvMissingRequired(CvDataSchema.parse({ personal: { fullName: "A", email: "a@b.c", phone: "1" } }))).toEqual([]);
+  });
+  it("keeps completeness weights summing to 100", () => {
+    expect(cvCompleteness(emptyCv()).sections.reduce((n, x) => n + x.weight, 0)).toBe(100);
+  });
+  it("never sends identifiers to the AI (plain text) and includes the new sections", () => {
+    const cv = CvDataSchema.parse({
+      personal: { fullName: "Secret", idNumber: "AZE1234567", birthDate: "01/01/2000", address: "Hidden St 5", photoUrl: "https://x.az/me.jpg", whatsapp: "x", phone: "+994", email: "s@x.az", socials: [{ platform: "Instagram", value: "@secretname" }] },
+      honours: [{ title: "Dean's list", issuer: "Khazar" }],
+      hobbies: [{ title: "Chess" }],
+      activities: [{ title: "Volunteer", place: "Baku" }],
+    });
+    const text = cvToPlainText(cv);
+    expect(text).toContain("Dean's list");
+    expect(text).toContain("Chess");
+    for (const s of ["AZE1234567", "01/01/2000", "Hidden St", "me.jpg", "+994", "s@x.az", "secretname", "Secret"]) expect(text).not.toContain(s);
+  });
+});
+
+describe("cv-describe contracts", () => {
+  it("validates requests and limits context", () => {
+    const ok = { kind: "experience", language: "az", context: { role: "Analyst", company: "Acme" } };
+    expect(CvDescribeRequestSchema.safeParse(ok).success).toBe(true);
+    expect(CvDescribeRequestSchema.safeParse({ ...ok, kind: "bio" }).success).toBe(false);
+    expect(CvDescribeRequestSchema.safeParse({ ...ok, language: "de" }).success).toBe(false);
+    expect(CvDescribeRequestSchema.safeParse({ ...ok, context: { role: "x".repeat(201) } }).success).toBe(false);
+    expect(CvDescribeRequestSchema.safeParse({ ...ok, context: Object.fromEntries(Array.from({ length: 11 }, (_, i) => ["k" + i, "v"])) }).success).toBe(false);
+  });
+  it("prompt data holds only allow-listed context and the existing text, no PII", () => {
+    const req = CvDescribeRequestSchema.parse({ kind: "experience", language: "en", context: { role: "Analyst", company: "Acme", phone: "+994", email: "a@b.c", idNumber: "AZE1", birthDate: "2000", address: "Baku 5", instagram: "@me" }, current: "Did reports" });
+    const d = buildCvDescribeData(req);
+    expect(d).toContain("role: Analyst");
+    expect(d).toContain("EXISTING TEXT");
+    for (const s of ["+994", "a@b.c", "AZE1", "2000", "Baku 5", "@me"]) expect(d).not.toContain(s);
   });
 });

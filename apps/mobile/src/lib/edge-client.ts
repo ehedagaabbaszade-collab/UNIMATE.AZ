@@ -1,4 +1,4 @@
-import { DocumentDraftSchema, ExamGenResultSchema, SlidesDraftSchema, type ExamGenRequest, type WritingRequest, CvFeedbackResultSchema, InterviewQuestionsResultSchema, InterviewScoreResultSchema, type CvLanguage, type InterviewLevel } from "@unimate/core";
+import { DocumentDraftSchema, ExamGenResultSchema, SlidesDraftSchema, type ExamGenRequest, type WritingRequest, CvFeedbackResultSchema, CvDescribeResultSchema, type CvDescribeRequest, InterviewQuestionsResultSchema, InterviewScoreResultSchema, type CvLanguage, type InterviewLevel } from "@unimate/core";
 import { z } from "zod";
 import { askResultSchema, callEdge, flashcardsResultSchema, processResponseSchema, importResourceResponseSchema, resourceUrlResponseSchema, quizResultSchema, summaryResultSchema, type EdgeResult } from "./edge";
 import { getSupabaseEnv } from "./env";
@@ -30,6 +30,7 @@ export const importResource = (resourceId: string) => call("import-resource", { 
 export const resourceUrl = (resourceId: string) => call("resource-url", { resourceId }, resourceUrlResponseSchema);
 export const cvFeedback = (cvId: string, o: { opportunityId?: string; outputLanguage?: CvLanguage } = {}) =>
   call("cv-feedback", { cvId, ...(o.opportunityId ? { opportunityId: o.opportunityId } : {}), ...(o.outputLanguage ? { outputLanguage: o.outputLanguage } : {}) }, CvFeedbackResultSchema);
+export const cvDescribe = (req: Pick<CvDescribeRequest, "kind" | "language" | "context" | "current">) => call("cv-describe", req, CvDescribeResultSchema);
 export const interviewQuestions = (role: string, level: InterviewLevel, outputLanguage?: CvLanguage, count?: number) =>
   call("interview-prep", { mode: "questions", role, level, ...(outputLanguage ? { outputLanguage } : {}), ...(count ? { count } : {}) }, InterviewQuestionsResultSchema);
 export const interviewScore = (role: string, level: InterviewLevel, question: string, answer: string, outputLanguage?: CvLanguage) =>

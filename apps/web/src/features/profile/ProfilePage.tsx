@@ -6,6 +6,7 @@ import { Avatar, Button, Card, Input, useToast } from "@unimate/ui";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useSignOut } from "@/components/sign-out";
 import { useUser } from "@/components/user";
 import { useDemoPlan } from "@/features/plans/demo-plan";
 import { getBrowserClient } from "@/lib/supabase/browser";
@@ -21,6 +22,7 @@ const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
 export function ProfilePage() {
   const { t } = useI18n();
   const user = useUser();
+  const signOut = useSignOut();
   const router = useRouter();
   const { toast } = useToast();
   const demo = useDemoPlan(user.id);
@@ -153,6 +155,10 @@ export function ProfilePage() {
           {info.data?.level ? <span>{t("gamification.level", { n: info.data.level })}</span> : null}
         </Link>
         <Link className="list-item" href="/profile/privacy">{t("mobile.profile.privacyRow")}</Link>
+      </div>
+      <div className="stack">
+        <Link className="list-item" href="/?site=1">{t("nav.publicSite")}</Link>
+        <Button variant="secondary" onClick={() => void signOut()}>{t("nav.signOut")}</Button>
       </div>
     </div>
   );

@@ -56,14 +56,22 @@ function Mock({ t }: { t: Awaited<ReturnType<typeof getT>>["t"] }) {
   );
 }
 
-export default async function Landing() {
+export default async function Landing({ searchParams }: { searchParams: Promise<{ site?: string }> }) {
   const { t } = await getT();
   const supabase = await getServerClient();
+  let portal: string | null = null; // signed-in visitor who chose "Public website" from the portal
   if (supabase) {
     const { data } = await supabase.auth.getUser();
-    if (data.user) redirect(homeFor(parseMode((await cookies()).get(MODE_COOKIE)?.value)));
+    if (data.user) {
+      portal = homeFor(parseMode((await cookies()).get(MODE_COOKIE)?.value));
+      if ((await searchParams).site !== "1") redirect(portal);
+    }
   }
-  const ctas = supabase ? (
+  const ctas = portal ? (
+    <div className="lp-cta">
+      <Link className="lp-btn lp-btn--glow" href={portal}>{t("nav.backToPortal")}</Link>
+    </div>
+  ) : supabase ? (
     <div className="lp-cta">
       <Link className="lp-btn lp-btn--white" href="/sign-up">{t("landing.hero.ctaStudent")}</Link>
       <Link className="lp-btn lp-btn--glow" href="/sign-up?as=teacher">{t("landing.hero.ctaTeacher")}</Link>
@@ -84,7 +92,9 @@ export default async function Landing() {
           <div className="lp-bar__actions">
             <div className="lp-bar__locale"><LocaleSwitcher compact /></div>
             <ThemeSwitch />
-            {supabase ? (
+            {portal ? (
+              <Link className="lp-btn lp-btn--glow lp-btn--sm" href={portal}>{t("nav.backToPortal")}</Link>
+            ) : supabase ? (
               <>
                 <Link className="lp-bar__signin" href="/sign-in">{t("auth.signInCta")}</Link>
                 <Link className="lp-btn lp-btn--glow lp-btn--sm" href="/sign-up">{t("landing.nav.signUp")}</Link>
@@ -108,7 +118,7 @@ export default async function Landing() {
             </h1>
             <p className="lp-lead">{t("landing.hero.lead")}</p>
             {ctas}
-            {supabase ? <Link className="lp-link" href="/sign-in">{t("landing.haveAccount")}</Link> : null}
+            {supabase && !portal ? <Link className="lp-link" href="/sign-in">{t("landing.haveAccount")}</Link> : null}
           </div>
           <div className="lp-wrap">
             <div className="lp-panel lp-glow" role="img" aria-label={t("landing.preview.sample")}>

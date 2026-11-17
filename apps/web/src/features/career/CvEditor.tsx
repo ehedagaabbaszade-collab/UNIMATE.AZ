@@ -1,10 +1,13 @@
 "use client";
 
 import {
+  CEFR_LEVELS,
   CV_LANGUAGES,
   CV_SECTION_ITEMS_MAX,
   CV_TEMPLATES,
   cvCompleteness,
+  cvMissingRequired,
+  type CvDescribeKind,
   type CvData,
   type CvDocumentInput,
   type CvFeedback,
@@ -16,23 +19,33 @@ import { Badge, Button, Card, Dialog, EmptyState, ErrorState, Icon, Input, Progr
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useUser } from "@/components/user";
 import { EdgeNotice } from "@/components/EdgeNotice";
 import type { EdgeError } from "@/lib/edge";
 import { cvFeedback } from "@/lib/edge-client";
 import { getBrowserClient } from "@/lib/supabase/browser";
 import { useAsync } from "@/lib/use-async";
 import { deleteCv, getCv, myTracking, saveCv } from "./api";
+import { AiWrite, CvPhoto } from "./cv-parts";
 import { Chips } from "./parts";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- CV JSON is schema-less in the editor
 type Obj = Record<string, any>;
-type Kind = "text" | "csv" | "lines" | "bool";
+type Kind = "text" | "csv" | "lines" | "bool" | "cefr";
 interface FieldDef {
   key: string;
   label: MessageKey;
   kind?: Kind;
   multiline?: boolean;
+  /** Hidden for entries where this returns true (CEFR levels of a native language). */
+  hide?: (it: Obj) => boolean;
 }
+/** Which entries get a "write with AI" button on their description field, and the non-PII context sent with it. */
+interface AiDef {
+  kind: CvDescribeKind;
+  ctx: (it: Obj) => Record<string, string>;
+}
+const pick = (it: Obj, keys: string[]) => Object.fromEntries(keys.map((k) => [k, String(it[k] ?? "")]));
 const csv = (s: string) => s.split(",").map((x) => x.trim()).filter(Boolean);
 const lines = (s: string) => s.split("\n").map((x) => x.trim()).filter(Boolean);
 
@@ -46,8 +59,9 @@ function ListField({ label, value, parse, join, multiline, onChange }: { label: 
   return multiline ? <Textarea label={label} rows={3} value={text} onChange={(e) => update(e.target.value)} /> : <Input label={label} value={text} onChange={(e) => update(e.target.value)} />;
 }
 
-function Entries({ title, items, fields, make, onChange, rev }: { title: string; items: Obj[]; fields: FieldDef[]; make: () => Obj; onChange: (next: Obj[]) => void; rev: number }) {
+function Entries({ title, items, fields, make, onChange, rev, ai, language }: { title: string; items: Obj[]; fields: FieldDef[]; make: () => Obj; onChange: (next: Obj[]) => void; rev: number; ai?: AiDef; language: CvLanguage }) {
   const { t } = useI18n();
+  const [aiRev, setAiRev] = useState(0);
   const set = (i: number, k: string, v: unknown) => onChange(items.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
   return (
     <Card>
@@ -57,20 +71,49 @@ function Entries({ title, items, fields, make, onChange, rev }: { title: string;
           <fieldset key={`${rev}-${i}`} className="stack" style={{ border: 0, borderTop: i ? "1px solid var(--border)" : 0, paddingTop: i ? 12 : 0, margin: 0, minInlineSize: 0 }}>
             <legend className="um-sr-only">{`${title} ${i + 1}`}</legend>
             <div className="grid-auto">
-              {fields.map((f) =>
-                f.kind === "bool" ? (
-                  <label key={f.key} className="row" style={{ gap: 8 }}>
-                    <input type="checkbox" checked={!!it[f.key]} onChange={(e) => set(i, f.key, e.target.checked)} />
-                    {t(f.label)}
-                  </label>
-                ) : f.kind === "csv" || f.kind === "lines" ? (
-                  <ListField key={`${rev}-${i}-${f.key}`} label={t(f.label)} value={it[f.key] ?? []} parse={f.kind === "csv" ? csv : lines} join={f.kind === "csv" ? ", " : "\n"} multiline={f.kind === "lines"} onChange={(v) => set(i, f.key, v)} />
-                ) : f.multiline ? (
-                  <Textarea key={f.key} label={t(f.label)} rows={3} value={String(it[f.key] ?? "")} onChange={(e) => set(i, f.key, e.target.value)} />
-                ) : (
-                  <Input key={f.key} label={t(f.label)} value={String(it[f.key] ?? "")} onChange={(e) => set(i, f.key, e.target.value)} />
-                ),
-              )}
+              {fields.filter((f) => !f.hide?.(it)).map((f) => {
+                const write =
+                  ai && (f.multiline || f.kind === "lines") ? (
+                    <AiWrite
+                      kind={ai.kind}
+                      language={language}
+                      context={ai.ctx(it)}
+                      current={f.kind === "lines" ? (it[f.key] ?? []).join("\n") : String(it[f.key] ?? "")}
+                      onText={(text) => {
+                        set(i, f.key, f.kind === "lines" ? lines(text) : text);
+                        setAiRev((r) => r + 1);
+                      }}
+                    />
+                  ) : null;
+                const field =
+                  f.kind === "bool" ? (
+                    <label className="row" style={{ gap: 8 }}>
+                      <input type="checkbox" checked={!!it[f.key]} onChange={(e) => set(i, f.key, e.target.checked)} />
+                      {t(f.label)}
+                    </label>
+                  ) : f.kind === "cefr" ? (
+                    <Select label={t(f.label)} value={String(it[f.key] ?? "")} onChange={(e) => set(i, f.key, e.target.value)} style={{ width: "100%" }}>
+                      <option value="" />
+                      {CEFR_LEVELS.map((l) => (
+                        <option key={l} value={l}>
+                          {l}
+                        </option>
+                      ))}
+                    </Select>
+                  ) : f.kind === "csv" || f.kind === "lines" ? (
+                    <ListField key={`${rev}-${aiRev}-${i}-${f.key}`} label={t(f.label)} value={it[f.key] ?? []} parse={f.kind === "csv" ? csv : lines} join={f.kind === "csv" ? ", " : "\n"} multiline={f.kind === "lines"} onChange={(v) => set(i, f.key, v)} />
+                  ) : f.multiline ? (
+                    <Textarea key={`${aiRev}`} label={t(f.label)} rows={3} value={String(it[f.key] ?? "")} onChange={(e) => set(i, f.key, e.target.value)} />
+                  ) : (
+                    <Input label={t(f.label)} value={String(it[f.key] ?? "")} onChange={(e) => set(i, f.key, e.target.value)} />
+                  );
+                return (
+                  <div key={f.key} className="stack" style={{ minWidth: 0, gap: 6 }}>
+                    {field}
+                    {write}
+                  </div>
+                );
+              })}
             </div>
             <div className="row">
               <Button size="sm" variant="danger" onClick={() => onChange(items.filter((_, j) => j !== i))}>
@@ -97,6 +140,9 @@ const EDU: FieldDef[] = [
   { key: "start", label: "career.cv.field.start" },
   { key: "end", label: "career.cv.field.end" },
   { key: "gpa", label: "career.cv.field.gpa" },
+  { key: "city", label: "career.cv.field.city" },
+  { key: "website", label: "career.cv.field.website" },
+  { key: "eqfLevel", label: "career.cv.field.eqfLevel" },
   { key: "description", label: "career.cv.field.description", multiline: true },
 ];
 const EXP: FieldDef[] = [
@@ -110,7 +156,8 @@ const EXP: FieldDef[] = [
 ];
 const LANG: FieldDef[] = [
   { key: "name", label: "career.cv.field.langName" },
-  { key: "level", label: "career.cv.field.langLevel" },
+  { key: "native", label: "career.cv.field.native", kind: "bool" },
+  ...(["listening", "reading", "spokenProduction", "spokenInteraction", "writing"] as const).map((k) => ({ key: k, label: `career.cv.field.${k}` as MessageKey, kind: "cefr" as const, hide: (it: Obj) => !!it.native })),
 ];
 const PROJ: FieldDef[] = [
   { key: "name", label: "career.cv.field.projectName" },
@@ -122,8 +169,34 @@ const CERT: FieldDef[] = [
   { key: "name", label: "career.cv.field.certName" },
   { key: "issuer", label: "career.cv.field.issuer" },
   { key: "year", label: "career.cv.field.year" },
+  { key: "date", label: "career.cv.field.date" },
+  { key: "mode", label: "career.cv.field.mode" },
   { key: "link", label: "career.cv.field.link" },
+  { key: "description", label: "career.cv.field.description", multiline: true },
 ];
+const HOBBY: FieldDef[] = [
+  { key: "title", label: "career.cv.field.title" },
+  { key: "description", label: "career.cv.field.description", multiline: true },
+];
+const HONOUR: FieldDef[] = [
+  { key: "title", label: "career.cv.field.title" },
+  { key: "issuer", label: "career.cv.field.issuer" },
+  { key: "date", label: "career.cv.field.date" },
+  { key: "description", label: "career.cv.field.description", multiline: true },
+];
+const ACTIVITY: FieldDef[] = [
+  { key: "title", label: "career.cv.field.title" },
+  { key: "place", label: "career.cv.field.place" },
+  { key: "date", label: "career.cv.field.date" },
+  { key: "description", label: "career.cv.field.description", multiline: true },
+];
+const AI_EDU: AiDef = { kind: "education", ctx: (it) => pick(it, ["institution", "degree", "field"]) };
+const AI_EXP: AiDef = { kind: "experience", ctx: (it) => ({ ...pick(it, ["role", "company", "location"]), dates: `${it.start ?? ""} - ${it.current ? "" : (it.end ?? "")}` }) };
+const AI_PROJ: AiDef = { kind: "project", ctx: (it) => ({ name: String(it.name ?? ""), tech: (it.tech ?? []).join(", ") }) };
+const AI_CERT: AiDef = { kind: "certificate", ctx: (it) => pick(it, ["name", "issuer", "date", "mode"]) };
+const AI_HONOUR: AiDef = { kind: "honour", ctx: (it) => pick(it, ["title", "issuer", "date"]) };
+const AI_HOBBY: AiDef = { kind: "hobby", ctx: (it) => pick(it, ["title"]) };
+const AI_ACT: AiDef = { kind: "activity", ctx: (it) => pick(it, ["title", "place", "date"]) };
 
 function FeedbackPanel({ cvId, language, ensureSaved }: { cvId: string; language: CvLanguage; ensureSaved: () => Promise<boolean> }) {
   const { t } = useI18n();
@@ -218,7 +291,10 @@ function FeedbackPanel({ cvId, language, ensureSaved }: { cvId: string; language
 export function CvEditor({ id }: { id: string }) {
   const { t } = useI18n();
   const router = useRouter();
+  const user = useUser();
   const { toast } = useToast();
+  const [exportBlocked, setExportBlocked] = useState(false);
+  const [summaryRev, setSummaryRev] = useState(0);
   const doc = useAsync(() => getCv(getBrowserClient(), id), [id]);
   const [draft, setDraft] = useState<CvDocumentInput | null>(null);
   const [dirty, setDirty] = useState(false);
@@ -272,8 +348,9 @@ export function CvEditor({ id }: { id: string }) {
     setDirty(true);
   };
   const setData = <K extends keyof CvData>(k: K, v: CvData[K]) => edit((d) => ({ ...d, data: { ...d.data, [k]: v } }));
-  const setPersonal = (k: keyof CvData["personal"], v: string) => setData("personal", { ...cv.personal, [k]: v });
-  const sectionList = <K extends "education" | "experience" | "languages" | "projects" | "certificates">(k: K) => (next: Obj[]) => {
+  const setPersonal = (k: Exclude<keyof CvData["personal"], "socials">, v: string) => setData("personal", { ...cv.personal, [k]: v });
+  const setSocials = (v: CvData["personal"]["socials"]) => setData("personal", { ...cv.personal, socials: v });
+  const sectionList = <K extends "education" | "experience" | "languages" | "projects" | "certificates" | "hobbies" | "honours" | "activities">(k: K) => (next: Obj[]) => {
     if (next.length < cv[k].length) setRev((r) => r + 1);
     setData(k, next as CvData[K]);
   };
@@ -290,7 +367,10 @@ export function CvEditor({ id }: { id: string }) {
     toast(r.error === "too_large" ? t("career.cv.tooLarge") : r.error === "invalid" ? t("career.cv.invalid") : t("career.cv.saveFailed"), "error");
     return false;
   };
+  const missing = cvMissingRequired(cv);
   const exportPdf = async () => {
+    setExportBlocked(missing.length > 0);
+    if (missing.length) return;
     if (await save()) router.push(`/career/cv/${id}/print`);
   };
   const remove = async () => {
@@ -316,7 +396,7 @@ export function CvEditor({ id }: { id: string }) {
             <h2>{t("career.cv.scoreValue", { n: score.score })}</h2>
             {score.missing.length ? <strong>{t("career.cv.improve")}</strong> : null}
             <ul>
-              {score.missing.slice(0, 3).map((k) => (
+              {score.missing.filter((k): k is Exclude<typeof k, "hobbies" | "honours" | "activities"> => k !== "hobbies" && k !== "honours" && k !== "activities").slice(0, 3).map((k) => (
                 <li key={k} className="um-muted">
                   {t(`career.cv.tip.${k}`)}
                 </li>
@@ -338,29 +418,81 @@ export function CvEditor({ id }: { id: string }) {
         <div className="stack">
           <h2>{t("career.cv.section.personal")}</h2>
           <div className="grid-auto">
-            {(["fullName", "headline", "email", "phone", "city", "linkedin", "website"] as const).map((k) => (
-              <Input key={k} label={t(`career.cv.field.${k}`)} value={cv.personal[k]} type={k === "email" ? "email" : k === "phone" ? "tel" : "text"} onChange={(e) => setPersonal(k, e.target.value)} />
-            ))}
+            {(["fullName", "headline", "email", "phone", "city", "address", "idNumber", "birthDate", "nationality", "gender", "linkedin", "website"] as const).map((k) => {
+              const req = (["fullName", "email", "phone"] as string[]).includes(k);
+              return (
+                <Input
+                  key={k}
+                  label={req ? `${t(`career.cv.field.${k}`)} *` : t(`career.cv.field.${k}`)}
+                  value={cv.personal[k]}
+                  type={k === "email" ? "email" : k === "phone" ? "tel" : "text"}
+                  required={req}
+                  hint={req && exportBlocked && !cv.personal[k].trim() ? t("career.cv.required") : undefined}
+                  onChange={(e) => setPersonal(k, e.target.value)}
+                />
+              );
+            })}
           </div>
+          <CvPhoto uid={user.id} value={cv.personal.photoUrl} onChange={(u) => setPersonal("photoUrl", u)} />
+          <fieldset className="stack" style={{ border: 0, padding: 0, margin: 0, minInlineSize: 0 }}>
+            <legend>{t("career.cv.field.socials")}</legend>
+            {cv.personal.socials.map((so, i) => (
+              <div key={i} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr)", gap: 8 }}>
+                <div className="grid-auto">
+                  <Input label={t("career.cv.field.platform")} list="cv-social-platforms" value={so.platform} onChange={(e) => setSocials(cv.personal.socials.map((x, j) => (j === i ? { ...x, platform: e.target.value } : x)))} />
+                  <Input label={t("career.cv.field.socialValue")} value={so.value} onChange={(e) => setSocials(cv.personal.socials.map((x, j) => (j === i ? { ...x, value: e.target.value } : x)))} />
+                </div>
+                <div className="row">
+                  <Button size="sm" variant="danger" onClick={() => setSocials(cv.personal.socials.filter((_, j) => j !== i))}>
+                    {t("career.cv.removeEntry")}
+                  </Button>
+                </div>
+              </div>
+            ))}
+            <datalist id="cv-social-platforms">
+              {["LinkedIn", "Instagram", "WhatsApp", "Facebook", "GitHub", "Telegram"].map((p) => (
+                <option key={p} value={p} />
+              ))}
+            </datalist>
+            <div className="row">
+              <Button size="sm" variant="secondary" disabled={cv.personal.socials.length >= 10} onClick={() => setSocials([...cv.personal.socials, { platform: "", value: "" }])}>
+                <Icon name="add" size="sm" />
+                {t("career.cv.add")}
+              </Button>
+            </div>
+          </fieldset>
         </div>
       </Card>
       <Card>
         <div className="stack">
           <h2>{t("career.cv.section.summary")}</h2>
-          <Textarea label={t("career.cv.field.summary")} rows={4} maxLength={1500} value={cv.summary} onChange={(e) => setData("summary", e.target.value)} />
+          <Textarea key={summaryRev} label={t("career.cv.field.summary")} rows={4} maxLength={1500} value={cv.summary} onChange={(e) => setData("summary", e.target.value)} />
+          <AiWrite
+            kind="summary"
+            language={draft.language}
+            context={{ title: cv.personal.headline, skills: cv.skills.join(", ") }}
+            current={cv.summary}
+            onText={(text) => {
+              setData("summary", text);
+              setSummaryRev((r) => r + 1);
+            }}
+          />
         </div>
       </Card>
-      <Entries title={t("career.cv.section.education")} items={cv.education} fields={EDU} rev={rev} make={() => ({ institution: "", degree: "", field: "", start: "", end: "", gpa: "", description: "" })} onChange={sectionList("education")} />
-      <Entries title={t("career.cv.section.experience")} items={cv.experience} fields={EXP} rev={rev} make={() => ({ company: "", role: "", location: "", start: "", end: "", current: false, bullets: [] })} onChange={sectionList("experience")} />
+      <Entries title={t("career.cv.section.education")} items={cv.education} fields={EDU} rev={rev} ai={AI_EDU} language={draft.language} make={() => ({ institution: "", degree: "", field: "", start: "", end: "", gpa: "", description: "", city: "", website: "", eqfLevel: "" })} onChange={sectionList("education")} />
+      <Entries title={t("career.cv.section.experience")} items={cv.experience} fields={EXP} rev={rev} ai={AI_EXP} language={draft.language} make={() => ({ company: "", role: "", location: "", start: "", end: "", current: false, bullets: [] })} onChange={sectionList("experience")} />
       <Card>
         <div className="stack">
           <h2>{t("career.cv.section.skills")}</h2>
           <ListField label={t("career.cv.field.skills")} value={cv.skills} parse={csv} join=", " onChange={(v) => setData("skills", v.slice(0, CV_SECTION_ITEMS_MAX).map((s) => s.slice(0, 50)))} />
         </div>
       </Card>
-      <Entries title={t("career.cv.section.languages")} items={cv.languages} fields={LANG} rev={rev} make={() => ({ name: "", level: "" })} onChange={sectionList("languages")} />
-      <Entries title={t("career.cv.section.projects")} items={cv.projects} fields={PROJ} rev={rev} make={() => ({ name: "", link: "", description: "", tech: [] })} onChange={sectionList("projects")} />
-      <Entries title={t("career.cv.section.certificates")} items={cv.certificates} fields={CERT} rev={rev} make={() => ({ name: "", issuer: "", year: "", link: "" })} onChange={sectionList("certificates")} />
+      <Entries title={t("career.cv.section.languages")} items={cv.languages} fields={LANG} rev={rev} language={draft.language} make={() => ({ name: "", level: "", native: false, listening: "", reading: "", spokenProduction: "", spokenInteraction: "", writing: "" })} onChange={sectionList("languages")} />
+      <Entries title={t("career.cv.section.projects")} items={cv.projects} fields={PROJ} rev={rev} ai={AI_PROJ} language={draft.language} make={() => ({ name: "", link: "", description: "", tech: [] })} onChange={sectionList("projects")} />
+      <Entries title={t("career.cv.section.certificates")} items={cv.certificates} fields={CERT} rev={rev} ai={AI_CERT} language={draft.language} make={() => ({ name: "", issuer: "", year: "", link: "", date: "", mode: "", description: "" })} onChange={sectionList("certificates")} />
+      <Entries title={t("career.cv.section.hobbies")} items={cv.hobbies} fields={HOBBY} rev={rev} ai={AI_HOBBY} language={draft.language} make={() => ({ title: "", description: "" })} onChange={sectionList("hobbies")} />
+      <Entries title={t("career.cv.section.honours")} items={cv.honours} fields={HONOUR} rev={rev} ai={AI_HONOUR} language={draft.language} make={() => ({ title: "", issuer: "", date: "", description: "" })} onChange={sectionList("honours")} />
+      <Entries title={t("career.cv.section.activities")} items={cv.activities} fields={ACTIVITY} rev={rev} ai={AI_ACT} language={draft.language} make={() => ({ title: "", place: "", date: "", description: "" })} onChange={sectionList("activities")} />
 
       <div className="row">
         <Button loading={saving} disabled={!dirty} onClick={() => void save()}>
@@ -372,6 +504,11 @@ export function CvEditor({ id }: { id: string }) {
           {t("career.cv.export")}
         </Button>
       </div>
+      {exportBlocked && missing.length ? (
+        <p className="err-box" role="alert">
+          {`${missing.map((k) => t(`career.cv.field.${k}`)).join(", ")}: ${t("career.cv.required")}`}
+        </p>
+      ) : null}
       <p className="um-muted" style={{ fontSize: "var(--text-sm)" }}>
         {t("career.cv.exportHintWeb")}
       </p>

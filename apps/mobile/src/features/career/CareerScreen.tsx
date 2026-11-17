@@ -1,4 +1,4 @@
-import { CV_LANGUAGES, CV_MAX_DOCUMENTS, OPPORTUNITY_KINDS, OPPORTUNITY_PAGE_SIZE, OPPORTUNITY_SORTS, TRACK_STATUSES, groupByStatus, safeExternalUrl, skillGap, todayInBaku, type CvLanguage, type OpportunityListItem, type TrackStatus, type TrackedItem } from "@unimate/core";
+import { CV_DEFAULT_TEMPLATE, CV_LANGUAGES, CV_MAX_DOCUMENTS, OPPORTUNITY_KINDS, OPPORTUNITY_PAGE_SIZE, OPPORTUNITY_SORTS, TRACK_STATUSES, groupByStatus, safeExternalUrl, skillGap, todayInBaku, type CvLanguage, type OpportunityListItem, type TrackStatus, type TrackedItem } from "@unimate/core";
 import { useI18n } from "@unimate/i18n/react";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -284,7 +284,7 @@ function CvList() {
   const create = async () => {
     setBusy(true);
     const lang: CvLanguage = (CV_LANGUAGES as readonly string[]).includes(locale) ? (locale as CvLanguage) : "az";
-    const r = await createCv(sb, user.id, { title: t("career.cv.untitled"), language: lang, template: "classic", data: emptyCv() });
+    const r = await createCv(sb, user.id, { title: t("career.cv.untitled"), language: lang, template: CV_DEFAULT_TEMPLATE, data: emptyCv() });
     setBusy(false);
     if (r.ok) router.push({ pathname: "/career/cv/[id]", params: { id: r.id } });
     else toast(r.error === "limit" ? t("career.cv.limit") : t("career.cv.saveFailed"));

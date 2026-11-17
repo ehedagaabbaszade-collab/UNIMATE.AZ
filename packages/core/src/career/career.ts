@@ -9,7 +9,9 @@ export type OpportunitySort = (typeof OPPORTUNITY_SORTS)[number];
 export const TRACK_STATUSES = ["saved", "applied", "interview", "offer", "rejected"] as const;
 export type TrackStatus = (typeof TRACK_STATUSES)[number];
 export const OPPORTUNITY_PAGE_SIZE = 20;
-export const CV_TEMPLATES = ["classic", "modern", "compact", "minimal", "executive", "corporate", "creative", "ats"] as const;
+export const CV_TEMPLATES = ["europass", "classic", "modern", "compact", "minimal", "executive", "corporate", "creative", "ats"] as const;
+/** Template a new CV starts with. */
+export const CV_DEFAULT_TEMPLATE = "europass" as const;
 export type CvTemplate = (typeof CV_TEMPLATES)[number];
 export const CV_LANGUAGES = ["az", "tr", "en", "ru"] as const;
 export type CvLanguage = (typeof CV_LANGUAGES)[number];
@@ -222,6 +224,12 @@ const httpsOrEmpty = z
   .max(200)
   .default("")
   .refine((v) => v === "" || /^https:\/\/[^\s]+$/i.test(v), "must be an https link");
+const CvSocialSchema = z.object({ platform: str(40), value: str(200) });
+const photoUrlOrEmpty = z
+  .string()
+  .max(300)
+  .default("")
+  .refine((v) => v === "" || /^https:\/\/[^\s]+$/i.test(v), "must be an https link");
 const list = <T extends z.ZodType>(item: T) => z.array(item).max(CV_SECTION_ITEMS_MAX).default([]);
 
 export const CvPersonalSchema = z.object({
@@ -232,8 +240,15 @@ export const CvPersonalSchema = z.object({
   city: str(100),
   linkedin: httpsOrEmpty,
   website: httpsOrEmpty,
+  idNumber: str(40),
+  birthDate: str(20),
+  nationality: str(60),
+  gender: str(30),
+  address: str(200),
+  socials: z.array(CvSocialSchema).max(10).default([]),
+  photoUrl: photoUrlOrEmpty,
 });
-export const CvEducationSchema = z.object({ institution: str(160), degree: str(160), field: str(160), start: str(20), end: str(20), gpa: str(20), description: str(600) });
+export const CvEducationSchema = z.object({ institution: str(160), degree: str(160), field: str(160), start: str(20), end: str(20), gpa: str(20), description: str(600), city: str(100), website: httpsOrEmpty, eqfLevel: str(20) });
 export const CvExperienceSchema = z.object({
   company: str(160),
   role: str(160),
@@ -243,9 +258,23 @@ export const CvExperienceSchema = z.object({
   current: z.boolean().default(false),
   bullets: z.array(z.string().max(300)).max(8).default([]),
 });
-export const CvLanguageSchema = z.object({ name: str(40), level: str(40) });
+export const CEFR_LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"] as const;
+const cefr = z.enum(["", ...CEFR_LEVELS]).default("");
+export const CvLanguageSchema = z.object({
+  name: str(40),
+  level: str(40),
+  native: z.boolean().default(false),
+  listening: cefr,
+  reading: cefr,
+  spokenProduction: cefr,
+  spokenInteraction: cefr,
+  writing: cefr,
+});
 export const CvProjectSchema = z.object({ name: str(160), link: httpsOrEmpty, description: str(600), tech: z.array(z.string().max(40)).max(10).default([]) });
-export const CvCertificateSchema = z.object({ name: str(160), issuer: str(160), year: str(10), link: httpsOrEmpty });
+export const CvCertificateSchema = z.object({ name: str(160), issuer: str(160), year: str(10), link: httpsOrEmpty, date: str(20), mode: str(60), description: str(1000) });
+export const CvHobbySchema = z.object({ title: str(160), description: str(1000) });
+export const CvHonourSchema = z.object({ title: str(160), issuer: str(160), date: str(20), description: str(1000) });
+export const CvActivitySchema = z.object({ title: str(160), place: str(100), date: str(20), description: str(1000) });
 
 export const CvDataSchema = z.object({
   personal: CvPersonalSchema.default(() => CvPersonalSchema.parse({})),
@@ -256,10 +285,19 @@ export const CvDataSchema = z.object({
   languages: list(CvLanguageSchema),
   projects: list(CvProjectSchema),
   certificates: list(CvCertificateSchema),
+  hobbies: list(CvHobbySchema),
+  honours: list(CvHonourSchema),
+  activities: list(CvActivitySchema),
 });
 export type CvData = z.infer<typeof CvDataSchema>;
 export type CvSectionKey = keyof CvData;
-export const CV_SECTIONS = ["personal", "summary", "education", "experience", "skills", "languages", "projects", "certificates"] as const satisfies readonly CvSectionKey[];
+export const CV_SECTIONS = ["personal", "summary", "education", "experience", "skills", "languages", "projects", "certificates", "hobbies", "honours", "activities"] as const satisfies readonly CvSectionKey[];
+
+/** Fields a CV needs before it can be exported; everything else is optional. */
+export const CV_REQUIRED_FIELDS = ["fullName", "email", "phone"] as const;
+export function cvMissingRequired(cv: CvData): Array<(typeof CV_REQUIRED_FIELDS)[number]> {
+  return CV_REQUIRED_FIELDS.filter((k) => cv.personal[k].trim().length === 0);
+}
 
 export const emptyCv = (): CvData => CvDataSchema.parse({});
 
@@ -310,6 +348,9 @@ export function cvCompleteness(cv: CvData): CvCompleteness {
     languages: [5, cv.languages.some((l) => filled(l.name)) ? 1 : 0],
     projects: [10, cv.projects.some((x) => filled(x.name)) ? 1 : 0],
     certificates: [5, cv.certificates.some((c) => filled(c.name)) ? 1 : 0],
+    hobbies: [0, 0],
+    honours: [0, 0],
+    activities: [0, 0],
   };
   const sections = CV_SECTIONS.map((key) => ({ key, weight: parts[key][0], earned: Math.round(parts[key][0] * parts[key][1] * 100) / 100 }));
   const score = Math.round(sections.reduce((n, x) => n + x.earned, 0));
@@ -337,7 +378,10 @@ export function cvToPlainText(cv: CvData): string {
   if (cv.projects.length)
     out.push("PROJECTS:\n" + cv.projects.map((x) => `- ${x.name}${x.tech.length ? ` [${x.tech.join(", ")}]` : ""}${filled(x.description) ? `: ${x.description}` : ""}`).join("\n"));
   if (cv.skills.length) out.push(`SKILLS: ${cv.skills.join(", ")}`);
-  if (cv.languages.length) out.push(`LANGUAGES: ${cv.languages.map((l) => `${l.name}${filled(l.level) ? ` (${l.level})` : ""}`).join(", ")}`);
+  if (cv.languages.length) out.push(`LANGUAGES: ${cv.languages.map((l) => `${l.name}${l.native ? " (native)" : filled(l.level) ? ` (${l.level})` : ""}`).join(", ")}`);
   if (cv.certificates.length) out.push("CERTIFICATES:\n" + cv.certificates.map((c) => `- ${[c.name, c.issuer, c.year].filter(filled).join(", ")}`).join("\n"));
+  if (cv.honours.length) out.push("HONOURS:\n" + cv.honours.map((h) => `- ${[h.title, h.issuer, h.date].filter(filled).join(", ")}${filled(h.description) ? `: ${h.description}` : ""}`).join("\n"));
+  if (cv.activities.length) out.push("ACTIVITIES:\n" + cv.activities.map((a) => `- ${[a.title, a.place, a.date].filter(filled).join(", ")}${filled(a.description) ? `: ${a.description}` : ""}`).join("\n"));
+  if (cv.hobbies.length) out.push("HOBBIES:\n" + cv.hobbies.map((h) => `- ${h.title}${filled(h.description) ? `: ${h.description}` : ""}`).join("\n"));
   return out.join("\n\n");
 }

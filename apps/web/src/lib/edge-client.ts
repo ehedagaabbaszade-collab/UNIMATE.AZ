@@ -1,6 +1,6 @@
 "use client";
 
-import { ExamGenResultSchema, type ExamGenRequest, CvFeedbackResultSchema, DocumentDraftSchema, InterviewQuestionsResultSchema, InterviewScoreResultSchema, SlidesDraftSchema, type CvLanguage, type InterviewLevel, type WritingRequest } from "@unimate/core";
+import { ExamGenResultSchema, type ExamGenRequest, CvFeedbackResultSchema, CvDescribeResultSchema, type CvDescribeRequest, DocumentDraftSchema, InterviewQuestionsResultSchema, InterviewScoreResultSchema, SlidesDraftSchema, type CvLanguage, type InterviewLevel, type WritingRequest } from "@unimate/core";
 import { z } from "zod";
 import { callEdge, askResultSchema, flashcardsResultSchema, processResponseSchema, importResourceResponseSchema, resourceUrlResponseSchema, quizResultSchema, summaryResultSchema, type EdgeResult } from "./edge";
 import { getBrowserClient } from "./supabase/browser";
@@ -41,3 +41,5 @@ const writingResultSchema = z.object({ kind: z.string(), result: z.union([Slides
 export const writeAssignment = (req: WritingRequest) => call("write-assignment", req, writingResultSchema);
 /** Teacher: AI-drafted exam questions with their answer key (same function as mobile). The reply is parsed, never trusted. */
 export const generateExamQuestions = (req: ExamGenRequest) => call("generate-exam", req as Record<string, unknown>, ExamGenResultSchema);
+/** AI "write description" for one CV field (same function as mobile). Context is non-PII only. */
+export const cvDescribe = (req: CvDescribeRequest) => call("cv-describe", req as Record<string, unknown>, CvDescribeResultSchema);

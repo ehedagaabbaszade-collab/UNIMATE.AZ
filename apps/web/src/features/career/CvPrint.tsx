@@ -1,6 +1,6 @@
 "use client";
 
-import { CV_SECTIONS, renderCvBodyHtml, type CvPrintLabels } from "@unimate/core";
+import { CV_PRINT_LABEL_KEYS, cvMissingRequired, renderCvBodyHtml, type CvPrintLabels } from "@unimate/core";
 import { t as translate, type MessageKey } from "@unimate/i18n";
 import { useI18n } from "@unimate/i18n/react";
 import { Button, EmptyState, ErrorState, Skeleton } from "@unimate/ui";
@@ -24,17 +24,23 @@ export function CvPrint({ id }: { id: string }) {
   if (doc.loading && !doc.data) return <Skeleton height={400} />;
   if (doc.error) return <ErrorState title={t("career.loadFailed")} description={doc.error} action={<Button onClick={doc.reload}>{t("common.retry")}</Button>} />;
   if (!doc.data) return <EmptyState title={t("career.notFound")} />;
-  const labels = Object.fromEntries([...CV_SECTIONS, "present"].map((k) => [k, translate(doc.data!.language, `career.cv.sectionPrint.${k}` as MessageKey)])) as CvPrintLabels;
-  const html = renderCvBodyHtml(doc.data.data, { template: doc.data.template, labels });
+  const labels = Object.fromEntries(CV_PRINT_LABEL_KEYS.map((k) => [k, translate(doc.data!.language, `career.cv.sectionPrint.${k}` as MessageKey)])) as CvPrintLabels;
+  const html = renderCvBodyHtml(doc.data.data, { template: doc.data.template, labels, assets: { logoSrc: "/brand/full-logo.png", photoSrc: doc.data.data.personal.photoUrl || undefined } });
+  const missing = cvMissingRequired(doc.data.data).map((k) => t(`career.cv.field.${k}`));
   return (
     <div className="stack-lg">
       {back}
       <div className="row cv-print-chrome">
-        <Button onClick={() => window.print()}>{t("career.cv.print")}</Button>
+        <Button disabled={missing.length > 0} onClick={() => window.print()}>{t("career.cv.print")}</Button>
         <span className="um-muted">{t("career.cv.exportHintWeb")}</span>
       </div>
+      {missing.length ? (
+        <p className="err-box cv-print-chrome" role="alert">
+          {`${missing.join(", ")}: ${t("career.cv.required")}`}
+        </p>
+      ) : null}
       {/* renderCvBodyHtml escapes every user field and only links https URLs (unit-tested) */}
-      <div className="cv-print-area" lang={doc.data.language} style={{ background: "#fff", color: "#000", padding: 24, borderRadius: 8 }} dangerouslySetInnerHTML={{ __html: html }} />
+      <div className="cv-print-area" lang={doc.data.language} style={{ background: "#fff", color: "#000", padding: doc.data.template === "europass" ? 0 : 24, borderRadius: 8 }} dangerouslySetInnerHTML={{ __html: html }} />
     </div>
   );
 }

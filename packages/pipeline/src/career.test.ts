@@ -3,7 +3,7 @@ import { resolveRoute, parseAiConfig, type GenerateRequest } from "@unimate/core
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { asOwnerAs } from "../../db/src/harness";
 import { GuardedProvider, SqlAiLedger } from "./ai-guard";
-import { SqlCareerStore, cvFeedback, interviewQuestions, interviewScore, parseCvFeedbackRequest, parseInterviewRequest, type CareerDeps } from "./career";
+import { SqlCareerStore, cvDescribe, cvFeedback, interviewQuestions, interviewScore, parseCvFeedbackRequest, parseInterviewRequest, type CareerDeps } from "./career";
 import { PipelineError } from "./errors";
 import { pgliteExecutor } from "./pglite-repository";
 import { createEnv, ids, type TestEnv } from "./test-utils";
@@ -92,6 +92,24 @@ describe("routing for the new tasks", () => {
   });
   it("without a guard (unconfigured provider) it also fails with ai_not_configured", async () => {
     expect(await code(cvFeedback({ repo: env.repo, store }, { userId: A, cvId: cvA }))).toBe("ai_not_configured");
+  });
+});
+
+describe("cvDescribe", () => {
+  const request = { kind: "experience" as const, language: "az" as const, context: { role: "Analyst", company: "Acme", phone: "+994500000000", email: "x@y.az" } };
+  it("returns text in the CV language, reuses the cv_feedback route and sends no personal data", async () => {
+    const p = new FakeProvider(() => JSON.stringify({ text: "Hesabatlar hazırladı\nMəlumatları təhlil etdi" }));
+    const r = await cvDescribe(deps(p), { userId: A, request });
+    expect(r.output.text).toContain("Hesabat");
+    const [c] = gen(p);
+    expect(c!.task).toBe("cv_feedback");
+    expect(c!.system).toContain("Azerbaijani");
+    expect(c!.prompt).toContain("role: Analyst");
+    for (const secret of ["+994500000000", "x@y.az"]) expect(c!.prompt + c!.system).not.toContain(secret);
+  });
+  it("fails with ai_not_configured without a guard and rejects empty context", async () => {
+    expect(await code(cvDescribe({ repo: env.repo, store }, { userId: A, request }))).toBe("ai_not_configured");
+    expect(await code(cvDescribe(deps(new FakeProvider(() => "{}")), { userId: A, request: { ...request, context: {} } }))).toBe("bad_request");
   });
 });
 

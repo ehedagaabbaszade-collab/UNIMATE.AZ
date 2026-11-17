@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  CV_DEFAULT_TEMPLATE,
   CV_LANGUAGES,
   CV_MAX_DOCUMENTS,
   OPPORTUNITY_KINDS,
@@ -258,7 +259,7 @@ function CvList() {
   const create = async () => {
     setBusy(true);
     const lang: CvLanguage = (CV_LANGUAGES as readonly string[]).includes(locale) ? (locale as CvLanguage) : "az";
-    const r = await createCv(getBrowserClient(), user.id, { title: t("career.cv.untitled"), language: lang, template: "classic", data: emptyCv() });
+    const r = await createCv(getBrowserClient(), user.id, { title: t("career.cv.untitled"), language: lang, template: CV_DEFAULT_TEMPLATE, data: emptyCv() });
     setBusy(false);
     if (r.ok) router.push(`/career/cv/${r.id}`);
     else toast(r.error === "limit" ? t("career.cv.limit") : t("career.cv.saveFailed"), "error");

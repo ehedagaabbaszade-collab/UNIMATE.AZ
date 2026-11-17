@@ -78,3 +78,24 @@ export type InterviewScore = z.infer<typeof InterviewScoreSchema>;
 export const CvFeedbackResultSchema = z.object({ feedback: CvFeedbackSchema, cached: z.boolean() });
 export const InterviewQuestionsResultSchema = z.object({ result: InterviewQuestionsSchema, cached: z.boolean() });
 export const InterviewScoreResultSchema = z.object({ result: InterviewScoreSchema, cached: z.boolean() });
+
+// ---------------------------------------------------------------- AI "write description" (cv-describe)
+export const CV_DESCRIBE_KINDS = ["summary", "experience", "education", "certificate", "honour", "hobby", "activity", "project"] as const;
+export type CvDescribeKind = (typeof CV_DESCRIBE_KINDS)[number];
+/** Only these context keys ever reach the model; anything else (id number, birth date, address, phone, e-mail, socials...) is dropped. */
+export const CV_DESCRIBE_CONTEXT_KEYS = ["role", "company", "location", "dates", "institution", "degree", "field", "name", "issuer", "title", "place", "date", "mode", "tech", "skills"] as const;
+export const CvDescribeRequestSchema = z.object({
+  kind: z.enum(CV_DESCRIBE_KINDS),
+  language: lang,
+  context: z.record(z.string(), z.string().max(200)).default({}).refine((c) => Object.keys(c).length <= 10, "at most 10 context entries"),
+  current: z.string().max(1500).optional(),
+});
+export type CvDescribeRequest = z.infer<typeof CvDescribeRequestSchema>;
+export const CvDescribeResultSchema = z.object({ text: z.string().max(1500) });
+export type CvDescribeResult = z.infer<typeof CvDescribeResultSchema>;
+
+/** The data block for the model: allow-listed context lines plus the existing text. Pure; no personal identifiers. */
+export function buildCvDescribeData(req: CvDescribeRequest): string {
+  const lines = CV_DESCRIBE_CONTEXT_KEYS.filter((k) => (req.context[k] ?? "").trim() !== "" && !(k === "name" && req.kind === "summary")).map((k) => `${k}: ${req.context[k]!.trim()}`); // a summary "name" could be the person's full name
+  return [`KIND: ${req.kind}`, ...lines, ...((req.current ?? "").trim() ? [`EXISTING TEXT (improve it, keep its facts): ${req.current!.trim()}`] : [])].join("\n");
+}

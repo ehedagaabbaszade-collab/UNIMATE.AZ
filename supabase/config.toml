@@ -10,6 +10,9 @@ major_version = 15
 [functions.ask-document]
 entrypoint = "./.build/functions/ask-document/index.ts"
 
+[functions.cv-describe]
+entrypoint = "./.build/functions/cv-describe/index.ts"
+
 [functions.cv-feedback]
 entrypoint = "./.build/functions/cv-feedback/index.ts"
 

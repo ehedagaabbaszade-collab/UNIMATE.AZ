@@ -8,4 +8,4 @@
 .out { opacity: 0.5; background: var(--surface-2); }
 .step { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface-2); font-size: 1.25rem; cursor: pointer; color: var(--text); }
 .step:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
-.hint { flex: 1; text-align: center; }
+.hint { flex: 1; min-width: 0; text-align: center; }

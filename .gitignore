@@ -17,3 +17,6 @@ supabase/.build
 .tmp-awesome-design-md/
 .agents/
 .claude/skills/
+
+.vercel
+.env*

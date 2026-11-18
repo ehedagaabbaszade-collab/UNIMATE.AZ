@@ -2,7 +2,10 @@
   "expo": {
     "name": "UNIMATE.AZ",
     "slug": "unimate",
-    "platforms": ["ios", "android"],
+    "platforms": [
+      "ios",
+      "android"
+    ],
     "scheme": "unimate",
     "version": "0.1.0",
     "orientation": "portrait",
@@ -33,6 +36,7 @@
         "backgroundColor": "#10182B"
       },
       "permissions": [
+        "android.permission.POST_NOTIFICATIONS",
         "android.permission.POST_NOTIFICATIONS"
       ]
     },
@@ -75,6 +79,23 @@
     ],
     "experiments": {
       "typedRoutes": false
+    },
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "0e49a84e-3945-42cb-b340-59891accba7c"
+      }
+    },
+    "owner": "ehed",
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/0e49a84e-3945-42cb-b340-59891accba7c"
     }
   }
 }

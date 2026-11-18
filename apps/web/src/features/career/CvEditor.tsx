@@ -4,7 +4,6 @@ import {
   CEFR_LEVELS,
   CV_LANGUAGES,
   CV_SECTION_ITEMS_MAX,
-  CV_TEMPLATES,
   cvCompleteness,
   cvMissingRequired,
   type CvDescribeKind,
@@ -28,6 +27,7 @@ import { useAsync } from "@/lib/use-async";
 import { deleteCv, getCv, myTracking, saveCv } from "./api";
 import { AiWrite, CvPhoto } from "./cv-parts";
 import { Chips } from "./parts";
+import { TemplatePicker } from "./TemplatePicker";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- CV JSON is schema-less in the editor
 type Obj = Record<string, any>;
@@ -410,7 +410,7 @@ export function CvEditor({ id }: { id: string }) {
         <div className="stack">
           <Input label={t("career.cv.title")} value={draft.title} maxLength={120} onChange={(e) => edit((d) => ({ ...d, title: e.target.value }))} />
           <Chips label={t("career.cv.language")} value={draft.language} onChange={(v) => edit((d) => ({ ...d, language: v }))} options={CV_LANGUAGES.map((l) => ({ value: l, label: t(`career.lang.${l}`) }))} />
-          <Chips label={t("career.cv.template")} value={draft.template} onChange={(v) => edit((d) => ({ ...d, template: v }))} options={CV_TEMPLATES.map((x) => ({ value: x, label: t(`career.cv.templates.${x}`) }))} />
+          <TemplatePicker value={draft.template} onChange={(v) => edit((d) => ({ ...d, template: v }))} />
         </div>
       </Card>
 

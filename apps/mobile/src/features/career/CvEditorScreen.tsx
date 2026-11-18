@@ -3,7 +3,6 @@ import {
   CV_LANGUAGES,
   CV_PRINT_LABEL_KEYS,
   CV_SECTION_ITEMS_MAX,
-  CV_TEMPLATES,
   cvCompleteness,
   cvMissingRequired,
   renderCvHtml,
@@ -35,6 +34,7 @@ import { cvDescribe, cvFeedback } from "../../lib/edge-client";
 import { useAsync } from "../../lib/use-async";
 import { useTheme } from "../../theme/ThemeProvider";
 import { useUser } from "../../state/session";
+import { TemplatePicker } from "./TemplatePicker";
 import { createCv, deleteCv, getCv, myTracking, saveCv } from "./api";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- CV JSON is schema-less in the editor
@@ -531,7 +531,7 @@ export function CvEditorScreen({ id }: { id: string }) {
       <Card>
         <Input label={t("career.cv.title")} value={draft.title} onChangeText={(v) => edit((d) => ({ ...d, title: v }))} maxLength={120} />
         <Segmented label={t("career.cv.language")} value={draft.language} onChange={(v) => edit((d) => ({ ...d, language: v }))} options={CV_LANGUAGES.map((l) => ({ value: l, label: t(`career.lang.${l}`) }))} />
-        <Segmented label={t("career.cv.template")} value={draft.template} onChange={(v) => edit((d) => ({ ...d, template: v }))} options={CV_TEMPLATES.map((x) => ({ value: x, label: t(`career.cv.templates.${x}`) }))} />
+        <TemplatePicker value={draft.template} onChange={(v) => edit((d) => ({ ...d, template: v }))} />
       </Card>
 
       <Card>

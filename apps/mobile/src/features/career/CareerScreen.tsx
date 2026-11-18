@@ -1,19 +1,20 @@
 import { CV_DEFAULT_TEMPLATE, CV_LANGUAGES, CV_MAX_DOCUMENTS, OPPORTUNITY_KINDS, OPPORTUNITY_PAGE_SIZE, OPPORTUNITY_SORTS, TRACK_STATUSES, groupByStatus, safeExternalUrl, skillGap, todayInBaku, type CvLanguage, type OpportunityListItem, type TrackStatus, type TrackedItem } from "@unimate/core";
 import { useI18n } from "@unimate/i18n/react";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Linking, View } from "react-native";
 import { Icon } from "../../components/Icon";
 import { WorkAzSection } from "./WorkAzSection";
-import { AppText, Badge, Button, Card, EmptyState, ErrorState, HeroTitle, ListGroup, ListRow, PillRow, Screen, SearchField, Segmented, Skeleton, useOnline, useToast, PressableScale, Input } from "../../components/ui";
+import { AppText, Badge, Button, Card, Dialog, EmptyState, ErrorState, HeroTitle, ListGroup, ListRow, PillRow, Screen, SearchField, Segmented, Skeleton, useOnline, useToast, PressableScale, Input } from "../../components/ui";
 import { radii, spacing } from "../../theme/tokens";
 import { useTheme } from "../../theme/ThemeProvider";
 import { useAsync } from "../../lib/use-async";
 import { useUser } from "../../state/session";
 import { InterviewPanel } from "./InterviewPanel";
-import { DEFAULT_FILTERS, createCv, listCvs, myCvSkills, myTracking, removeTracking, searchOpportunities, updateTracking, type OpportunityFilters } from "./api";
+import { DEFAULT_FILTERS, createCv, deleteCv, listCvs, myCvSkills, myTracking, removeTracking, searchOpportunities, updateTracking, type OpportunityFilters } from "./api";
 import { DeadlineLabel, KIND_ICON, OpportunityCard, STATUS_TONE } from "./parts";
-import { emptyCv } from "@unimate/core";
+import { emptyCv, type CvTemplate } from "@unimate/core";
+import { NewCvTemplateModal } from "./TemplatePicker";
 
 type Tab = "opportunities" | "forYou" | "tracker" | "cv" | "interview";
 
@@ -281,10 +282,32 @@ function CvList() {
   const { locale } = useI18n();
   const cvs = useAsync(() => listCvs(sb), [sb]);
   const [busy, setBusy] = useState(false);
-  const create = async () => {
+  const [picking, setPicking] = useState(false);
+  const [toDelete, setToDelete] = useState<string | null>(null);
+  const firstFocus = useRef(true);
+  const { reload } = cvs;
+  useFocusEffect(
+    useCallback(() => {
+      if (firstFocus.current) firstFocus.current = false;
+      else reload();
+    }, [reload]),
+  );
+  const remove = async () => {
+    const id = toDelete;
+    setToDelete(null);
+    if (!id) return;
+    try {
+      await deleteCv(sb, id);
+      toast(t("career.cv.removed"), "success");
+    } catch {
+      toast(t("career.cv.saveFailed"), "error");
+    }
+    reload();
+  };
+  const create = async (template: CvTemplate) => {
     setBusy(true);
     const lang: CvLanguage = (CV_LANGUAGES as readonly string[]).includes(locale) ? (locale as CvLanguage) : "az";
-    const r = await createCv(sb, user.id, { title: t("career.cv.untitled"), language: lang, template: CV_DEFAULT_TEMPLATE, data: emptyCv() });
+    const r = await createCv(sb, user.id, { title: t("career.cv.untitled"), language: lang, template, data: emptyCv() });
     setBusy(false);
     if (r.ok) router.push({ pathname: "/career/cv/[id]", params: { id: r.id } });
     else toast(r.error === "limit" ? t("career.cv.limit") : t("career.cv.saveFailed"));
@@ -294,17 +317,22 @@ function CvList() {
   const list = cvs.data ?? [];
   return (
     <View style={{ gap: spacing.lg }}>
-      <Button title={t("career.cv.create")} icon={<Icon name="add" size="sm" />} loading={busy} disabled={list.length >= CV_MAX_DOCUMENTS} onPress={() => void create()} />
+      <Button title={t("career.cv.create")} icon={<Icon name="add" size="sm" />} loading={busy} disabled={list.length >= CV_MAX_DOCUMENTS} onPress={() => setPicking(true)} />
+      <NewCvTemplateModal open={picking} busy={busy} initial={CV_DEFAULT_TEMPLATE} onCancel={() => setPicking(false)} onCreate={(v) => void create(v).then(() => setPicking(false))} />
       {list.length >= CV_MAX_DOCUMENTS ? (
         <AppText variant="caption" muted>
           {t("career.cv.limit")}
         </AppText>
       ) : null}
+      <Dialog open={toDelete !== null} title={t("career.cv.delete")} onClose={() => setToDelete(null)} actions={<><Button small variant="secondary" title={t("common.cancel")} onPress={() => setToDelete(null)} /><Button small variant="danger" title={t("common.delete")} onPress={() => void remove()} /></>}>
+        <AppText>{t("career.cv.deleteConfirm")}</AppText>
+      </Dialog>
       {list.length === 0 ? (
         <EmptyState title={t("career.empty.cvs")} description={t("career.empty.cvsBody")} />
       ) : (
         list.map((c) => (
-          <PressableScale key={c.id} accessibilityRole="button" accessibilityLabel={c.title} onPress={() => router.push({ pathname: "/career/cv/[id]", params: { id: c.id } })}>
+          <View key={c.id} style={{ gap: 6 }}>
+          <PressableScale accessibilityRole="button" accessibilityLabel={c.title} onPress={() => router.push({ pathname: "/career/cv/[id]", params: { id: c.id } })}>
             <Card>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <Icon name="cv" size="sm" />
@@ -317,6 +345,8 @@ function CvList() {
               </AppText>
             </Card>
           </PressableScale>
+            <Button small variant="danger" title={t("career.cv.delete")} onPress={() => setToDelete(c.id)} />
+          </View>
         ))
       )}
     </View>

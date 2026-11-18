@@ -733,7 +733,7 @@ export const en = {
     community: "Community Guidelines",
     retention: "Data Retention",
     notFound: "That page does not exist.",
-    licenses: { title: "Open-source licenses", intro: "UNIMATE uses these open-source components. Open the full texts for each license.", search: "Search packages", fullText: "Full texts", count: "{n} packages" },
+    licenses: { title: "Open-source licenses", ownership: "UNIMATE © 2026 Ehedaga Abbaszade. All rights reserved. UNIMATE's own source code, design and brand are protected by copyright.", intro: "The platform uses the open-source components listed below. Each component is distributed under the terms of its own license and is acknowledged here accordingly.", count: "{n} components", showPackages: "List of components", fullTextHeading: "Full license texts", fullTextBody: "The copyright notices and license texts of all components are collected in one document.", fullText: "Open full text (.txt)" },
   },
   meta: { description: "Study platform for students in Azerbaijan." },
   errorPage: { title: "Something broke", body: "An unexpected error occurred. You can try again.", notFoundTitle: "Page not found", notFoundBody: "The page you are looking for does not exist.", home: "Go home" },

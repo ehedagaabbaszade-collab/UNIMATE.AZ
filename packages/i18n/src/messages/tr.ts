@@ -734,7 +734,7 @@ export const tr = {
     community: "Topluluk Kuralları",
     retention: "Veri Saklama",
     notFound: "Böyle bir sayfa yok.",
-    licenses: { title: "Açık kaynak lisansları", intro: "UNIMATE bu açık kaynak bileşenlerini kullanır. Lisansların tam metinleri için aşağıdaki düğmeyi kullanın.", search: "Paket ara", fullText: "Tam metinler", count: "{n} paket" },
+    licenses: { title: "Açık kaynak lisansları", ownership: "UNIMATE © 2026 Ehedaga Abbaszade. Tüm hakları saklıdır. UNIMATE'in kendi kaynak kodu, tasarımı ve markası telif hakkı ile korunmaktadır.", intro: "Platform aşağıdaki açık kaynak bileşenlerini kullanır. Her bileşen kendi lisansının koşullarıyla dağıtılır ve bu koşullara uygun olarak burada belirtilir.", count: "{n} bileşen", showPackages: "Bileşen listesi", fullTextHeading: "Lisansların tam metni", fullTextBody: "Tüm bileşenlerin telif hakkı bildirimleri ve lisans metinleri tek bir belgede toplanmıştır.", fullText: "Tam metni aç (.txt)" },
   },
   meta: { description: "Azerbaycan'daki öğrenciler için çalışma platformu." },
   errorPage: { title: "Bir şey bozuldu", body: "Beklenmeyen bir hata oluştu. Tekrar deneyebilirsin.", notFoundTitle: "Sayfa bulunamadı", notFoundBody: "Aradığın sayfa yok.", home: "Ana sayfaya git" },

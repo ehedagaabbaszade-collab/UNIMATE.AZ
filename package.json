@@ -11,6 +11,7 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "npm install --prefix tools/lint --no-audit --no-fund --silent && node tools/lint/node_modules/eslint/bin/eslint.js -c tools/lint/eslint.config.mjs .",
     "build": "npm run build --workspaces --if-present",
+    "licenses:build": "node scripts/build-third-party-notices.mjs",
     "brand:build": "node scripts/build-brand-assets.mjs",
     "lint:install": "npm ci --prefix tools/lint --no-audit --no-fund",
     "perf": "vitest run -c vitest.perf.config.mts"

@@ -733,6 +733,7 @@ export const en = {
     community: "Community Guidelines",
     retention: "Data Retention",
     notFound: "That page does not exist.",
+    licenses: { title: "Open-source licenses", intro: "UNIMATE uses these open-source components. Open the full texts for each license.", search: "Search packages", fullText: "Full texts", count: "{n} packages" },
   },
   meta: { description: "Study platform for students in Azerbaijan." },
   errorPage: { title: "Something broke", body: "An unexpected error occurred. You can try again.", notFoundTitle: "Page not found", notFoundBody: "The page you are looking for does not exist.", home: "Go home" },

@@ -154,6 +154,7 @@ export function SettingsScreen() {
       <ListGroup title={t("mobile.profile.settingsHelp")}>
         <ListRow icon="notes" iconColor={theme.text} title={t("legal.terms")} onPress={go("/legal/terms")} />
         <ListRow icon="info" iconColor={theme.text} title={t("legal.privacy")} onPress={go("/legal/privacy")} />
+        <ListRow icon="notes" iconColor={theme.text} title={t("legal.licenses.title")} onPress={go("/legal/licenses")} />
         <ListRow icon="locked" iconColor={theme.text} title={t("mobile.profile.privacyRow")} subtitle={t("mobile.profile.privacySub")} onPress={go("/privacy")} />
         {mode !== "teacher" ? (
           <ListRow

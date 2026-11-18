@@ -285,6 +285,7 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
               <h3>{t("landing.foot.legal")}</h3>
               <Link href="/legal/privacy">{t("legal.privacy")}</Link>
               <Link href="/legal/terms">{t("legal.terms")}</Link>
+              <Link href="/licenses">{t("legal.licenses.title")}</Link>
             </nav>
           </div>
           {supabase ? (

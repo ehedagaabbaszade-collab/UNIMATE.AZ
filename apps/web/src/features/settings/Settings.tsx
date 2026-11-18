@@ -98,6 +98,7 @@ export function Settings({ theme }: { theme: ThemePref }) {
           {LEGAL.map((k) => (
             <Link key={k} href={`/legal/${LEGAL_SLUG[k]}`}>{t(`legal.${k}`)}</Link>
           ))}
+          <Link href="/licenses">{t("legal.licenses.title")}</Link>
         </nav>
       </Card>
 

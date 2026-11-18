@@ -734,6 +734,7 @@ export const az = {
     community: "İcma Qaydaları",
     retention: "Məlumatın Saxlanması",
     notFound: "Belə səhifə yoxdur.",
+    licenses: { title: "Açıq mənbə lisenziyaları", intro: "UNIMATE bu açıq mənbə komponentlərindən istifadə edir. Tam lisenziya mətnləri üçün aşağıdakı düyməyə toxunun.", search: "Paket axtar", fullText: "Tam mətnlər", count: "{n} paket" },
   },
   meta: { description: "Azərbaycandakı tələbələr üçün təhsil platforması." },
   errorPage: { title: "Nəsə xarab oldu", body: "Gözlənilməz xəta baş verdi. Yenidən cəhd edə bilərsiniz.", notFoundTitle: "Səhifə tapılmadı", notFoundBody: "Axtardığınız səhifə mövcud deyil.", home: "Ana səhifəyə" },

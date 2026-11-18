@@ -900,7 +900,7 @@ export const en = {
       pickTemplate: "Choose a template",
       createWithTemplate: "Create with this template",
       previewNote: "Preview with a sample CV",
-      templates: { europass: "Europass", classic: "Classic", modern: "Modern", compact: "Compact", minimal: "Minimal", executive: "Executive", corporate: "Corporate", creative: "Creative", ats: "ATS-friendly" },
+      templates: { europass: "Europass", sidebar: "Sidebar", headline: "Bold headline", timeline: "Timeline", elegant: "Elegant", photocard: "Photo card", split: "Split", classic: "Classic", modern: "Modern", compact: "Compact", minimal: "Minimal", executive: "Executive", corporate: "Corporate", creative: "Creative", ats: "ATS-friendly" },
       score: "Completeness",
       scoreValue: "{n}% complete",
       improve: "To improve your score",

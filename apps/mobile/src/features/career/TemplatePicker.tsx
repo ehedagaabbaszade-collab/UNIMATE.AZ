@@ -9,6 +9,12 @@ import { useTheme } from "../../theme/ThemeProvider";
 
 const PREVIEWS: Record<CvTemplate, number> = {
   europass: require("../../../assets/cv-templates/europass.png"),
+  sidebar: require("../../../assets/cv-templates/sidebar.png"),
+  headline: require("../../../assets/cv-templates/headline.png"),
+  timeline: require("../../../assets/cv-templates/timeline.png"),
+  elegant: require("../../../assets/cv-templates/elegant.png"),
+  photocard: require("../../../assets/cv-templates/photocard.png"),
+  split: require("../../../assets/cv-templates/split.png"),
   classic: require("../../../assets/cv-templates/classic.png"),
   modern: require("../../../assets/cv-templates/modern.png"),
   compact: require("../../../assets/cv-templates/compact.png"),

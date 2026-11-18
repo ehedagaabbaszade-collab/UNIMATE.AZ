@@ -901,7 +901,7 @@ export const az = {
       pickTemplate: "Şablon seçin",
       createWithTemplate: "Bu şablonla yarat",
       previewNote: "Nümunə CV ilə ön izləmə",
-      templates: { europass: "Europass", classic: "Klassik", modern: "Müasir", compact: "Yığcam", minimal: "Minimal", executive: "İcraçı", corporate: "Korporativ", creative: "Kreativ", ats: "ATS (sadə)" },
+      templates: { europass: "Europass", sidebar: "Yan panel", headline: "Qalın başlıq", timeline: "Zaman xətti", elegant: "Zərif", photocard: "Şəkilli kart", split: "Bölünmüş", classic: "Klassik", modern: "Müasir", compact: "Yığcam", minimal: "Minimal", executive: "İcraçı", corporate: "Korporativ", creative: "Kreativ", ats: "ATS (sadə)" },
       score: "Tamlıq",
       scoreValue: "{n}% tamdır",
       improve: "Balını artırmaq üçün",

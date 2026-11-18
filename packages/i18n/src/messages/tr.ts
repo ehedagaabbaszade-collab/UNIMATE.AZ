@@ -901,7 +901,7 @@ export const tr = {
       pickTemplate: "Şablon seçin",
       createWithTemplate: "Bu şablonla oluştur",
       previewNote: "Örnek CV ile önizleme",
-      templates: { europass: "Europass", classic: "Klasik", modern: "Modern", compact: "Kompakt", minimal: "Minimal", executive: "Yönetici", corporate: "Kurumsal", creative: "Yaratıcı", ats: "ATS (sade)" },
+      templates: { europass: "Europass", sidebar: "Yan panel", headline: "Kalın başlık", timeline: "Zaman çizelgesi", elegant: "Zarif", photocard: "Fotoğraflı kart", split: "Bölünmüş", classic: "Klasik", modern: "Modern", compact: "Kompakt", minimal: "Minimal", executive: "Yönetici", corporate: "Kurumsal", creative: "Yaratıcı", ats: "ATS (sade)" },
       score: "Tamamlanma",
       scoreValue: "%{n} tamamlandı",
       improve: "Puanını artırmak için",

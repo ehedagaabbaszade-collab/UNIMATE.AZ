@@ -901,7 +901,7 @@ export const ru = {
       pickTemplate: "Выберите шаблон",
       createWithTemplate: "Создать с этим шаблоном",
       previewNote: "Предпросмотр на примере резюме",
-      templates: { europass: "Europass (европейский)", classic: "Классический", modern: "Современный", compact: "Компактный", minimal: "Минимализм", executive: "Руководитель", corporate: "Корпоративный", creative: "Креативный", ats: "ATS (простой)" },
+      templates: { europass: "Europass (европейский)", sidebar: "Боковая панель", headline: "Яркий заголовок", timeline: "Хронология", elegant: "Элегантный", photocard: "Карточка с фото", split: "Разделённый", classic: "Классический", modern: "Современный", compact: "Компактный", minimal: "Минимализм", executive: "Руководитель", corporate: "Корпоративный", creative: "Креативный", ats: "ATS (простой)" },
       score: "Полнота",
       scoreValue: "Заполнено на {n}%",
       improve: "Чтобы повысить оценку",

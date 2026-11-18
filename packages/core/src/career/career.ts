@@ -9,7 +9,7 @@ export type OpportunitySort = (typeof OPPORTUNITY_SORTS)[number];
 export const TRACK_STATUSES = ["saved", "applied", "interview", "offer", "rejected"] as const;
 export type TrackStatus = (typeof TRACK_STATUSES)[number];
 export const OPPORTUNITY_PAGE_SIZE = 20;
-export const CV_TEMPLATES = ["europass", "classic", "modern", "compact", "minimal", "executive", "corporate", "creative", "ats"] as const;
+export const CV_TEMPLATES = ["europass", "sidebar", "headline", "timeline", "elegant", "photocard", "split", "classic", "modern", "compact", "minimal", "executive", "corporate", "creative", "ats"] as const;
 /** Template a new CV starts with. */
 export const CV_DEFAULT_TEMPLATE = "europass" as const;
 export type CvTemplate = (typeof CV_TEMPLATES)[number];

@@ -215,6 +215,38 @@ describe("CV html export", () => {
   });
 });
 
+describe("layout templates", () => {
+  const labels = Object.fromEntries(CV_PRINT_LABEL_KEYS.map((k) => [k, k.charAt(0).toUpperCase() + k.slice(1)])) as Record<(typeof CV_PRINT_LABEL_KEYS)[number], string>;
+  const evil = "<script>alert(1)</script>";
+  const full = {
+    personal: { fullName: evil, headline: "Dev", email: "a@x.az", phone: "+994", city: "Baku", socials: [{ platform: "GitHub", value: "https://github.com/a" }] },
+    summary: evil,
+    experience: [{ role: "Dev", company: "Co", current: true, bullets: ["Did x"] }],
+    education: [{ institution: "BDU", degree: "BSc", start: "2020", end: "2024" }],
+    skills: ["SQL"],
+    languages: [{ name: "Azerbaijani", native: true }, { name: "English", level: "B2" }],
+    projects: [{ name: "P", link: "https://example.org/p" }],
+    certificates: [{ name: "Excel", issuer: "Coursera" }],
+    honours: [{ title: "Award" }],
+    hobbies: [{ title: "Chess" }],
+    activities: [{ title: "Club" }],
+  };
+  for (const template of ["sidebar", "headline", "timeline", "elegant", "photocard", "split"] as const) {
+    it(`${template}: renders, escapes, and gates the photo`, () => {
+      const r = (data: object, assets?: { photoSrc?: string }) => renderCvBodyHtml(CvDataSchema.parse(data), { template, labels, assets });
+      expect(() => r({})).not.toThrow();
+      expect(r({})).not.toContain("<img");
+      const html = r(full);
+      expect(html).not.toContain("<script>");
+      expect(html).toContain("&lt;script&gt;");
+      expect(html).toContain("Present");
+      expect(html).not.toContain("<img");
+      expect(r(full, { photoSrc: "https://example.org/p.png" })).toContain('<img class="nt-photo" src="https://example.org/p.png"');
+      expect(renderCvHtml(CvDataSchema.parse(full), { template, language: "en", title: "t", labels })).toContain(`cv-${template}`);
+    });
+  }
+});
+
 describe("Europass template", () => {
   const labels = Object.fromEntries(CV_PRINT_LABEL_KEYS.map((k) => [k, k.charAt(0).toUpperCase() + k.slice(1)])) as Record<(typeof CV_PRINT_LABEL_KEYS)[number], string>;
   const evil = `<img src=x>"&'`;

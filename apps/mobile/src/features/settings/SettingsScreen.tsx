@@ -7,7 +7,7 @@ import { ModuleIcon } from "../../components/Icon";
 import { SlidingSegmented } from "../../components/SlidingSegmented";
 import { AppText, HeroTitle, ListGroup, ListRow, PressableScale, Screen, useToast } from "../../components/ui";
 import { haptic } from "../../lib/motion";
-import { MODULES } from "../../lib/registry";
+import { MODULES, moduleHref } from "../../lib/registry";
 import { kv, tourKey } from "../../lib/storage";
 import { usePins } from "../../state/pins";
 import { useAppMode } from "../../state/mode";
@@ -50,7 +50,7 @@ function ModuleGrid({ uid }: { uid: string }) {
           return (
             <PressableScale
               key={m.id}
-              onPress={() => router.push(m.href as Href)}
+              onPress={() => router.push(moduleHref(m, ids) as Href)}
               onLongPress={() => menu(m.id, label)}
               delayLongPress={350}
               accessibilityRole="button"

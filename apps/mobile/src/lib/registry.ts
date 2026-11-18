@@ -94,6 +94,8 @@ export const MAX_TILES = 9;
 
 /** Tab screen name in app/(app)/(tabs) for a module. */
 export const tabRouteOf = (m: ModuleEntry): string => m.tabRoute ?? `pin-${m.id}`;
+/** Where a tile opens: an unpinned tab module's tab is hidden (opening it falls back to Home), so it gets its stack page. */
+export const moduleHref = (m: ModuleEntry, pinnedIds: readonly string[]): string => (m.tabRoute && !pinnedIds.includes(m.id) ? `/module/${m.id}` : m.href);
 /** Pinned ids -> modules, in pin order; unknown ids are dropped and the list is capped. */
 export const pinnedModules = (ids: readonly string[], mods: readonly ModuleEntry[] = MODULES): ModuleEntry[] =>
   ids.flatMap((id) => mods.find((m) => m.id === id) ?? []).slice(0, MAX_PINS);

@@ -15,7 +15,8 @@ import { SpotlightTour } from "../../../src/features/tour/SpotlightTour";
 import { Icon } from "../../../src/components/Icon";
 import { AppText, Pill, PressableScale, Reveal, RoundAction, Screen, Skeleton } from "../../../src/components/ui";
 import { useSchedule } from "../../../src/features/planner/useSchedule";
-import { tileLayout } from "../../../src/lib/registry";
+import { moduleHref, tileLayout } from "../../../src/lib/registry";
+import { usePins } from "../../../src/state/pins";
 import { useLocalValue } from "../../../src/lib/local-store";
 import { EMPTY_COURSES, coursesKey, coursesStoreSchema } from "../../../src/features/semester/store";
 import { useAsync } from "../../../src/lib/use-async";
@@ -54,6 +55,7 @@ export default function Home() {
   const router = useRouter();
   const { theme } = useTheme();
   const { user, profile, supabase: sb } = useUser();
+  const pins = usePins(user.id);
   const avatar = useAvatar(user.id);
   const schedule = useSchedule();
   const layout = tileLayout();
@@ -197,7 +199,7 @@ export default function Home() {
       <View ref={tourTiles} collapsable={false}>
         <ModuleDeck
           items={[
-            ...layout.tiles.map((m) => ({ id: m.id, icon: TAB_ICON[m.id] ?? m.icon, title: t(m.labelKey), blurb: t(`mobile.home.moduleBlurb.${m.id}` as MessageKey), onPress: () => go(router, m.href) })),
+            ...layout.tiles.map((m) => ({ id: m.id, icon: TAB_ICON[m.id] ?? m.icon, title: t(m.labelKey), blurb: t(`mobile.home.moduleBlurb.${m.id}` as MessageKey), onPress: () => go(router, moduleHref(m, pins.ids)) })),
             ...(layout.overflow.length > 0 ? [{ id: "more", icon: "more" as const, title: t("nav.more"), blurb: t("mobile.home.moduleBlurb.more"), onPress: () => router.navigate("/more") }] : []),
           ]}
         />

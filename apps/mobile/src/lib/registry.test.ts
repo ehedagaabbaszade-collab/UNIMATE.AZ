@@ -3,7 +3,7 @@ import { catalogs } from "@unimate/i18n";
 import { describe, expect, it } from "vitest";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { DEFAULT_PINS, MAX_PINS, MODULES, heroModules, pinnedModules, tabRouteOf, tileLayout, type ModuleEntry } from "./registry";
+import { DEFAULT_PINS, MAX_PINS, MODULES, heroModules, moduleHref, pinnedModules, tabRouteOf, tileLayout, type ModuleEntry } from "./registry";
 
 const lookup = (key: string) => key.split(".").reduce<unknown>((o, k) => (o as Record<string, unknown> | undefined)?.[k], catalogs.en);
 
@@ -42,5 +42,13 @@ describe("module registry", () => {
     expect(tiles).toHaveLength(8);
     expect(overflow).toHaveLength(base + 3 - 8);
     expect(tileLayout(MODULES).tiles.map((m) => m.id)).toEqual(["aiStudy", "quiz", "flashcards", "planner", "courses", "notes", "focus", "budget"]);
+  });
+
+  it("opens an unpinned tab module on its stack page, never the hidden tab", () => {
+    const career = MODULES.find((m) => m.id === "career")!;
+    const budget = MODULES.find((m) => m.id === "budget")!;
+    expect(moduleHref(career, ["aiStudy", "campus"])).toBe("/module/career");
+    expect(moduleHref(career, ["career"])).toBe("/career");
+    expect(moduleHref(budget, [])).toBe("/budget");
   });
 });

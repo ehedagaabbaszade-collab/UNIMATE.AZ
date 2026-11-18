@@ -35,6 +35,9 @@
 .tabbar__more { border: 0; background: none; font-family: inherit; cursor: pointer; }
 .mobilebar { justify-content: space-between; }
 .mobilebar__actions { display: flex; align-items: center; gap: var(--space-1); }
+/* Full logo plus language, search, bell and avatar do not fit under 380px: show the mark alone there. */
+.mobilebar__mark { display: none; }
+@media (max-width: 379px) { .mobilebar__logo { display: none; } .mobilebar__mark { display: inline-flex; } }
 .iconbtn { display: inline-grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: var(--radius-md); background: none; color: #c9d0e4; cursor: pointer; }
 .iconbtn:hover { background: rgb(255 255 255 / 0.08); color: #fff; }
 

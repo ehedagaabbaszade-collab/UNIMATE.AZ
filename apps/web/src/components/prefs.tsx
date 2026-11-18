@@ -10,7 +10,7 @@ import { useOptionalUser } from "@/components/user";
 import { writeCookie } from "@/lib/cookies";
 import { THEME_COOKIE, type ThemePref } from "@/lib/theme";
 
-export function LocaleSwitcher({ compact, id = "locale-select" }: { compact?: boolean; id?: string }) {
+export function LocaleSwitcher({ compact, bar, id = "locale-select" }: { compact?: boolean; bar?: boolean; id?: string }) {
   const { locale, t } = useI18n();
   const router = useRouter();
   const user = useOptionalUser();
@@ -22,7 +22,7 @@ export function LocaleSwitcher({ compact, id = "locale-select" }: { compact?: bo
       </label>
       {/* The pill shows the short code (AZ, EN…); the real <select> sits invisibly on top, so a click opens the list of
           full language names (styled in select.css) and keyboard / screen-reader use stay native. */}
-      <span className={compact ? "locale locale--sm" : "locale"}>
+      <span className={bar ? "locale locale--sm locale--bar" : compact ? "locale locale--sm" : "locale"}>
       <Icon name="languages" size={16} aria-hidden="true" />
       <span className="locale__code" aria-hidden="true">{locale.toUpperCase()}</span>
       <select

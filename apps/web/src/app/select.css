@@ -83,3 +83,9 @@
 .sidebar .locale__select { width: 100%; }
 .locale__code { z-index: 2; position: absolute; top: 50%; left: 38px; transform: translateY(-50%); pointer-events: none; font-family: var(--font-body, "Geist"), system-ui, sans-serif; font-size: 13px; font-weight: 600; line-height: 1; letter-spacing: 0.06em; color: var(--sel-fg, var(--text)); }
 .locale--sm .locale__code { left: 32px; }
+/* The hidden-text trick above is inherited: give the opened list its text back, or the names render invisible. */
+.locale__select option { -webkit-text-fill-color: currentColor; }
+/* Mobile top bar: short code only, no chevron, so it fits beside search, bell and avatar at 320px. */
+.locale--bar .locale__select { width: 64px; min-height: 36px; padding: 0 8px 0 30px; background-image: none; }
+.locale--bar > svg { left: 10px; }
+.locale--bar .locale__code { left: 30px; }

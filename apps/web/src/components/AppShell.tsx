@@ -127,9 +127,11 @@ export function AppShell({ displayName, mode, children }: { displayName: string 
       <div className="shell__main">
         <header className="mobilebar">
           <Link href={homeFor(mode)} className="brand">
-            <AppLogo kind="logo" layout="row" height={30} />
+            <span className="mobilebar__logo"><AppLogo kind="logo" layout="row" height={30} /></span>
+            <span className="mobilebar__mark"><AppLogo kind="mark" height={30} /></span>
           </Link>
           <div className="mobilebar__actions">
+            <LocaleSwitcher compact bar id="locale-select-bar" />
             <button type="button" className="iconbtn" onClick={() => setPaletteOpen(true)} aria-label={t("palette.open")}>
               <Icon name="search" size={22} />
             </button>

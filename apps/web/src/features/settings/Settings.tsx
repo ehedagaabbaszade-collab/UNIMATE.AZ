@@ -2,7 +2,7 @@
 
 import { Button, Card, Dialog, Input, ModuleIcon, useToast } from "@unimate/ui";
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { AppLogo } from "@/components/brand";
 import { LocaleSwitcher, ThemeToggle } from "@/components/prefs";
 import type { ThemePref } from "@/lib/theme";
@@ -23,6 +23,20 @@ export function Settings({ theme }: { theme: ThemePref }) {
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [marketing, setMarketing] = useState<boolean | null>(null); // null = unknown / legal RPCs not deployed: toggle hidden
+
+  useEffect(() => {
+    void getBrowserClient().rpc("legal_consent_status").then(({ data, error }) => {
+      if (!error) setMarketing(!!(data as Array<{ consent_type: string; granted: boolean }> | null)?.find((c) => c.consent_type === "marketing")?.granted);
+    });
+  }, []);
+
+  async function toggleMarketing(on: boolean) {
+    const sb = getBrowserClient();
+    const { error } = on ? await sb.rpc("record_consents", { p_types: ["marketing"], p_platform: "web", p_context: "settings" }) : await sb.rpc("withdraw_consent", { p_type: "marketing" });
+    if (error) return toast(t("common.genericError"), "error");
+    setMarketing(on);
+  }
 
   async function saveName(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -101,6 +115,18 @@ export function Settings({ theme }: { theme: ThemePref }) {
           <Link href="/licenses">{t("legal.licenses.title")}</Link>
         </nav>
       </Card>
+
+      {marketing === null ? null : (
+        <Card>
+          <label style={{ display: "flex", gap: "var(--space-3)", alignItems: "flex-start" }}>
+            <input type="checkbox" role="switch" checked={marketing} onChange={(e) => void toggleMarketing(e.target.checked)} style={{ marginTop: 4 }} />
+            <span>
+              <strong>{t("consent.marketingTitle")}</strong>
+              <span className="um-muted" style={{ display: "block" }}>{t("consent.marketingBody")}</span>
+            </span>
+          </label>
+        </Card>
+      )}
 
       <Card>
         <h2>{t("settings.exportTitle")}</h2>

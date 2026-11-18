@@ -101,8 +101,8 @@ describe("account purge removes every row owned by the user", () => {
     const toProfiles = fks.filter((f) => f.ref === "profiles");
     expect(toProfiles.length).toBeGreaterThan(40);
     expect(new Set(toProfiles.map((f) => f.table)).size).toBeGreaterThan(35);
-    // the only FK to auth.users is profiles.id
-    expect(fks.filter((f) => f.ref === "auth.users").map((f) => `${f.table}.${f.col}`)).toEqual(["profiles.id"]);
+    // FKs to auth.users: profiles.id plus the legal ledger tables (both cascade)
+    expect(fks.filter((f) => f.ref === "auth.users").map((f) => `${f.table}.${f.col}`)).toEqual(["profiles.id", "user_consents.user_id", "user_private.user_id"]);
     // every FK to profiles must be cascade (c) or set null (n): never RESTRICT / NO ACTION (that would block the purge)
     expect(toProfiles.filter((f) => !["c", "n"].includes(f.onDelete)).map((f) => `${f.table}.${f.col}`)).toEqual([]);
   });

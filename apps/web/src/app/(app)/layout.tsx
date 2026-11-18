@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { AppShell } from "@/components/AppShell";
 import { BackendNotConfigured } from "@/components/BackendNotConfigured";
 import { ModeProvider, UserProvider } from "@/components/user";
+import { LegalGate } from "@/features/legal/LegalGate";
 import { LocaleSync } from "@/i18n/LocaleSync";
 import { MODE_COOKIE, parseMode } from "@/lib/mode";
 import { onboardingSkipped, requireSession } from "@/lib/session";
@@ -17,6 +18,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   return (
     <UserProvider user={{ id: session.user.id, email: session.user.email ?? null, displayName }}>
       <LocaleSync userId={session.user.id} profileLocale={session.profile?.locale ?? null} localeSetAt={session.profile?.locale_set_at ?? null} />
+      <LegalGate />
       <ModeProvider value={mode}>
         <AppShell mode={mode} displayName={displayName ?? session.user.email ?? null}>{children}</AppShell>
       </ModeProvider>

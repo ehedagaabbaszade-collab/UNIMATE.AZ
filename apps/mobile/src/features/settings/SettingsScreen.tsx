@@ -1,8 +1,8 @@
 import { LOCALES, LOCALE_NAMES, createTranslator } from "@unimate/i18n";
 import { useI18n } from "@unimate/i18n/react";
 import { useRouter, type Href } from "expo-router";
-import { useRef, useState } from "react";
-import { Alert, Image, View, useWindowDimensions } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Alert, Image, Switch, View, useWindowDimensions } from "react-native";
 import { ModuleIcon } from "../../components/Icon";
 import { SlidingSegmented } from "../../components/SlidingSegmented";
 import { AppText, HeroTitle, ListGroup, ListRow, PressableScale, Screen, useToast } from "../../components/ui";
@@ -16,6 +16,7 @@ import { useSession, useUser } from "../../state/session";
 import { useTheme } from "../../theme/ThemeProvider";
 import { MIN_TOUCH, contentWidth, gridColumns, spacing, type ThemePref } from "../../theme/tokens";
 import { useAvatar } from "../profile/avatar";
+import { consentPlatform } from "../legal/LegalGate";
 
 const THEME_ICONS = { dark: "moon", light: "sun", system: "smartphone" } as const;
 
@@ -84,7 +85,7 @@ export function SettingsScreen() {
   const router = useRouter();
   const { theme, pref, setPref } = useTheme();
   const { user, profile } = useUser();
-  const { signOut } = useSession();
+  const { signOut, supabase: sb } = useSession();
   const { setLocale } = useLocaleControl();
   const { toast } = useToast();
   const { mode, setMode } = useAppMode(user.id);
@@ -95,6 +96,18 @@ export function SettingsScreen() {
   const name = profile?.display_name ?? "";
   const initial = (name || user.email || "?").trim().slice(0, 1).toUpperCase();
   const go = (href: string) => () => router.push(href as Href);
+  const [marketing, setMarketing] = useState<boolean | null>(null); // null = unknown / legal RPCs not deployed: row hidden
+  useEffect(() => {
+    void sb?.rpc("legal_consent_status").then(({ data, error }) => {
+      if (!error) setMarketing(!!(data as Array<{ consent_type: string; granted: boolean }> | null)?.find((c) => c.consent_type === "marketing")?.granted);
+    });
+  }, [sb]);
+  const toggleMarketing = async (on: boolean) => {
+    if (!sb) return;
+    const { error } = on ? await sb.rpc("record_consents", { p_types: ["marketing"], p_platform: consentPlatform(), p_context: "settings" }) : await sb.rpc("withdraw_consent", { p_type: "marketing" });
+    if (error) return toast(t("common.genericError"), "error");
+    setMarketing(on);
+  };
 
   return (
     <Screen ambient style={{ gap: spacing.lg }}>
@@ -155,6 +168,7 @@ export function SettingsScreen() {
         <ListRow icon="notes" iconColor={theme.text} title={t("legal.terms")} onPress={go("/legal/terms")} />
         <ListRow icon="info" iconColor={theme.text} title={t("legal.privacy")} onPress={go("/legal/privacy")} />
         <ListRow icon="notes" iconColor={theme.text} title={t("legal.licenses.title")} onPress={go("/legal/licenses")} />
+        {marketing === null ? null : <ListRow icon="announcement" iconColor={theme.text} title={t("consent.marketingTitle")} subtitle={t("consent.marketingBody")} trailing={<Switch value={marketing} onValueChange={(v) => void toggleMarketing(v)} accessibilityLabel={t("consent.marketingTitle")} />} />}
         <ListRow icon="locked" iconColor={theme.text} title={t("mobile.profile.privacyRow")} subtitle={t("mobile.profile.privacySub")} onPress={go("/privacy")} />
         {mode !== "teacher" ? (
           <ListRow

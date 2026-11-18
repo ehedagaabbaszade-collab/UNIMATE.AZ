@@ -1,5 +1,6 @@
 "use client";
 
+import { signUpLegalMeta } from "@unimate/core";
 import { Button, Input } from "@unimate/ui";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -12,6 +13,9 @@ import { getBrowserClient } from "@/lib/supabase/browser";
 import { AcademicPicker, type AcademicValue } from "../academic/AcademicPicker";
 import { authErrorKey } from "./auth-errors";
 import { RoleSwitch } from "./RoleSwitch";
+import { ConsentFields, birthIssue, type Checked } from "../legal/ConsentFields";
+
+const REQUIRED = ["terms", "privacy_notice", "ai_disclaimer"] as const;
 
 export function SignUpForm({ as }: { as: AppMode }) {
   const t = useT();
@@ -20,10 +24,15 @@ export function SignUpForm({ as }: { as: AppMode }) {
   const [errors, setErrors] = useState<Record<string, MessageKey>>({});
   const [formError, setFormError] = useState<MessageKey | null>(null);
   const [busy, setBusy] = useState(false);
+  const [birth, setBirth] = useState("");
+  const [checked, setChecked] = useState<Checked>({});
+  const birthErr = birthIssue(birth);
+  const ready = !birthErr && REQUIRED.every((k) => checked[k]);
   const [academic, setAcademic] = useState<AcademicValue>({ universityId: "", facultyId: "", majorId: "" });
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!ready) return;
     const fd = new FormData(e.currentTarget);
     const parsed = signUpSchema.safeParse({
       displayName: fd.get("displayName"),
@@ -49,7 +58,7 @@ export function SignUpForm({ as }: { as: AppMode }) {
       password: v.password,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding&as=${as}`,
-        data: { display_name: v.displayName, locale, ...(v.universityId ? { university_id: v.universityId } : {}), ...(v.majorId ? { major_id: v.majorId } : {}) },
+        data: { display_name: v.displayName, locale, ...signUpLegalMeta(birth, !!checked.marketing, "web"), ...(v.universityId ? { university_id: v.universityId } : {}), ...(v.majorId ? { major_id: v.majorId } : {}) },
       },
     });
     if (error) {
@@ -83,7 +92,8 @@ export function SignUpForm({ as }: { as: AppMode }) {
       <Input name="password" type="password" reveal={{ show: t("mobile.auth.showPassword"), hide: t("mobile.auth.hidePassword") }} autoComplete="new-password" label={t("auth.password")} hint={t("validation.passwordMin")} error={errors.password && t(errors.password)} />
       <Input name="confirmPassword" type="password" reveal={{ show: t("mobile.auth.showPassword"), hide: t("mobile.auth.hidePassword") }} autoComplete="new-password" label={t("auth.confirmPassword")} error={errors.confirmPassword && t(errors.confirmPassword)} />
       <AcademicPicker value={academic} onChange={setAcademic} />
-      <Button type="submit" block loading={busy}>
+      <ConsentFields birth={birth} onBirth={setBirth} birthError={birth && birthErr ? t(birthErr) : undefined} types={[...REQUIRED]} checked={checked} onCheck={(k, v) => setChecked((c) => ({ ...c, [k]: v }))} marketing />
+      <Button type="submit" block loading={busy} disabled={!ready}>
         {t("auth.signUpCta")}
       </Button>
       <p className="um-muted" style={{ fontSize: "var(--text-sm)" }}>

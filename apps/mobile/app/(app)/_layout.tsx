@@ -2,6 +2,7 @@ import { Redirect, Stack, usePathname } from "expo-router";
 import { useEffect, useState } from "react";
 import { kv, onboardingSkipKey } from "../../src/lib/storage";
 import { useReminderSync } from "../../src/features/planner/useReminderSync";
+import { LegalGate } from "../../src/features/legal/LegalGate";
 import { useAppMode } from "../../src/state/mode";
 import { useSession } from "../../src/state/session";
 import { NATIVE_GLASS } from "../../src/components/Glass";
@@ -37,7 +38,9 @@ export default function AppLayout() {
   if (mode === "student" && needsOnboarding && pathname !== "/onboarding") return <Redirect href="/onboarding" />;
 
   return (
-    // Native transitions only (iOS push + edge/full swipe back, Android default). Screens opt into the header via ScreenHeader.
+    <>
+      <LegalGate />
+      {/* Native transitions only (iOS push + edge/full swipe back, Android default). Screens opt into the header via ScreenHeader. */}
     <Stack
       screenOptions={{
         headerShown: false,
@@ -58,5 +61,6 @@ export default function AppLayout() {
       {/* Modals declare their header up front: toggling header visibility inside a modal remounts it and drops state. */}
       <Stack.Screen name="notifications" options={{ presentation: "modal", headerShown: true }} />
     </Stack>
+    </>
   );
 }

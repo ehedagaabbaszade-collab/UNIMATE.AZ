@@ -24,3 +24,5 @@ export * from "./student/budget";
 export * from "./planner/agenda";
 export * from "./study/writing";
 export * from "./study/exam";
+export { MIN_AGE, LEGAL_CONSENT_TYPES, CONSENT_PLATFORMS, parseBirthDate, ageOn, checkBirthDate, type YMD } from "./legal/age";
+export { legalErrorKind, isFunctionMissing, legalGate, signUpLegalMeta, type LegalErrorKind, type LegalGate } from "./legal/consent";

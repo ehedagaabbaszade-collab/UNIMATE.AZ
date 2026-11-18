@@ -2,9 +2,12 @@ import type { MessageKey } from "@unimate/i18n";
 import { useI18n } from "@unimate/i18n/react";
 import { Link, useRouter } from "expo-router";
 import { useState } from "react";
+import { signUpLegalMeta } from "@unimate/core";
 import { AppText, Button, Input, Notice } from "../../src/components/ui";
 import { AcademicPicker, type AcademicValue } from "../../src/features/academic/AcademicPicker";
 import { AuthShell } from "../../src/features/auth/AuthShell";
+import { BirthDateField, ConsentChecks, birthIssue, type Checked } from "../../src/features/legal/ConsentFields";
+import { consentPlatform } from "../../src/features/legal/LegalGate";
 import { authErrorKey } from "../../src/lib/auth-errors";
 import { authRedirect } from "../../src/lib/links";
 import { fieldErrors, signUpSchema } from "../../src/lib/schemas";
@@ -19,9 +22,14 @@ export default function SignUp() {
   const [errors, setErrors] = useState<Record<string, MessageKey>>({});
   const [formError, setFormError] = useState<MessageKey | null>(null);
   const [busy, setBusy] = useState(false);
+  const [birth, setBirth] = useState("");
+  const [checked, setChecked] = useState<Checked>({});
+  const birthErr = birthIssue(birth);
+  const ready = !birthErr && !!checked.terms && !!checked.privacy_notice && !!checked.ai_disclaimer;
   const set = (k: keyof typeof f) => (v: string) => setF((s) => ({ ...s, [k]: v }));
 
   async function submit() {
+    if (!ready) return;
     const parsed = signUpSchema.safeParse({ ...f, universityId: academic.universityId, majorId: academic.majorId });
     if (!parsed.success) return setErrors(fieldErrors(parsed.error));
     setErrors({});
@@ -33,7 +41,7 @@ export default function SignUp() {
     const { data, error } = await supabase!.auth.signUp({
       email: v.email,
       password: v.password,
-      options: { emailRedirectTo: authRedirect(), data: { display_name: v.displayName, locale, ...(v.universityId ? { university_id: v.universityId } : {}), ...(v.majorId ? { major_id: v.majorId } : {}) } },
+      options: { emailRedirectTo: authRedirect(), data: { display_name: v.displayName, locale, ...signUpLegalMeta(birth, !!checked.marketing, consentPlatform()), ...(v.universityId ? { university_id: v.universityId } : {}), ...(v.majorId ? { major_id: v.majorId } : {}) } },
     });
     setBusy(false);
     if (error) return setFormError(authErrorKey(error, "auth.signUpFailed"));
@@ -52,7 +60,9 @@ export default function SignUp() {
       <Input label={t("auth.password")} value={f.password} onChangeText={set("password")} secure autoCapitalize="none" autoComplete="new-password" hint={t("validation.passwordMin")} error={errors.password && t(errors.password)} />
       <Input label={t("auth.confirmPassword")} value={f.confirmPassword} onChangeText={set("confirmPassword")} secure autoCapitalize="none" autoComplete="new-password" error={errors.confirmPassword && t(errors.confirmPassword)} />
       <AcademicPicker value={academic} onChange={setAcademic} />
-      <Button title={t("auth.signUpCta")} onPress={submit} loading={busy} />
+      <BirthDateField onChange={setBirth} error={birth && birthErr ? t(birthErr) : undefined} />
+      <ConsentChecks types={["terms", "privacy_notice", "ai_disclaimer"]} checked={checked} onCheck={(k, v) => setChecked((c) => ({ ...c, [k]: v }))} marketing />
+      <Button title={t("auth.signUpCta")} onPress={submit} loading={busy} disabled={!ready} />
       <AppText muted variant="caption">
         {t("auth.hasAccount")}{" "}
         <Link href="/sign-in" accessibilityRole="link">

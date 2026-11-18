@@ -146,6 +146,6 @@ Supabase local stack, environment variables and running the apps: [docs/LOCAL_SE
 
 ## License
 
-Copyright © 2026 Ehedaga Abbaszade. All rights reserved.
+Copyright © 2026 Əhədağa Abbaszadə. All rights reserved.
 
 This is proprietary software. The source is visible for review only: no part of it may be used, copied, modified, distributed or hosted without prior written permission. See [LICENSE](LICENSE).

@@ -734,7 +734,7 @@ export const az = {
     community: "İcma Qaydaları",
     retention: "Məlumatın Saxlanması",
     notFound: "Belə səhifə yoxdur.",
-    licenses: { title: "Açıq mənbə lisenziyaları", ownership: "UNIMATE © 2026 Ehedaga Abbaszade. Bütün hüquqlar qorunur. UNIMATE-in öz proqram kodu, dizaynı və brendi müəllif hüququ ilə qorunur.", intro: "Platforma aşağıdakı açıq mənbə komponentlərindən istifadə edir. Hər komponent öz lisenziyasının şərtləri ilə yayılır və bu şərtlərə uyğun olaraq burada qeyd olunur.", count: "{n} komponent", showPackages: "Komponentlərin siyahısı", fullTextHeading: "Lisenziyaların tam mətni", fullTextBody: "Bütün komponentlərin müəllif hüququ bildirişləri və lisenziya mətnləri bir sənəddə toplanıb.", fullText: "Tam mətni aç (.txt)" },
+    licenses: { title: "Açıq mənbə lisenziyaları", ownership: "UNIMATE © 2026 Əhədağa Abbaszadə. Bütün hüquqlar qorunur. UNIMATE-in öz proqram kodu, dizaynı və brendi müəllif hüququ ilə qorunur.", intro: "Platforma aşağıdakı açıq mənbə komponentlərindən istifadə edir. Hər komponent öz lisenziyasının şərtləri ilə yayılır və bu şərtlərə uyğun olaraq burada qeyd olunur.", count: "{n} komponent", showPackages: "Komponentlərin siyahısı", fullTextHeading: "Lisenziyaların tam mətni", fullTextBody: "Bütün komponentlərin müəllif hüququ bildirişləri və lisenziya mətnləri bir sənəddə toplanıb.", fullText: "Tam mətni aç (.txt)" },
   },
   meta: { description: "Azərbaycandakı tələbələr üçün təhsil platforması." },
   errorPage: { title: "Nəsə xarab oldu", body: "Gözlənilməz xəta baş verdi. Yenidən cəhd edə bilərsiniz.", notFoundTitle: "Səhifə tapılmadı", notFoundBody: "Axtardığınız səhifə mövcud deyil.", home: "Ana səhifəyə" },

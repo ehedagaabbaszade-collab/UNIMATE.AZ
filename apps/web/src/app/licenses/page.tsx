@@ -49,9 +49,7 @@ export default async function LicensesPage() {
           {groups.map(([id, entries]) => (
             <section key={id} className="license-group">
               <h2>{LICENSE_NAMES[id] ?? id}</h2>
-              <p className="um-muted">
-                SPDX: {id} · {t("legal.licenses.count", { n: entries.length })}
-              </p>
+              <p className="um-muted">{`SPDX: ${id} · ${t("legal.licenses.count", { n: entries.length })}`}</p>
               <details>
                 <summary>{t("legal.licenses.showPackages")}</summary>
                 <ul className="license-pkgs">

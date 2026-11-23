@@ -37,7 +37,7 @@ describe("route access (role -> allowed routes)", () => {
     });
   }
   it("moderators see moderation only (plus the overview)", () => {
-    expect(navFor("moderator").map((n) => n.href)).toEqual(["/", "/moderation"]);
+    expect(navFor("moderator").map((n) => n.href)).toEqual(["/", "/moderation", "/universities"]);
   });
   it("admins see everything; the nav order is stable", () => {
     expect(navFor("admin").map((n) => n.href)).toEqual(NAV.map((n) => n.href));
@@ -97,7 +97,7 @@ describe("every console page is guarded with its own route", () => {
     }
   };
   walk(root);
-  it("finds the console pages", () => expect(pages.length).toBe(18));
+  it("finds the console pages", () => expect(pages.length).toBe(19));
   for (const f of pages) {
     const rel = path.relative(root, path.dirname(f)).replaceAll("\\", "/");
     const route = rel === "" ? "/" : `/${rel.replace(/\/\[.*$/, "")}`;

@@ -67,15 +67,17 @@ export function ProfileScreen() {
   }
 
   const info = useAsync(async () => {
-    const [plan, uni, unread, prog] = await Promise.all([
+    const [plan, uni, unread, prog, st] = await Promise.all([
       sb.rpc("my_plan"),
       profile?.university_id ? sb.from("universities").select("name").eq("id", profile.university_id).maybeSingle<{ name: string }>() : Promise.resolve({ data: null, error: null }),
       sb.rpc("unread_notification_count"),
       sb.rpc("my_progress"),
+      sb.from("profiles").select("university_status").eq("id", user.id).maybeSingle<{ university_status: string }>(),
     ]);
     return {
       plan: planFromSubscription(plan.error ? null : { plan: String(plan.data ?? "free") as "free" | "plus" | "pro", status: "active" }),
       university: uni.data?.name ?? null,
+      uniStatus: profile?.university_id ? (st.data?.university_status ?? null) : null,
       unread: typeof unread.data === "number" ? unread.data : 0,
       level: prog.error ? null : parseMyProgress(prog.data).level,
     };
@@ -197,6 +199,11 @@ export function ProfileScreen() {
         <AppText variant="caption" muted numberOfLines={1}>
           {info.data?.university ?? t("mobile.profile.noInstitution")}
         </AppText>
+        {info.data?.uniStatus === "pending" || info.data?.uniStatus === "approved" || info.data?.uniStatus === "rejected" ? (
+          <AppText variant="caption" muted>
+            {t(info.data.uniStatus === "pending" ? "mobile.profile.uniPending" : info.data.uniStatus === "approved" ? "mobile.profile.uniApproved" : "mobile.profile.uniRejected")}
+          </AppText>
+        ) : null}
       </View>
 
       {shownPlan ? (

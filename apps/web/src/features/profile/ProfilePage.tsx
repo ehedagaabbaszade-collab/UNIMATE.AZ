@@ -32,7 +32,7 @@ export function ProfilePage() {
 
   const info = useAsync(async () => {
     const sb = getBrowserClient();
-    const prof = await sb.from("profiles").select("avatar_url,university_id").eq("id", user.id).maybeSingle<{ avatar_url: string | null; university_id: string | null }>();
+    const prof = await sb.from("profiles").select("avatar_url,university_id,university_status").eq("id", user.id).maybeSingle<{ avatar_url: string | null; university_id: string | null; university_status: string | null }>();
     const [plan, uni, prog] = await Promise.all([
       sb.rpc("my_plan"),
       prof.data?.university_id ? sb.from("universities").select("name").eq("id", prof.data.university_id).maybeSingle<{ name: string }>() : Promise.resolve({ data: null, error: null }),
@@ -44,6 +44,7 @@ export function ProfilePage() {
       avatarUrl: isOwnAvatarUrl(url, supabaseUrl) ? url : null,
       plan: planFromSubscription(plan.error ? null : { plan: String(plan.data ?? "free") as "free" | "plus" | "pro", status: "active" }),
       university: uni.data?.name ?? null,
+      uniStatus: prof.data?.university_id ? prof.data.university_status : null,
       level: prog.error ? null : parseMyProgress(prog.data).level,
     };
   }, [user.id]);
@@ -128,6 +129,9 @@ export function ProfilePage() {
           {nameError ? <p className="err-box" role="alert">{nameError}</p> : null}
           <span className="um-hint">{user.email}</span>
           <small className="um-hint">{info.data?.university ?? t("mobile.profile.noInstitution")}</small>
+          {info.data?.uniStatus === "pending" || info.data?.uniStatus === "approved" || info.data?.uniStatus === "rejected" ? (
+            <small className="um-hint">{t(info.data.uniStatus === "pending" ? "mobile.profile.uniPending" : info.data.uniStatus === "approved" ? "mobile.profile.uniApproved" : "mobile.profile.uniRejected")}</small>
+          ) : null}
         </div>
       </Card>
 

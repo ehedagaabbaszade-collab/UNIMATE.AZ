@@ -66,6 +66,7 @@ describe("every admin key used in source exists", () => {
       "admin.moderation.reportStatus.": ["open", "reviewing", "actioned", "dismissed"],
       "admin.moderation.kind.": ["post", "comment", "resource", "user", "community", "event"],
       "admin.moderation.visibility.": ["public", "private"],
+      "admin.universities.status.": ["pending", "approved", "rejected", "none"],
       "admin.career.kind.": ["internship", "junior_job", "scholarship", "exchange", "competition", "hackathon", "career_event"],
       "admin.career.status.": ["draft", "published", "archived"],
       "admin.ai.kind.": ["openai", "anthropic"],

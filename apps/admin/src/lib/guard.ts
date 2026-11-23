@@ -29,6 +29,7 @@ export interface NavItem {
 export const NAV: readonly NavItem[] = [
   { href: "/", key: "admin.nav.dashboard", icon: "home", min: "moderator" },
   { href: "/moderation", key: "admin.nav.moderation", icon: "report", min: "moderator" },
+  { href: "/universities", key: "admin.nav.universities", icon: "materials", min: "moderator" },
   { href: "/users", key: "admin.nav.users", icon: "profile", min: "admin" },
   { href: "/academic", key: "admin.nav.academic", icon: "materials", min: "admin" },
   { href: "/career", key: "admin.nav.career", icon: "career", min: "admin" },

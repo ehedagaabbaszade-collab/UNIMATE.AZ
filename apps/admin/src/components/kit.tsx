@@ -290,6 +290,7 @@ export interface ActSpec {
   confirm: string;
   danger?: boolean;
   hideReason?: boolean;
+  reasonRequired?: boolean;
   run: (reason: string) => Promise<void>;
 }
 /** One confirm-with-reason dialog driven by an action spec; success toast + reload only after the RPC resolved. */
@@ -304,6 +305,7 @@ export function useActDialog(reload: () => void) {
       confirmLabel={act?.confirm ?? ""}
       {...(act?.danger ? { danger: true } : {})}
       {...(act?.hideReason ? { hideReason: true } : {})}
+      {...(act?.reasonRequired === false ? { reasonRequired: false } : {})}
       onClose={() => setAct(null)}
       onConfirm={async (reason) => {
         if (!act) return;

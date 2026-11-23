@@ -33,6 +33,20 @@ export const userRow = z.object({
 });
 export type UserRow = z.infer<typeof userRow>;
 
+export const universityRequestRow = z.object({
+  id: z.string(),
+  display_name: nullableStr,
+  username: nullableStr,
+  university_id: z.string().nullable(),
+  university_name: nullableStr,
+  university_status: z.enum(["none", "pending", "approved", "rejected"]),
+  university_reviewed_at: nullableStr,
+  university_review_note: nullableStr,
+  created_at: z.string(),
+  total: num,
+});
+export type UniversityRequestRow = z.infer<typeof universityRequestRow>;
+
 export const subscriptionRow = z.object({
   id: z.string(),
   plan: planName,
@@ -279,6 +293,10 @@ export function createAdminApi(sb: SupabaseClient) {
     grantPlan: (userId: string, plan: string, until: string | null, reason: string) =>
       rpc(sb, "admin_grant_plan", { p_user_id: userId, p_plan: plan, p_until: until, p_reason: reason }, z.string().nullable()),
     setSuspended: (userId: string, suspended: boolean, reason: string) => rpc(sb, "admin_set_user_suspended", { p_user_id: userId, p_suspended: suspended, p_reason: reason }, boolRpc),
+    // ---- university verification
+    universityRequests: (status: string, page: number) => rpcPage(sb, "admin_list_university_requests", { p_status: status, ...off(page) }, universityRequestRow),
+    reviewUniversity: (userId: string, universityId: string, approve: boolean, note: string) =>
+      rpc(sb, "admin_review_university", { p_user: userId, p_university: universityId, p_approve: approve, p_note: note.trim() || null }, z.array(z.unknown())),
     // ---- subscriptions
     expiring: (days: number, page: number) => rpcPage(sb, "admin_expiring_subscriptions", { p_days: days, ...off(page) }, expiringRow),
     subscriptionsByPlan: () => rpc(sb, "admin_subscriptions_by_plan", {}, planCountRow),

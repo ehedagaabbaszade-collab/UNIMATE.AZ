@@ -197,7 +197,7 @@ describe("navigation gating for part 2", () => {
       expect(canAccess("admin", p), p).toBe(true);
       expect(canAccess("super_admin", p), p).toBe(true);
     }
-    expect(navFor("moderator").map((n) => n.href)).toEqual(["/", "/moderation"]);
+    expect(navFor("moderator").map((n) => n.href)).toEqual(["/", "/moderation", "/universities"]);
     expect(atLeast("admin", "admin")).toBe(true);
   });
   it("unknown nested routes stay deny-by-default for moderators", () => {

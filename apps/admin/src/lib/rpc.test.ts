@@ -112,3 +112,21 @@ describe("error keys are i18n keys, never server text", () => {
     expect(errorKey(new RpcError("42501"))).toBe("admin.err.forbidden");
   });
 });
+
+describe("university verification wrappers", () => {
+  const ROW = { id: "u1", display_name: "A", username: null, university_id: "uni1", university_name: "ADA", university_status: "pending", university_reviewed_at: null, university_review_note: null, created_at: "2026-01-01T00:00:00Z", total: "3" };
+  it("lists requests by status with paging", async () => {
+    const { api, calls } = fake({ data: [ROW] });
+    const page = await api.universityRequests("pending", 1);
+    expect(page.total).toBe(3);
+    expect(calls[0]).toEqual({ fn: "admin_list_university_requests", args: { p_status: "pending", p_limit: PAGE_SIZE, p_offset: PAGE_SIZE } });
+  });
+  it("reviews with the university the reviewer saw; blank note is null", async () => {
+    const { api, calls } = fake({ data: [{}] });
+    await api.reviewUniversity("u1", "uni1", true, "  ");
+    expect(calls[0]).toEqual({ fn: "admin_review_university", args: { p_user: "u1", p_university: "uni1", p_approve: true, p_note: null } });
+  });
+  it("maps a stale review (40001) to its own message", () => {
+    expect(keyForCode("40001")).toBe("admin.universities.changed");
+  });
+});

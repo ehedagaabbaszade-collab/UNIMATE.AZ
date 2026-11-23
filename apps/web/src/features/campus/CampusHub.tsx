@@ -24,15 +24,24 @@ function UniversityOffer({ mine, onJoined }: { mine: CommunityListItem[] | undef
   const onError = useCampusError();
   const user = useUser();
   const info = useAsync(async () => {
-    const { data } = await sb().from("profiles").select("university_id, universities(name)").eq("id", user.id).maybeSingle();
-    const uni = (data as { university_id: string | null; universities: { name: string } | { name: string }[] | null } | null) ?? null;
+    const { data } = await sb().from("profiles").select("university_id, university_status, universities(name)").eq("id", user.id).maybeSingle();
+    const uni = (data as { university_id: string | null; university_status: string | null; universities: { name: string } | { name: string }[] | null } | null) ?? null;
     const rel = uni?.universities;
     const name = Array.isArray(rel) ? rel[0]?.name : rel?.name;
-    return uni?.university_id && name ? { id: uni.university_id, name: name.slice(0, 100) } : null;
+    return uni?.university_id && name ? { id: uni.university_id, name: name.slice(0, 100), approved: uni.university_status === "approved" } : null;
   }, [user.id]);
   const [busy, setBusy] = useState(false);
   const u = info.data;
   if (!u || !mine || mine.some((c) => c.kind === "university" && c.university_id === u.id)) return null;
+  if (!u.approved)
+    return (
+      <Card>
+        <div className="stack">
+          <h2 style={{ margin: 0 }}>{t("campus.communities.universityLockedTitle")}</h2>
+          <p className="um-muted">{t("campus.communities.universityLockedBody")}</p>
+        </div>
+      </Card>
+    );
   return (
     <Card>
       <div className="stack">

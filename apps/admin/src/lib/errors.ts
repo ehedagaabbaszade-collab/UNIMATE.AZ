@@ -28,6 +28,8 @@ export function keyForCode(code: string): MessageKey {
       return "admin.err.invalid";
     case "55000":
       return "admin.err.conflict";
+    case "40001":
+      return "admin.universities.changed";
     case "P0002":
       return "admin.err.notFound";
     case "23505":

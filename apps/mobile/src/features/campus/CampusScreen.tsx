@@ -25,8 +25,17 @@ function UniversityOffer({ mine, onJoined }: { mine: CommunityListItem[] | undef
   const { supabase: sb, profile } = useUser();
   const uni = profile?.university_id ?? null;
   const name = useAsync(async () => (uni ? ((await sb.from("universities").select("name").eq("id", uni).maybeSingle()).data?.name as string | undefined) ?? null : null), [uni], !!uni);
+  const status = useAsync(async () => (uni ? ((await sb.from("profiles").select("university_status").eq("id", profile!.id).maybeSingle()).data?.university_status as string | undefined) ?? null : null), [uni], !!uni);
   const [busy, setBusy] = useState(false);
   if (!uni || !mine || !name.data || mine.some((c) => c.kind === "university" && c.university_id === uni)) return null;
+  if (!status.data) return null;
+  if (status.data !== "approved")
+    return (
+      <Card strong>
+        <AppText variant="heading">{t("campus.communities.universityLockedTitle")}</AppText>
+        <AppText muted>{t("campus.communities.universityLockedBody")}</AppText>
+      </Card>
+    );
   const label = name.data.slice(0, 100);
   return (
     <Card strong>

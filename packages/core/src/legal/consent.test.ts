@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isFunctionMissing, legalErrorKind, legalGate, signUpLegalMeta } from "./consent";
+import { gateDecision, isFunctionMissing, legalErrorKind, legalGate, signUpLegalMeta } from "./consent";
 
 describe("legal consent helpers", () => {
   it("classifies server errors", () => {
@@ -10,6 +10,12 @@ describe("legal consent helpers", () => {
   it("detects a missing function only", () => {
     expect(isFunctionMissing({ code: "PGRST202" })).toBe(true);
     expect(isFunctionMissing({ code: "28000" })).toBe(false);
+  });
+  it("fails closed except for a missing function", () => {
+    expect(gateDecision([null, null])).toBe("check");
+    expect(gateDecision([{ code: "PGRST202" }, { status: 404 }])).toBe("skip");
+    expect(gateDecision([null, { status: 503 }])).toBe("block");
+    expect(gateDecision([{ code: "PGRST202" }, { code: "28000" }])).toBe("block");
   });
   it("builds the gate", () => {
     expect(legalGate([{ has_birth_date: false }], [{ consent_type: "terms", granted: false, needs_action: true }, { consent_type: "marketing", granted: true, needs_action: false }])).toEqual({ needsBirth: true, pending: ["terms"], marketing: true });

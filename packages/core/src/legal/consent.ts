@@ -15,6 +15,13 @@ export function legalErrorKind(err: { message?: string } | null | undefined): Le
 /** True when the legal RPCs are not deployed yet (remote DB not migrated): the gate must fail open only then. */
 export const isFunctionMissing = (err: { code?: string } | null | undefined): boolean => err?.code === "PGRST202" || err?.code === "42883";
 
+/** Gate outcome for the status RPC errors: only a missing function (pre-migration) passes; any other error blocks with a retry. */
+export function gateDecision(errs: Array<{ code?: string; status?: number } | null | undefined>): "check" | "skip" | "block" {
+  const bad = errs.filter((e): e is { code?: string; status?: number } => !!e);
+  if (!bad.length) return "check";
+  return bad.every((e) => isFunctionMissing(e) || e.status === 404) ? "skip" : "block";
+}
+
 export interface LegalGate {
   needsBirth: boolean;
   /** Required consent types that need (re)acceptance. */

@@ -8,7 +8,6 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useSignOut } from "@/components/sign-out";
 import { useUser } from "@/components/user";
-import { useDemoPlan } from "@/features/plans/demo-plan";
 import { getBrowserClient } from "@/lib/supabase/browser";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 import { planFromSubscription } from "@/lib/usage";
@@ -25,7 +24,6 @@ export function ProfilePage() {
   const signOut = useSignOut();
   const router = useRouter();
   const { toast } = useToast();
-  const demo = useDemoPlan(user.id);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const [nameError, setNameError] = useState<string | null>(null);
@@ -50,7 +48,7 @@ export function ProfilePage() {
     };
   }, [user.id]);
 
-  const shownPlan = info.data ? (demo.demoPlan ?? info.data.plan) : null;
+  const shownPlan = info.data ? info.data.plan : null;
   const price = shownPlan && shownPlan !== "GROUP" ? PRICE_AZN[shownPlan] : 0;
   const shownName = user.displayName ?? "";
 

@@ -1,4 +1,4 @@
-import { isFunctionMissing, legalErrorKind, legalGate, type LegalGate as Gate } from "@unimate/core";
+import { gateDecision, legalErrorKind, legalGate, type LegalGate as Gate } from "@unimate/core";
 import { useI18n } from "@unimate/i18n/react";
 import { useEffect, useState } from "react";
 import { Modal, Platform, ScrollView, View } from "react-native";
@@ -22,17 +22,34 @@ export function LegalGate() {
   const [busy, setBusy] = useState(false);
   const [underage, setUnderage] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [blocked, setBlocked] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (!sb) return;
     void Promise.all([sb.rpc("legal_profile_status"), sb.rpc("legal_consent_status")]).then(([p, c]) => {
-      // Fail open only when the functions are not deployed yet (remote DB not migrated).
-      if (p.error || c.error || isFunctionMissing(p.error) || isFunctionMissing(c.error)) return;
+      // Fail open only when the functions are not deployed yet (remote DB not migrated); any other error blocks.
+      const d = gateDecision([p, c].map((r) => (r.error ? { ...r.error, status: r.status } : null)));
+      setBlocked(d === "block");
+      if (d !== "check") return;
       const g = legalGate(p.data, c.data);
       if (g.needsBirth || g.pending.length) setGate(g);
     });
-  }, [sb]);
+  }, [sb, attempt]);
 
+  if (blocked && sb)
+    return (
+      <Modal visible animationType="slide" onRequestClose={() => undefined}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }}>
+          <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}>
+            <AppText variant="title" accessibilityRole="header">{t("consent.gateErrorTitle")}</AppText>
+            <AppText muted>{t("consent.gateErrorBody")}</AppText>
+            <Button title={t("common.retry")} onPress={() => setAttempt((n) => n + 1)} />
+            <Button title={t("nav.signOut")} variant="secondary" onPress={() => void signOut()} />
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+    );
   if (!gate || !sb) return null;
   const pending = gate.pending as ConsentType[];
   const birthErr = gate.needsBirth ? birthIssue(birth) : null;

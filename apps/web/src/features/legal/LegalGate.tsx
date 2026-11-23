@@ -1,8 +1,8 @@
 "use client";
 
-import { isFunctionMissing, legalErrorKind, legalGate, type LegalGate as Gate } from "@unimate/core";
+import { gateDecision, legalErrorKind, legalGate, type LegalGate as Gate } from "@unimate/core";
 import { useI18n } from "@unimate/i18n/react";
-import { Button, Dialog } from "@unimate/ui";
+import { Button, Dialog, ErrorState } from "@unimate/ui";
 import { useEffect, useState } from "react";
 import { useSignOut } from "@/components/sign-out";
 import { getBrowserClient } from "@/lib/supabase/browser";
@@ -18,17 +18,27 @@ export function LegalGate() {
   const [busy, setBusy] = useState(false);
   const [underage, setUnderage] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [blocked, setBlocked] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     const sb = getBrowserClient();
     void Promise.all([sb.rpc("legal_profile_status"), sb.rpc("legal_consent_status")]).then(([p, c]) => {
-      // Fail open only when the functions are not deployed yet (remote DB not migrated).
-      if (p.error || c.error || isFunctionMissing(p.error) || isFunctionMissing(c.error)) return;
+      // Fail open only when the functions are not deployed yet (remote DB not migrated); any other error blocks.
+      const d = gateDecision([p, c].map((r) => (r.error ? { ...r.error, status: r.status } : null)));
+      setBlocked(d === "block");
+      if (d !== "check") return;
       const g = legalGate(p.data, c.data);
       if (g.needsBirth || g.pending.length) setGate(g);
     });
-  }, []);
+  }, [attempt]);
 
+  if (blocked)
+    return (
+      <Dialog open onClose={() => undefined} title={t("consent.gateTitle")}>
+        <ErrorState title={t("consent.gateErrorTitle")} description={t("consent.gateErrorBody")} action={<Button onClick={() => setAttempt((n) => n + 1)}>{t("common.retry")}</Button>} />
+      </Dialog>
+    );
   if (!gate) return null;
   const pending = gate.pending as ConsentType[];
   const birthErr = gate.needsBirth ? birthIssue(birth) : null;

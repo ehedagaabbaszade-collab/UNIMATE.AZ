@@ -4,9 +4,7 @@ import { useLocalSearchParams, useRouter, type Href } from "expo-router";
 import { Alert, View, useWindowDimensions } from "react-native";
 import { Icon } from "../../../src/components/Icon";
 import { AppText, Button, Card, Screen, ScreenHeader } from "../../../src/components/ui";
-import { useDemoPlan } from "../../../src/features/payments/demo-plan";
 import { planLosses, type Loss } from "../../../src/features/payments/plan-relation";
-import { useUser } from "../../../src/state/session";
 import { useTheme } from "../../../src/theme/ThemeProvider";
 import { radii, spacing } from "../../../src/theme/tokens";
 
@@ -29,9 +27,7 @@ export default function CancelRoute() {
       ? t(`mobile.profile.plans.feat.${l.feature}` as "mobile.profile.plans.feat.quiz")
       : t(`mobile.profile.subscription.lose${LOSE_KEY[l.kind]}`, { from: number(l.from ?? 0), to: number(l.to ?? 0) });
   const title = target === "PLUS" ? t("mobile.profile.subscription.toPLUS") : t("mobile.profile.subscription.cancelTitle");
-  const { setDemoPlan } = useDemoPlan(useUser().user.id);
   const go = () => {
-    setDemoPlan(target); // device-local demo plan only; the server subscription is untouched
     router.replace({ pathname: "/subscription/feedback", params: { from, target } } as Href);
   };
   const confirm = () =>

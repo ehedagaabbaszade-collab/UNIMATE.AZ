@@ -8,14 +8,13 @@ import { useUser } from "@/components/user";
 import { getBrowserClient } from "@/lib/supabase/browser";
 import { planFromSubscription } from "@/lib/usage";
 import { useAsync } from "@/lib/use-async";
-import { useDemoPlan } from "./demo-plan";
 import { planRelation } from "./plan-relation";
 import s from "./PlansPage.module.css";
 
 const SHOWN = ["FREE", "PLUS", "PRO"] as const satisfies readonly PlanId[];
 const FEATURES = ["flashcards", "quiz", "ocr", "export", "priority_models"] as const;
 
-/** Plans and limits come from @unimate/core billing. Payment is a demo simulation on mobile; the web app only shows plans and the current plan. */
+/** Plans and limits come from @unimate/core billing. Payments are not available yet; the web app only shows plans and the current plan. */
 export function PlansPage() {
   const { t, number } = useI18n();
   const user = useUser();
@@ -23,8 +22,7 @@ export function PlansPage() {
     const plan = await getBrowserClient().rpc("my_plan");
     return planFromSubscription(plan.error ? null : { plan: String(plan.data ?? "free") as "free" | "plus" | "pro", status: "active" });
   }, [user.id]);
-  const demo = useDemoPlan(user.id);
-  const plan = current.data ? (demo.demoPlan ?? current.data) : null;
+  const plan = current.data ?? null;
   const [picked, setSelected] = useState<PlanId | null>(null);
   const selected = picked ?? (plan ? (SHOWN.find((id) => planRelation(plan, id) === "upgrade") ?? "PLUS") : "PLUS");
 
@@ -33,12 +31,7 @@ export function PlansPage() {
       <div className="page-head">
         <h1>{t("mobile.profile.plans.title")}</h1>
       </div>
-      {demo.demoPlan ? (
-        <div className="row">
-          <span className="um-hint">{t("mobile.profile.plans.demoNotice", { plan: t(`mobile.profile.plans.name.${demo.demoPlan}`) })}</span>
-          <button type="button" className={s.linkBtn} onClick={demo.clear}>{t("mobile.profile.plans.demoReset")}</button>
-        </div>
-      ) : null}
+      <p className="um-hint" role="status">{t("mobile.checkout.soonTitle")}</p>
       {current.loading && !current.data ? <Skeleton height={160} /> : null}
       {SHOWN.map((id) => {
         const lim = PLANS[id];

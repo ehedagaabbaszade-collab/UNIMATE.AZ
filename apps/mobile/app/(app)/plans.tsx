@@ -1,7 +1,7 @@
 import { PLANS, PRICE_AZN, type PlanId } from "@unimate/core";
 import { useI18n } from "@unimate/i18n/react";
-import { useFocusEffect, useRouter, type Href } from "expo-router";
-import { useCallback, useState } from "react";
+import { useRouter, type Href } from "expo-router";
+import { useState } from "react";
 import { Pressable, View, useWindowDimensions } from "react-native";
 import RA, { FadeIn, FadeOut, LinearTransition } from "react-native-reanimated";
 import { Icon } from "../../src/components/Icon";
@@ -19,7 +19,6 @@ function Tag({ label, accent }: { label: string; accent?: boolean }) {
     </View>
   );
 }
-import { useDemoPlan } from "../../src/features/payments/demo-plan";
 import { planRelation } from "../../src/features/payments/plan-relation";
 import { EASE_OUT, useReducedMotion } from "../../src/lib/motion";
 import { planFromSubscription } from "../../src/lib/usage";
@@ -31,7 +30,7 @@ import { radii, spacing } from "../../src/theme/tokens";
 const SHOWN = ["FREE", "PLUS", "PRO"] as const satisfies readonly PlanId[];
 const FEATURES = ["flashcards", "quiz", "ocr", "export", "priority_models"] as const;
 
-/** Plans and limits come from @unimate/core billing. Payment is a demo simulation; no server plan changes. No scrolling: sized from the window. */
+/** Plans and limits come from @unimate/core billing. Payments are not available yet; buttons are disabled. No scrolling: sized from the window. */
 export default function PlansRoute() {
   const { t, number } = useI18n();
   const { theme } = useTheme();
@@ -43,10 +42,7 @@ export default function PlansRoute() {
     const plan = await sb.rpc("my_plan");
     return planFromSubscription(plan.error ? null : { plan: String(plan.data ?? "free") as "free" | "plus" | "pro", status: "active" });
   }, [user.id]);
-  const demo = useDemoPlan(user.id);
-  const reloadDemo = demo.reload;
-  useFocusEffect(useCallback(() => reloadDemo(), [reloadDemo])); // checkout/cancel write the demo plan from other screens
-  const plan = current.data ? (demo.demoPlan ?? current.data) : null;
+  const plan = current.data ?? null;
   const reduced = useReducedMotion();
   const layout = reduced ? undefined : LinearTransition.duration(260).easing(EASE_OUT);
   const detailIn = reduced ? undefined : FadeIn.duration(200).delay(80);
@@ -58,18 +54,9 @@ export default function PlansRoute() {
   return (
     <Screen scroll={false} style={{ gap: compact ? spacing.sm : spacing.md }}>
       <ScreenHeader title={t("mobile.profile.plans.title")} />
-      {demo.demoPlan ? (
-        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, flexWrap: "wrap" }}>
-          <AppText variant="caption" muted style={{ flex: 1 }}>
-            {t("mobile.profile.plans.demoNotice", { plan: t(`mobile.profile.plans.name.${demo.demoPlan}`) })}
-          </AppText>
-          <Pressable accessibilityRole="link" accessibilityLabel={t("mobile.profile.plans.demoReset")} onPress={demo.clear} hitSlop={8}>
-            <AppText variant="caption" style={{ color: theme.primary, fontWeight: "700" }}>
-              {t("mobile.profile.plans.demoReset")}
-            </AppText>
-          </Pressable>
-        </View>
-      ) : null}
+      <AppText variant="caption" muted accessibilityRole="alert">
+        {t("mobile.checkout.soonTitle")}
+      </AppText>
       {SHOWN.map((id) => {
         const lim = PLANS[id];
         const price = PRICE_AZN[id];
@@ -79,11 +66,8 @@ export default function PlansRoute() {
         const isCurrent = rel === "current";
         const canSwitch = id !== "PRO"; // no "switch to Ultra" key: Ultra is only ever an upgrade target
         const title = isCurrent ? t("mobile.profile.plans.current") : rel === "downgrade" ? (canSwitch ? t(`mobile.profile.subscription.to${id}`) : t("mobile.profile.plans.cta")) : t("mobile.profile.plans.cta");
-        const disabled = rel === null || isCurrent || (rel === "downgrade" && !canSwitch);
-        const onPress = () =>
-          rel === "downgrade"
-            ? router.push({ pathname: "/subscription/cancel", params: { from: plan, target: id } } as Href)
-            : router.push({ pathname: "/checkout", params: { plan: id } });
+        const disabled = true; // payments are not available yet
+        const onPress = () => router.push("/checkout" as Href);
         const features = [
           t("mobile.profile.plans.ai", { n: number(lim.aiMessagesPerDay) }),
           t("mobile.profile.plans.docs", { n: number(lim.docsPerMonth) }),

@@ -13,7 +13,6 @@ import { useSession, useUser } from "../../state/session";
 import { useAppMode } from "../../state/mode";
 import { useTheme } from "../../theme/ThemeProvider";
 import { MIN_TOUCH, spacing } from "../../theme/tokens";
-import { useDemoPlan } from "../payments/demo-plan";
 import { useAvatar } from "./avatar";
 import { saveDisplayName } from "./save-name";
 
@@ -83,9 +82,7 @@ export function ProfileScreen() {
   }, [user.id]);
 
   const reloadInfo = info.reload;
-  const demo = useDemoPlan(user.id);
-  const reloadDemo = demo.reload;
-  const shownPlan = info.data ? (demo.demoPlan ?? info.data.plan) : null;
+  const shownPlan = info.data ? info.data.plan : null;
   const firstFocus = useRef(true);
   useFocusEffect(
     useCallback(() => {
@@ -94,8 +91,7 @@ export function ProfileScreen() {
         return;
       }
       reloadInfo();
-      reloadDemo(); // plans/checkout may have changed the device-local demo plan
-    }, [reloadInfo, reloadDemo]),
+    }, [reloadInfo]),
   );
 
   const shownName = profile?.display_name ?? "";

@@ -1,12 +1,14 @@
 import { formatBytes } from "@unimate/i18n";
 import { useI18n } from "@unimate/i18n/react";
 import { useRouter } from "expo-router";
-import { useEffect } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Alert, View } from "react-native";
 import type { IconName } from "@unimate/ui/icons";
-import { AppText, Button, EmptyState, ErrorState, ListGroup, ListRow, Screen, ScreenHeader, Skeleton, useToast } from "../../components/ui";
+import { AppText, Button, EmptyState, ErrorState, ListGroup, ListRow, Notice, Screen, ScreenHeader, Skeleton, useToast } from "../../components/ui";
 import type { DocumentRow } from "../../lib/db";
 import { DOC_COLUMNS, POLL_MS, STATUS_TONE, anyInFlight } from "../../lib/documents";
+import { processDocument } from "../../lib/edge-client";
+import { edgeErrorMessageKey } from "../../lib/edge";
 import { unwrap, useAsync } from "../../lib/use-async";
 import { useUser } from "../../state/session";
 import { useTheme } from "../../theme/ThemeProvider";
@@ -37,6 +39,19 @@ export function DocumentsList() {
     const id = setInterval(reload, POLL_MS);
     return () => clearInterval(id);
   }, [inFlight, reload]);
+
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [retryErr, setRetryErr] = useState<Record<string, string>>({});
+  /** Restarts processing for a document stuck in "uploaded"/"failed"; the server's reason stays on screen. */
+  async function retry(d: DocumentRow) {
+    setBusyId(d.id);
+    setRetryErr((m) => ({ ...m, [d.id]: "" }));
+    const r = await processDocument(d.id);
+    setBusyId(null);
+    if (r.ok) toast(t("documents.uploaded"), "success");
+    else setRetryErr((m) => ({ ...m, [d.id]: t(edgeErrorMessageKey(r.error), { message: r.error.message ?? "" }) }));
+    docs.reload();
+  }
 
   function confirmRemove(d: DocumentRow) {
     Alert.alert(t("documents.deleteConfirm"), d.title, [
@@ -75,8 +90,8 @@ export function DocumentsList() {
             const status = d.status === "ready" ? null : t(`documents.status.${d.status}`);
             const statusColor = STATUS_TONE[d.status] === "danger" ? theme.danger : STATUS_TONE[d.status] === "warning" ? theme.warning : theme.active;
             return (
+              <Fragment key={d.id}>
               <ListRow
-                key={d.id}
                 icon={FILE_ICON[d.mime_type] ?? "materials"}
                 iconColor={d.status === "failed" ? theme.danger : undefined}
                 title={d.title}
@@ -87,6 +102,9 @@ export function DocumentsList() {
                 onLongPress={() => confirmRemove(d)}
                 longPressLabel={t("common.delete")}
               />
+              {retryErr[d.id] ? <Notice text={retryErr[d.id]!} /> : null}
+              {d.status === "uploaded" || d.status === "failed" ? <Button small title={t("documents.retryProcess")} loading={busyId === d.id} onPress={() => void retry(d)} /> : null}
+              </Fragment>
             );
           })}
         </ListGroup>

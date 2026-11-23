@@ -7,6 +7,7 @@ import {
   buildCvDescribeData,
   cvMissingRequired,
   CvDataSchema,
+  CvPersonalSchema,
   CvFeedbackSchema,
   InterviewRequestSchema,
   InterviewScoreSchema,
@@ -103,7 +104,7 @@ describe("CV schema", () => {
     expect(Object.keys(cv).sort()).toEqual(["activities", "certificates", "education", "experience", "hobbies", "honours", "languages", "personal", "projects", "skills", "summary"]);
   });
   it("rejects non-https links, too many items, over-long text and unknown shapes", () => {
-    expect(CvDataSchema.safeParse({ personal: { linkedin: "http://x.org" } }).success).toBe(false);
+    expect(CvDataSchema.safeParse({ personal: { linkedin: "javascript:alert(1)" } }).success).toBe(false);
     expect(CvDataSchema.safeParse({ personal: { linkedin: "https://linkedin.com/in/a" } }).success).toBe(true);
     expect(CvDataSchema.safeParse({ skills: Array.from({ length: 31 }, (_, i) => `s${i}`) }).success).toBe(false);
     expect(CvDataSchema.safeParse({ summary: "x".repeat(1501) }).success).toBe(false);
@@ -358,5 +359,17 @@ describe("cv-describe contracts", () => {
     expect(d).toContain("role: Analyst");
     expect(d).toContain("EXISTING TEXT");
     for (const s of ["+994", "a@b.c", "AZE1", "2000", "Baku 5", "@me"]) expect(d).not.toContain(s);
+  });
+});
+
+describe("CV links and contacts are optional", () => {
+  it("accepts a CV with no links, e-mail or phone and normalizes sloppy links", () => {
+    const empty = CvDataSchema.parse({ personal: { fullName: "Ayşən Məmmədova" } });
+    expect(empty.personal.linkedin).toBe("");
+    expect(empty.personal.email).toBe("");
+    expect(CvPersonalSchema.parse({ linkedin: "  " }).linkedin).toBe("");
+    expect(CvPersonalSchema.parse({ linkedin: "linkedin.com/in/ayshen" }).linkedin).toBe("https://linkedin.com/in/ayshen");
+    expect(CvPersonalSchema.parse({ website: "http://example.az" }).website).toBe("https://example.az");
+    expect(CvPersonalSchema.safeParse({ website: "javascript:alert(1)" }).success).toBe(false);
   });
 });

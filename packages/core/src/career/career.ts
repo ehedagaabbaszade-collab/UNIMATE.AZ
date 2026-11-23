@@ -219,11 +219,23 @@ export function groupByStatus(items: readonly TrackedItem[]): Array<{ status: Tr
 
 // ---------------------------------------------------------------- CV
 const str = (max: number) => z.string().max(max).default("");
-const httpsOrEmpty = z
-  .string()
-  .max(200)
-  .default("")
-  .refine((v) => v === "" || /^https:\/\/[^\s]+$/i.test(v), "must be an https link");
+/** Optional link: empty is valid; a bare "linkedin.com/in/x" or "http://" link is normalized to https (never rejected for missing scheme). */
+const normalizeLink = (v: unknown): unknown => {
+  if (typeof v !== "string") return v;
+  const t = v.trim();
+  if (t === "" || /^https:\/\//i.test(t)) return t;
+  if (/^http:\/\//i.test(t)) return `https://${t.slice(7)}`;
+  if (/^[a-z][a-z0-9+.-]*:/i.test(t)) return t; // another scheme (javascript:, data:, ...) stays and is rejected below
+  return `https://${t}`;
+};
+const httpsOrEmpty = z.preprocess(
+  normalizeLink,
+  z
+    .string()
+    .max(200)
+    .default("")
+    .refine((v) => v === "" || /^https:\/\/[^\s]+$/i.test(v), "must be an https link"),
+);
 const CvSocialSchema = z.object({ platform: str(40), value: str(200) });
 const photoUrlOrEmpty = z
   .string()

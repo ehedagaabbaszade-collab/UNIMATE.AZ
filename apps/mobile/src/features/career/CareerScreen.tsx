@@ -4,7 +4,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Linking, View } from "react-native";
 import { Icon } from "../../components/Icon";
-import { WorkAzSection } from "./WorkAzSection";
+import { BossAzSection } from "./BossAzSection";
 import { AppText, Badge, Button, Card, Dialog, EmptyState, ErrorState, HeroTitle, ListGroup, ListRow, PillRow, Screen, SearchField, Segmented, Skeleton, useOnline, useToast, PressableScale, Input } from "../../components/ui";
 import { radii, spacing } from "../../theme/tokens";
 import { useTheme } from "../../theme/ThemeProvider";
@@ -138,7 +138,7 @@ function ForYou() {
       <ListGroup>
         <ListRow icon="development" title={t("colleges.title")} subtitle={t("colleges.subtitle")} onPress={() => router.push("/colleges" as never)} />
       </ListGroup>
-      <WorkAzSection />
+      <BossAzSection />
     </View>
   );
 }

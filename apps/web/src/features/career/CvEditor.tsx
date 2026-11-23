@@ -17,7 +17,7 @@ import { useI18n } from "@unimate/i18n/react";
 import { Badge, Button, Card, Dialog, EmptyState, ErrorState, Icon, Input, ProgressRing, Select, Skeleton, Textarea, useToast } from "@unimate/ui";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useUser } from "@/components/user";
 import { EdgeNotice } from "@/components/EdgeNotice";
 import type { EdgeError } from "@/lib/edge";
@@ -301,7 +301,20 @@ export function CvEditor({ id }: { id: string }) {
   const [saving, setSaving] = useState(false);
   const [rev, setRev] = useState(0);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // cv-photos objects: replaced/removed ones are deleted only after a successful save; never-saved uploads are deleted on leave.
+  const savedPhoto = useRef("");
+  const uploadedPhotos = useRef(new Set<string>());
+  const sbRef = useRef(getBrowserClient());
   useEffect(() => {
+    const up = uploadedPhotos.current;
+    const client = sbRef.current;
+    return () => {
+      const orphans = [...up].filter((x) => x !== savedPhoto.current);
+      if (orphans.length) void client.storage.from("cv-photos").remove(orphans);
+    };
+  }, []);
+  useEffect(() => {
+    if (doc.data && !draft) savedPhoto.current = doc.data.data.personal.photoPath;
     if (doc.data && !draft) setDraft({ title: doc.data.title, language: doc.data.language, template: doc.data.template, data: doc.data.data });
   }, [doc.data, draft]);
   useEffect(() => {
@@ -362,6 +375,12 @@ export function CvEditor({ id }: { id: string }) {
     if (r.ok) {
       setDirty(false);
       toast(t("career.cv.saved"), "success");
+      const cur = draft.data.personal.photoPath;
+      const stale = [savedPhoto.current, ...uploadedPhotos.current].filter((x) => x && x !== cur);
+      savedPhoto.current = cur;
+      uploadedPhotos.current.clear();
+      if (stale.length) void sbRef.current.storage.from("cv-photos").remove(stale); // best effort
+
       return true;
     }
     toast(r.error === "too_large" ? t("career.cv.tooLarge") : r.error === "invalid" ? t("career.cv.invalid") : t("career.cv.saveFailed"), "error");
@@ -433,7 +452,10 @@ export function CvEditor({ id }: { id: string }) {
               );
             })}
           </div>
-          <CvPhoto uid={user.id} value={cv.personal.photoUrl} onChange={(u) => setPersonal("photoUrl", u)} />
+          <CvPhoto uid={user.id} url={cv.personal.photoUrl} path={cv.personal.photoPath} onChange={(p) => {
+            if (p.photoPath) uploadedPhotos.current.add(p.photoPath);
+            setData("personal", { ...cv.personal, ...p });
+          }} />
           <fieldset className="stack" style={{ border: 0, padding: 0, margin: 0, minInlineSize: 0 }}>
             <legend>{t("career.cv.field.socials")}</legend>
             {cv.personal.socials.map((so, i) => (

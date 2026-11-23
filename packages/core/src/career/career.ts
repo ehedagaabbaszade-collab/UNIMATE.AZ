@@ -242,6 +242,13 @@ const photoUrlOrEmpty = z
   .max(300)
   .default("")
   .refine((v) => v === "" || /^https:\/\/[^\s]+$/i.test(v), "must be an https link");
+/** Storage path in the private cv-photos bucket: `<uid>/<file>`; no dot-leading file names, so `..` never matches. */
+export const CV_PHOTO_PATH_RE = /^[0-9a-f-]{36}\/[A-Za-z0-9_-][A-Za-z0-9._-]*$/;
+const photoPathOrEmpty = z
+  .string()
+  .max(120)
+  .default("")
+  .refine((v) => v === "" || CV_PHOTO_PATH_RE.test(v), "invalid photo path");
 const list = <T extends z.ZodType>(item: T) => z.array(item).max(CV_SECTION_ITEMS_MAX).default([]);
 
 export const CvPersonalSchema = z.object({
@@ -259,6 +266,7 @@ export const CvPersonalSchema = z.object({
   address: str(200),
   socials: z.array(CvSocialSchema).max(10).default([]),
   photoUrl: photoUrlOrEmpty,
+  photoPath: photoPathOrEmpty,
 });
 export const CvEducationSchema = z.object({ institution: str(160), degree: str(160), field: str(160), start: str(20), end: str(20), gpa: str(20), description: str(600), city: str(100), website: httpsOrEmpty, eqfLevel: str(20) });
 export const CvExperienceSchema = z.object({

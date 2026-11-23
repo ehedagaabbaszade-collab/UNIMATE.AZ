@@ -3,11 +3,9 @@
 import type { CvDescribeKind, CvLanguage } from "@unimate/core";
 import { useI18n } from "@unimate/i18n/react";
 import { Button, Icon, useToast } from "@unimate/ui";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cvDescribe } from "@/lib/edge-client";
 import { getBrowserClient } from "@/lib/supabase/browser";
-import { getSupabaseEnv } from "@/lib/supabase/env";
-import { isOwnAvatarUrl } from "../profile/avatar-url";
 
 /** "Write with AI" for one description field. Never overwrites on failure; the result replaces the field only on success. */
 export function AiWrite({ kind, language, context, current, onText }: { kind: CvDescribeKind; language: CvLanguage; context: Record<string, string>; current: string; onText: (text: string) => void }) {
@@ -57,13 +55,22 @@ async function squareJpeg(file: File): Promise<Blob> {
 }
 
 /** Optional CV photo in the public 'avatars' bucket at `<uid>/cv-<uuid>.jpg` (owner-only writes). */
-export function CvPhoto({ uid, value, onChange }: { uid: string; value: string; onChange: (url: string) => void }) {
+export const CV_PHOTO_URL_TTL_S = 600;
+export function CvPhoto({ uid, url, path, onChange }: { uid: string; url: string; path: string; onChange: (p: { photoUrl: string; photoPath: string }) => void }) {
   const { t } = useI18n();
   const { toast } = useToast();
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
-  const supabaseUrl = getSupabaseEnv()?.url ?? null;
-  const own = isOwnAvatarUrl(value, supabaseUrl);
+  const [signed, setSigned] = useState("");
+  useEffect(() => {
+    let live = true;
+    if (!path) setSigned("");
+    else void getBrowserClient().storage.from("cv-photos").createSignedUrl(path, CV_PHOTO_URL_TTL_S).then((r) => live && setSigned(r.data?.signedUrl ?? ""));
+    return () => {
+      live = false;
+    };
+  }, [path]);
+  const shown = path ? signed : url; // legacy https photoUrl still previews
   const pick = async (file: File | undefined) => {
     if (input.current) input.current.value = "";
     if (!file) return;
@@ -71,23 +78,24 @@ export function CvPhoto({ uid, value, onChange }: { uid: string; value: string; 
     setBusy(true);
     try {
       const sb = getBrowserClient();
-      const path = `${uid}/cv-${crypto.randomUUID()}.jpg`;
-      const up = await sb.storage.from("avatars").upload(path, await squareJpeg(file), { contentType: "image/jpeg", upsert: false });
+      const next = `${uid}/${crypto.randomUUID()}.jpg`;
+      const up = await sb.storage.from("cv-photos").upload(next, await squareJpeg(file), { contentType: "image/jpeg", upsert: false });
       if (up.error) throw new Error(up.error.message);
-      onChange(sb.storage.from("avatars").getPublicUrl(path).data.publicUrl);
+      onChange({ photoUrl: "", photoPath: next });
     } catch {
       toast(t("mobile.profile.avatarFailed"), "error");
     } finally {
       setBusy(false);
     }
   };
-  // shortcut: the object stays in storage (the CV may still be unsaved), add cleanup on save if storage use matters
-  const remove = async () => onChange("");
+  const remove = () => {
+    onChange({ photoUrl: "", photoPath: "" });
+  };
   return (
     <div className="row" style={{ gap: 12, minWidth: 0 }}>
-      {own ? (
-        // eslint-disable-next-line @next/next/no-img-element -- small user photo from our own bucket
-        <img src={value} alt="" width={64} height={64} style={{ borderRadius: "50%", objectFit: "cover", flex: "none" }} />
+      {shown ? (
+        // eslint-disable-next-line @next/next/no-img-element -- small user photo (signed URL or legacy https link)
+        <img src={shown} alt="" width={64} height={64} style={{ borderRadius: "50%", objectFit: "cover", flex: "none" }} />
       ) : null}
       <div className="stack" style={{ minWidth: 0, gap: 4 }}>
         <div className="row">
@@ -95,8 +103,8 @@ export function CvPhoto({ uid, value, onChange }: { uid: string; value: string; 
           <Button size="sm" variant="secondary" loading={busy} onClick={() => input.current?.click()}>
             {t("career.cv.photo.add")}
           </Button>
-          {value ? (
-            <Button size="sm" variant="danger" disabled={busy} onClick={() => void remove()}>
+          {shown || path ? (
+            <Button size="sm" variant="danger" disabled={busy} onClick={remove}>
               {t("career.cv.photo.remove")}
             </Button>
           ) : null}

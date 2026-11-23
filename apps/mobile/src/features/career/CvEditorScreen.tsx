@@ -22,7 +22,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as Print from "expo-print";
 import { useRouter } from "expo-router";
 import * as Sharing from "expo-sharing";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Image, View } from "react-native";
 import { EdgeNotice } from "../../components/EdgeNotice";
 import { Icon } from "../../components/Icon";
@@ -253,37 +253,49 @@ async function photoSrc(url: string): Promise<string> {
   }
 }
 
-function PhotoField({ url, uid, onChange }: { url: string; uid: string; onChange: (u: string) => void }) {
+const SIGNED_URL_TTL_S = 600;
+function PhotoField({ url, path, uid, onChange }: { url: string; path: string; uid: string; onChange: (p: { photoUrl: string; photoPath: string }) => void }) {
   const { t } = useI18n();
   const { theme } = useTheme();
   const { toast } = useToast();
   const { supabase: sb } = useUser();
   const [busy, setBusy] = useState(false);
+  const [preview, setPreview] = useState("");
+  useEffect(() => {
+    let live = true;
+    if (!path) setPreview("");
+    else void sb.storage.from("cv-photos").createSignedUrl(path, SIGNED_URL_TTL_S).then((r) => live && setPreview(r.data?.signedUrl ?? ""));
+    return () => {
+      live = false;
+    };
+  }, [path, sb]);
+  const shown = path ? preview : url;
   const pickPhoto = async () => {
     setBusy(true);
     try {
       const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], allowsEditing: true, aspect: [1, 1], quality: 0.7 });
       if (res.canceled || !res.assets[0]) return;
-      const path = `${uid}/cv-${Crypto.randomUUID()}.jpg`;
+      const next = `${uid}/${Crypto.randomUUID()}.jpg`;
       const bytes = await new File(res.assets[0].uri).arrayBuffer();
-      const up = await sb.storage.from("avatars").upload(path, bytes, { contentType: "image/jpeg", upsert: false });
+      const up = await sb.storage.from("cv-photos").upload(next, bytes, { contentType: "image/jpeg", upsert: false });
       if (up.error) throw new Error(up.error.message);
-      onChange(sb.storage.from("avatars").getPublicUrl(path).data.publicUrl);
+      onChange({ photoUrl: "", photoPath: next });
     } catch {
       toast(t("common.genericError"), "error");
     } finally {
       setBusy(false);
     }
   };
-  // shortcut: the object stays in storage (the CV may still be unsaved), add cleanup on save if storage use matters
-  const removePhoto = () => onChange("");
+  const removePhoto = () => {
+    onChange({ photoUrl: "", photoPath: "" });
+  };
   return (
     <View style={{ gap: 8 }}>
       <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 12 }}>
-        {url ? <Image source={{ uri: url }} accessibilityIgnoresInvertColors style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: theme.border }} /> : null}
+        {shown ? <Image source={{ uri: shown }} accessibilityIgnoresInvertColors style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: theme.border }} /> : null}
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, flexShrink: 1, minWidth: 0 }}>
           <Button small variant="secondary" title={t("career.cv.photo.add")} loading={busy} icon={<Icon name="add" size="sm" />} onPress={() => void pickPhoto()} />
-          {url ? <Button small variant="danger" title={t("career.cv.photo.remove")} onPress={() => void removePhoto()} /> : null}
+          {shown || path ? <Button small variant="danger" title={t("career.cv.photo.remove")} onPress={() => void removePhoto()} /> : null}
         </View>
       </View>
       <AppText variant="caption" muted>
@@ -418,7 +430,20 @@ export function CvEditorScreen({ id }: { id: string }) {
   const [rev, setRev] = useState(0);
   const [sumRev, setSumRev] = useState(0);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // cv-photos objects: replaced/removed ones are deleted only after a successful save; never-saved uploads are deleted on leave.
+  const savedPhoto = useRef("");
+  const uploadedPhotos = useRef(new Set<string>());
+  const sbRef = useRef(sb);
   useEffect(() => {
+    const up = uploadedPhotos.current;
+    const client = sbRef.current;
+    return () => {
+      const orphans = [...up].filter((x) => x !== savedPhoto.current);
+      if (orphans.length) void client.storage.from("cv-photos").remove(orphans);
+    };
+  }, []);
+  useEffect(() => {
+    if (doc.data && !draft) savedPhoto.current = doc.data.data.personal.photoPath;
     if (doc.data && !draft) setDraft({ title: doc.data.title, language: doc.data.language, template: doc.data.template, data: doc.data.data });
   }, [doc.data, draft]);
 
@@ -469,6 +494,12 @@ export function CvEditorScreen({ id }: { id: string }) {
     if (r.ok) {
       setDirty(false);
       toast(t("career.cv.saved"));
+      const cur = draft.data.personal.photoPath;
+      const stale = [savedPhoto.current, ...uploadedPhotos.current].filter((x) => x && x !== cur);
+      savedPhoto.current = cur;
+      uploadedPhotos.current.clear();
+      if (stale.length) void sbRef.current.storage.from("cv-photos").remove(stale); // best effort
+
       return true;
     }
     toast(r.error === "too_large" ? t("career.cv.tooLarge") : r.error === "invalid" ? t("career.cv.invalid") : t("career.cv.saveFailed"), "error");
@@ -480,7 +511,9 @@ export function CvEditorScreen({ id }: { id: string }) {
     setExporting(true);
     try {
       const labels = Object.fromEntries(CV_PRINT_LABEL_KEYS.map((k) => [k, translate(draft.language, `career.cv.sectionPrint.${k}` as MessageKey)])) as CvPrintLabels;
-      const [logo, photo] = await Promise.all([logoDataUri(), cv.personal.photoUrl ? photoSrc(cv.personal.photoUrl) : Promise.resolve(undefined)]);
+      const signed = cv.personal.photoPath ? (await sb.storage.from("cv-photos").createSignedUrl(cv.personal.photoPath, SIGNED_URL_TTL_S)).data?.signedUrl : undefined;
+      const photoLink = signed ?? cv.personal.photoUrl;
+      const [logo, photo] = await Promise.all([logoDataUri(), photoLink ? photoSrc(photoLink) : Promise.resolve(undefined)]);
       const html = renderCvHtml(cv, { template: draft.template, language: draft.language, title: draft.title, labels, assets: { logoSrc: logo, photoSrc: photo } });
       const file = await Print.printToFileAsync({ html });
       if (!(await Sharing.isAvailableAsync())) toast(t("career.cv.sharingUnavailable"), "error");
@@ -536,7 +569,10 @@ export function CvEditorScreen({ id }: { id: string }) {
 
       <Card>
         <AppText variant="heading">{t("career.cv.section.personal")}</AppText>
-        <PhotoField url={cv.personal.photoUrl} uid={user.id} onChange={(u) => setPersonal("photoUrl", u)} />
+        <PhotoField url={cv.personal.photoUrl} path={cv.personal.photoPath} uid={user.id} onChange={(p) => {
+            if (p.photoPath) uploadedPhotos.current.add(p.photoPath);
+            setData("personal", { ...cv.personal, ...p });
+          }} />
         {(["fullName", "headline", "email", "phone", "city", "address", "idNumber", "birthDate", "nationality", "gender", "linkedin", "website"] as const).map((k) => (
           <Input
             key={k}

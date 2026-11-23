@@ -8,6 +8,7 @@ import Link from "next/link";
 import { getBrowserClient } from "@/lib/supabase/browser";
 import { useAsync } from "@/lib/use-async";
 import { getCv } from "./api";
+import { CV_PHOTO_URL_TTL_S } from "./cv-parts";
 
 /**
  * Print-to-PDF page: the CV rendered by the shared, escaping renderCvBodyHtml in the CV's own language. The browser's print
@@ -15,7 +16,13 @@ import { getCv } from "./api";
  */
 export function CvPrint({ id }: { id: string }) {
   const { t } = useI18n();
-  const doc = useAsync(() => getCv(getBrowserClient(), id), [id]);
+  const doc = useAsync(async () => {
+    const sb = getBrowserClient();
+    const cv = await getCv(sb, id);
+    const path = cv?.data.personal.photoPath;
+    const photo = path ? (await sb.storage.from("cv-photos").createSignedUrl(path, CV_PHOTO_URL_TTL_S)).data?.signedUrl : undefined;
+    return cv && { ...cv, photo: photo ?? cv.data.personal.photoUrl };
+  }, [id]);
   const back = (
     <p className="cv-print-chrome">
       <Link href={`/career/cv/${id}`}>← {t("career.cv.printBack")}</Link>
@@ -25,7 +32,7 @@ export function CvPrint({ id }: { id: string }) {
   if (doc.error) return <ErrorState title={t("career.loadFailed")} description={doc.error} action={<Button onClick={doc.reload}>{t("common.retry")}</Button>} />;
   if (!doc.data) return <EmptyState title={t("career.notFound")} />;
   const labels = Object.fromEntries(CV_PRINT_LABEL_KEYS.map((k) => [k, translate(doc.data!.language, `career.cv.sectionPrint.${k}` as MessageKey)])) as CvPrintLabels;
-  const html = renderCvBodyHtml(doc.data.data, { template: doc.data.template, labels, assets: { logoSrc: "/brand/full-logo.png", photoSrc: doc.data.data.personal.photoUrl || undefined } });
+  const html = renderCvBodyHtml(doc.data.data, { template: doc.data.template, labels, assets: { logoSrc: "/brand/full-logo.png", photoSrc: doc.data.photo || undefined } });
   const missing = cvMissingRequired(doc.data.data).map((k) => t(`career.cv.field.${k}`));
   return (
     <div className="stack-lg">

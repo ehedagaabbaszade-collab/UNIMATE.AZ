@@ -282,6 +282,8 @@ describe("Europass template", () => {
       expect(html).not.toContain("<img");
     }
     expect(render({ ...base, personal: { ...base.personal, photoUrl: "https://x.az/me.jpg" } })).toContain('src="https://x.az/me.jpg"');
+    const signed = render(base, { photoSrc: 'https://x.supabase.co/sign/a.jpg?token="><script>1</script>' });
+    expect(signed).not.toContain("<script>");
     expect(render(base, { photoSrc: "data:image/png;base64,iVBORw0KGgo=" })).toContain('src="data:image/png;base64,iVBORw0KGgo="');
   });
   it("escapes XSS in every new field", () => {
@@ -320,6 +322,11 @@ describe("CV schema additions", () => {
   it("rejects invalid CEFR levels, non-https photos and more than 10 socials", () => {
     expect(CvDataSchema.safeParse({ languages: [{ name: "EN", writing: "D9" }] }).success).toBe(false);
     expect(CvDataSchema.safeParse({ personal: { photoUrl: "http://x.az/p.png" } }).success).toBe(false);
+    const uid = "123e4567-e89b-12d3-a456-426614174000";
+    const path = (v: string) => CvDataSchema.safeParse({ personal: { photoPath: v } }).success;
+    expect(path(`${uid}/a-b_1.jpg`)).toBe(true);
+    expect(path("")).toBe(true);
+    for (const bad of [`${uid}/../x.jpg`, `${uid}/..`, `../${uid}/x.jpg`, "u1/x.jpg", `${uid}/a/b.jpg`, `${uid}/x.jpg?y`, `/${uid}/x.jpg`]) expect(path(bad)).toBe(false);
     expect(CvDataSchema.safeParse({ personal: { socials: Array.from({ length: 11 }, () => ({ platform: "a", value: "b" })) } }).success).toBe(false);
   });
   it("cvMissingRequired reports empty or blank name, e-mail and phone", () => {

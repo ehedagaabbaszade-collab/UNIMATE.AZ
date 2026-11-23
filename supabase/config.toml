@@ -30,6 +30,8 @@ entrypoint = "./.build/functions/process-document/index.ts"
 
 [functions.purge-accounts]
 entrypoint = "./.build/functions/purge-accounts/index.ts"
+# Called only by pg_cron (migration 20260101005700) with x-worker-secret, compared in constant time; there is no user JWT path.
+verify_jwt = false
 
 [functions.resource-url]
 entrypoint = "./.build/functions/resource-url/index.ts"

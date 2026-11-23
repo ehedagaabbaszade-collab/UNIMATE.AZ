@@ -61,4 +61,7 @@ Not covered by an FK and therefore not removed by SQL: Storage files (below), ba
   retention are outside the database and must be covered in the privacy policy.
 - Community ownership is handed to the oldest moderator/member before the profile is removed (`promote_successor_owner`);
   a community with nobody left stays ownerless.
-- A scheduler must exist: nothing in this repository schedules `purge-accounts` yet.
+- Scheduler: migration `20260101005700_schedule_account_purge.sql` schedules a nightly pg_cron job (03:17 UTC) that POSTs to
+  `purge-accounts` with `x-worker-secret`, reading `project_url` and `worker_secret` from Vault at run time. It does nothing
+  until both Vault secrets exist (owner-approved setup step), and `purge-accounts` runs with `verify_jwt = false` (worker
+  secret only). The function also empties the `cv-photos` bucket. Not yet run against the hosted project.

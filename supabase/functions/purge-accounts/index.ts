@@ -16,7 +16,7 @@ import { BUCKET, preflight, errorResponse, json, safeEqual, serviceClient } from
  * Buckets with "<uid>/..." folders that the documents-bucket walk in the pipeline does not cover. avatars and resources
  * are flat; submissions nests one level ("<uid>/<assignment_id>/<file>"), so sub-folders are walked too.
  */
-const EXTRA_BUCKETS = ["avatars", "resources", "submissions"] as const;
+const EXTRA_BUCKETS = ["avatars", "cv-photos", "resources", "submissions"] as const;
 const MAX_EXTRA = 1000; // per bucket per user; more than this fails the attempt (recorded, retried) instead of half-purging
 
 async function removeUserFolder(sb: ReturnType<typeof serviceClient>, bucket: string, uid: string): Promise<void> {

@@ -53,8 +53,10 @@ beforeAll(async () => {
   await raw("update public.profiles set role = 'moderator' where id = $1", [SITEMOD]);
   UNI = (await raw("select id from public.universities order by name limit 1"))[0]!.id;
   UNI2 = (await raw("select id from public.universities order by name desc limit 1"))[0]!.id;
-  await raw("update public.profiles set university_id = $1 where id = any($2)", [UNI, [A, B, C]]);
-  await raw("update public.profiles set university_id = $1 where id = $2", [UNI2, D]);
+  // staff-approved universities (20260101005600); users opted in to discovery (new profiles default to hidden)
+  await raw("update public.profiles set university_id = $1, university_status = 'approved' where id = any($2)", [UNI, [A, B, C]]);
+  await raw("update public.profiles set university_id = $1, university_status = 'approved' where id = $2", [UNI2, D]);
+  await raw("update public.profiles set campus_discoverable = true");
 }, 120_000);
 afterAll(async () => {
   await clearClock();

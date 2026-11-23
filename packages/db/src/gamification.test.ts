@@ -28,7 +28,7 @@ const newUser = async (opts: { name?: string; uni?: string; optIn?: boolean; loc
   n++;
   const id = `00000000-0000-4000-8000-0000004${String(n).padStart(5, "0")}`;
   await db.query("insert into auth.users (id, email) values ($1, $2)", [id, `gm${n}@example.test`]);
-  await db.query("update public.profiles set display_name = $2, university_id = $3, leaderboard_opt_in = $4, locale = $5 where id = $1", [
+  await db.query("update public.profiles set display_name = $2, university_id = $3, university_status = case when $3::uuid is null then 'none' else 'approved' end, leaderboard_opt_in = $4, locale = $5 where id = $1", [
     id,
     opts.name ?? `User${n}`,
     opts.uni ?? uniA,

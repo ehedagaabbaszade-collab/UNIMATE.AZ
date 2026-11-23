@@ -50,8 +50,8 @@ beforeAll(async () => {
     await raw("insert into auth.users (id, email, raw_user_meta_data) values ($1, $2, $3)", [u, `n${i}@example.test`, JSON.stringify({ display_name: `User${i}` })]);
   await raw("insert into public.universities (id, name) values ($1, 'Test University One'), ($2, 'Test University Two')", [uni, uni2]);
   await raw("insert into public.courses (id, university_id, code, title) values ($1, $3, 'MATH101', 'Analiz I'), ($2, $4, 'X1', 'Other')", [course, course2, uni, uni2]);
-  await raw("update public.profiles set university_id = $2 where id = any($1::uuid[])", [[UP, ST, MOD, BLOCKED], uni]);
-  await raw("update public.profiles set university_id = $1 where id = $2", [uni2, OTHER_UNI]);
+  await raw("update public.profiles set university_id = $2, university_status = 'approved' where id = any($1::uuid[])", [[UP, ST, MOD, BLOCKED], uni]);
+  await raw("update public.profiles set university_id = $1, university_status = 'approved' where id = $2", [uni2, OTHER_UNI]);
   await raw("update public.profiles set role = 'moderator' where id = $1", [MOD]);
 }, 120_000);
 afterAll(async () => {

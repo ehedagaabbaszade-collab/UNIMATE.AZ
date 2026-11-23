@@ -95,11 +95,13 @@ describe("access control", () => {
     expect((await run(a, "select * from public.legal_documents")).rows.length).toBeGreaterThanOrEqual(3);
     expect(await msg(run(a, "insert into public.legal_documents (slug, version, content_hash) values ('x','1','h')"))).toMatch(/permission denied/);
   });
-  it("deleting the auth user cascades", async () => {
+  // 20260101005600: the consent ledger is kept (user_id nulled, subject_ref = sha256 of the id); birth date is deleted.
+  it("deleting the auth user keeps the anonymised ledger and deletes user_private", async () => {
     const a = uid();
     await signup(a, { birth_date: await bakuDate(20), consents: REQ });
     await db.query("delete from auth.users where id = $1", [a]);
     expect(await ledger(a)).toHaveLength(0);
+    expect(await raw("select 1 from public.user_consents where user_id is null and subject_ref = encode(sha256(convert_to($1::text, 'UTF8')), 'hex')", [a])).toHaveLength(3);
     expect(await raw("select 1 from public.user_private where user_id = $1", [a])).toHaveLength(0);
   });
 });

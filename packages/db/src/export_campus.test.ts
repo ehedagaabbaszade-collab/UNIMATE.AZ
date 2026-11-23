@@ -27,7 +27,7 @@ beforeAll(async () => {
   for (const [u, name] of [[ALICE, "Alice-ZED"], [BOB, "Bob-QUX"]] as const)
     await raw("insert into auth.users (id, email, raw_user_meta_data) values ($1, $2, $3)", [u, `${name}@example.test`, JSON.stringify({ display_name: name })]);
   const uni = (await raw("select id from public.universities order by name limit 1"))[0]!.id;
-  await raw("update public.profiles set university_id = $1 where id in ($2, $3)", [uni, ALICE, BOB]);
+  await raw("update public.profiles set university_id = $1, university_status = 'approved' where id in ($2, $3)", [uni, ALICE, BOB]);
   await raw("update public.profiles set leaderboard_opt_in = true where id = $1", [ALICE]);
 
   pub = (await one(ALICE, "select public.create_community('Export lab', 'course', 'public') as id")).id;
@@ -94,7 +94,7 @@ describe("export_my_data (campus extension)", () => {
     expect(e.challenge_progress.map((p: any) => p.progress)).toEqual([3]);
     expect(e.leaderboard_opt_in).toBe(true);
     expect(e.follower_count).toBe(1);
-    expect(e.campus_discoverable).toBe(true);
+    expect(e.campus_discoverable).toBe(false); // new profiles are not discoverable by default (20260101005600)
     // the pre-existing export keys still work (regression for the wrapper chain)
     expect(e.profile.id).toBe(ALICE);
     expect(Array.isArray(e.cv_documents) && Array.isArray(e.opportunity_tracking)).toBe(true);

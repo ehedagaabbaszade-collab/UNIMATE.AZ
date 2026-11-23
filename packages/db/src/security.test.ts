@@ -331,10 +331,13 @@ describe("nits", () => {
     expect((await raw("select title from public.notifications where id = $1", [id]))[0]?.title).toBe("orig");
     expect(await affected(db, "authenticated", A, "update public.notifications set read_at = now() where id = $1", [id])).toBe(1);
   });
-  it("avatar_url must be https", async () => {
+  // 20260101005600: any https URL is no longer enough, it must be our storage avatars bucket.
+  it("avatar_url must point at the avatars bucket", async () => {
     await denied(A, "update public.profiles set avatar_url = 'http://x.test/a.png' where id = $1", [A], /check constraint/);
     await denied(A, "update public.profiles set avatar_url = 'javascript:alert(1)' where id = $1", [A], /check constraint/);
-    expect(await affected(db, "authenticated", A, "update public.profiles set avatar_url = 'https://x.test/a.png' where id = $1", [A])).toBe(1);
+    await denied(A, "update public.profiles set avatar_url = 'https://x.test/a.png' where id = $1", [A], /check constraint/);
+    await denied(A, "update public.profiles set avatar_url = 'https://x.test/storage/v1/object/public/avatars/' || $1 || '/a.png' where id = $1", [A], /check constraint/);
+    expect(await affected(db, "authenticated", A, "update public.profiles set avatar_url = 'https://abcdefghijklmnopqrst.supabase.co/storage/v1/object/public/avatars/' || $1 || '/a.png' where id = $1", [A])).toBe(1);
   });
   it("admins cannot edit super_admin profiles; they can edit students; a super_admin can edit themself", async () => {
     expect(await affected(db, "authenticated", ADMIN, "update public.profiles set display_name = 'hax' where id = $1", [SUPER])).toBe(0);

@@ -101,8 +101,9 @@ describe("account purge removes every row owned by the user", () => {
     const toProfiles = fks.filter((f) => f.ref === "profiles");
     expect(toProfiles.length).toBeGreaterThan(40);
     expect(new Set(toProfiles.map((f) => f.table)).size).toBeGreaterThan(35);
-    // FKs to auth.users: profiles.id plus the legal ledger tables (both cascade)
-    expect(fks.filter((f) => f.ref === "auth.users").map((f) => `${f.table}.${f.col}`)).toEqual(["profiles.id", "user_consents.user_id", "user_private.user_id"]);
+    // FKs to auth.users: profiles.id plus the legal ledger tables (user_private cascades; user_consents is set null so
+    // the consent proof survives deletion, 20260101005600)
+    expect(fks.filter((f) => f.ref === "auth.users").map((f) => `${f.table}.${f.col}:${f.onDelete}`).sort()).toEqual(["profiles.id:c", "user_consents.user_id:n", "user_private.user_id:c"]);
     // every FK to profiles must be cascade (c) or set null (n): never RESTRICT / NO ACTION (that would block the purge)
     expect(toProfiles.filter((f) => !["c", "n"].includes(f.onDelete)).map((f) => `${f.table}.${f.col}`)).toEqual([]);
   });
@@ -174,7 +175,11 @@ describe("account purge removes every row owned by the user", () => {
     };
 
     // profiles.id is the user itself; account_deletion_requests / ai_spend / ai_budgets need explicit rows below.
-    for (const f of toProfiles) await seedRow(f.table.replace(/^public\./, ""), f.col);
+    for (const f of toProfiles) {
+      // profiles self-reference (university_reviewed_by): the bystander was reviewed by the target
+      if (f.table === "profiles") await db.query(`update public.profiles set "${f.col}" = $1 where id = $2`, [target, other]);
+      else await seedRow(f.table.replace(/^public\./, ""), f.col);
+    }
     await db.query("insert into public.ai_spend (scope, key, period, period_start, spent_micro_usd) values ('user', $1, 'day', current_date, 5)", [target]);
     await db.query("insert into public.ai_budgets (scope, key, period, hard_limit_micro_usd) values ('user', $1, 'day', 100)", [target]);
     // an audit row that must survive with actor null

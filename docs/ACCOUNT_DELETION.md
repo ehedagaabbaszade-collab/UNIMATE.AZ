@@ -64,4 +64,7 @@ Not covered by an FK and therefore not removed by SQL: Storage files (below), ba
 - Scheduler: migration `20260101005700_schedule_account_purge.sql` schedules a nightly pg_cron job (03:17 UTC) that POSTs to
   `purge-accounts` with `x-worker-secret`, reading `project_url` and `worker_secret` from Vault at run time. It does nothing
   until both Vault secrets exist (owner-approved setup step), and `purge-accounts` runs with `verify_jwt = false` (worker
-  secret only). The function also empties the `cv-photos` bucket. Not yet run against the hosted project.
+  secret only). The function also empties the `cv-photos` bucket.
+  Hosted project (2026-11-23): pg_cron + pg_net enabled, Vault secrets `project_url` and `worker_secret` created, `WORKER_SECRET`
+  rotated to the same value, `purge-accounts` v23 deployed with `verify_jwt = false`, job `purge-accounts` active (`17 3 * * *`).
+  The first real run is the next nightly run; it was not triggered manually.

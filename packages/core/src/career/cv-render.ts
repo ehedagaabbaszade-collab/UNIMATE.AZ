@@ -58,7 +58,7 @@ const BASE_CSS =
   ".cvb{font-family:var(--ff);font-size:var(--fs);line-height:1.45;color:#1f2328;background:var(--bg);-webkit-print-color-adjust:exact;print-color-adjust:exact;overflow-wrap:break-word;word-wrap:break-word;--mu:#59626e;--tint:color-mix(in srgb,var(--p) 8%,#fff);--ln:color-mix(in srgb,var(--p) 28%,#fff)}" +
   ".cvb *{box-sizing:border-box}.cvb h1{margin:0;font-size:calc(var(--fs)*2.4);line-height:1.12;font-weight:700;color:var(--p)}.cvb .hl{font-size:calc(var(--fs)*1.15);margin:3pt 0 0;color:var(--mu)}" +
   ".cvb .ct{margin:5pt 0 0;color:var(--mu);font-size:.93em}.cvb .ct span+span::before{content:' · '}" +
-  ".cvb h2{font-size:calc(var(--fs)*1.13*var(--hs));margin:calc(13pt*var(--sp)) 0 calc(5pt*var(--sp));color:var(--p);line-height:1.2;break-after:avoid;page-break-after:avoid}" +
+  ".cvb .h2k{break-inside:avoid;page-break-inside:avoid}.cvb h2{font-size:calc(var(--fs)*1.13*var(--hs));margin:calc(13pt*var(--sp)) 0 calc(5pt*var(--sp));color:var(--p);line-height:1.2;break-after:avoid;page-break-after:avoid}" +
   ".cvb h3{font-size:1em;margin:0;font-weight:700}.cvb p{margin:1.5pt 0}.cvb ul,.cvb ol{margin:2pt 0 0;padding-left:13pt}.cvb li{margin:1pt 0}.cvb a{color:inherit;text-decoration:none}.cvb .ds{white-space:pre-line}" +
   ".cvb .en{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:10pt;margin:0 0 calc(7pt*var(--sp));break-inside:avoid;page-break-inside:avoid}.cvb .en-b{grid-column:1;grid-row:1;min-width:0}" +
   ".cvb .en-d{grid-column:2;grid-row:1;text-align:right;white-space:nowrap;color:var(--mu);font-size:.92em;margin:0}.cvb .en-s{color:var(--mu)}.cvb .lb{font-weight:700;font-size:.92em;margin-top:3pt}" +
@@ -246,7 +246,27 @@ export function renderCvBuilderBody(cv: CvData, o: CvRenderOptions): string {
   };
   const heading = (id: CvDesignSection) => (id === "skills" && tpl === "executive" ? L.coreCompetencies : L[id]);
   const visible = d.sectionOrder.filter((id) => !d.hidden.includes(id) && S[id]);
-  const sections = (ids: CvDesignSection[]) => ids.map((id) => `<section class="s s-${id}"><h2>${e(heading(id))}</h2>${S[id]}</section>`).join("");
+  // Heading + FIRST entry stay together (break-after:avoid alone leaves orphan headings in Chrome); later entries flow.
+  const firstBlock = (html: string): number => {
+    let depth = 0;
+    for (const m of html.matchAll(/<(\/?)([a-z][a-z0-9]*)[^>]*>/gi)) {
+      if (m.index === 0 && m[1]) return 0;
+      if (/^(img|br|hr|input)$/i.test(m[2]!)) {
+        if (depth === 0) return m.index + m[0].length;
+        continue;
+      }
+      depth += m[1] ? -1 : 1;
+      if (depth === 0) return m.index + m[0].length;
+    }
+    return 0;
+  };
+  const sections = (ids: CvDesignSection[]) =>
+    ids
+      .map((id) => {
+        const cut = S[id].startsWith("<") ? firstBlock(S[id]) : 0;
+        return `<section class="s s-${id}"><div class="h2k"><h2>${e(heading(id))}</h2>${S[id].slice(0, cut)}</div>${S[id].slice(cut)}</section>`;
+      })
+      .join("");
 
   // ---- header pieces
   const photoSrc = ats || !meta.supportsPhoto || !d.showPhoto ? "" : safeSrc(o.assets?.photoSrc) || (/^https:\/\//i.test(p.photoUrl) ? safeSrc(p.photoUrl) : "");
@@ -313,10 +333,10 @@ export function renderCvBuilderBody(cv: CvData, o: CvRenderOptions): string {
   const page = band
     ? `@page{size:A4;margin:0}@media print{.cvb.hb .mn,.cvb.hb .sd{padding-top:${m}mm;padding-bottom:${m}mm;-webkit-box-decoration-break:clone;box-decoration-break:clone}}.cvb.hb .mn{padding-${band.side === "l" ? "right" : "left"}:${m}mm}`
     : `@page{size:A4;margin:${m}mm;@bottom-right{content:counter(page) " / " counter(pages);font-family:${CV_FONT_STACKS[d.font]};font-size:8pt;color:#777}}`;
-  // Full-height sidebar on every printed page: the root background is painted on each page box, margins included.
+  // Full-height sidebar on every printed page: a fixed panel (Chrome repeats fixed elements per page). A root gradient is NOT used: it drops out after page 2.
   const bandColor = band ? (band.band === "p" ? d.primary : `color-mix(in srgb,${d.primary} 8%,#fff)`) : "";
   const bandCss = band
-    ? `@media print{html:has(.cvb.hb){-webkit-print-color-adjust:exact;print-color-adjust:exact;background:linear-gradient(${band.side === "l" ? "to right" : "to left"},${bandColor} ${band.width}%,${d.background} ${band.width}%)}}`
+    ? `.cvb .bandbg{display:none}@media print{.cvb.hb .bandbg{display:block;position:fixed;top:0;bottom:0;${band.side === "l" ? "left" : "right"}:0;width:${band.width}%;background:${bandColor};z-index:-1;-webkit-print-color-adjust:exact;print-color-adjust:exact}}`
     : "";
   const fontCss = o.fonts
     ? CV_FONT_FACES.filter((f) => f.family === d.font)
@@ -327,5 +347,5 @@ export function renderCvBuilderBody(cv: CvData, o: CvRenderOptions): string {
         .join("")
     : "";
   const lang = o.language ? ` lang="${e(o.language)}"` : "";
-  return `<style>${fontCss}${page}${bandCss}${BASE_CSS}${TEMPLATE_CSS[tpl] ?? ""}</style><article class="cv cvb t-${tpl} cv-${/^[a-z0-9_-]{1,30}$/.test(o.template) ? o.template : "unknown"}${band ? " hb" : ""}"${lang} style="${e(vars)}">${body}</article>`;
+  return `<style>${fontCss}${page}${bandCss}${BASE_CSS}${TEMPLATE_CSS[tpl] ?? ""}</style><article class="cv cvb t-${tpl} cv-${/^[a-z0-9_-]{1,30}$/.test(o.template) ? o.template : "unknown"}${band ? " hb" : ""}"${lang} style="${e(vars)}">${band ? '<div class="bandbg" aria-hidden="true"></div>' : ""}${body}</article>`;
 }

@@ -91,7 +91,7 @@ describe("builder renderer", () => {
       const html = render(id);
       expect(html.indexOf('<main class="mn">')).toBeGreaterThan(-1);
       expect(html.indexOf('<main class="mn">')).toBeLessThan(html.indexOf('<aside class="sd">'));
-      expect(html).toContain("html:has(.cvb.hb)");
+      expect(html).toContain('class="bandbg"'); // fixed full-height panel repeated on every printed page
     }
     expect(render("modern-minimal", { columns: "two" })).toContain('<aside class="sd">');
   });

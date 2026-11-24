@@ -35,7 +35,8 @@ function ColorPicker({ label, value, presets, onChange }: { label: string; value
             aria-label={t("cvWeb.customise.preset", { name: c })}
             aria-pressed={c.toLowerCase() === value.toLowerCase()}
             onClick={() => apply(c)}
-            style={{ width: 28, height: 28, borderRadius: "50%", background: c, border: c.toLowerCase() === value.toLowerCase() ? "3px solid var(--primary)" : "1px solid var(--border-strong)", cursor: "pointer", padding: 0 }}
+            className="cv-swatch"
+            style={{ background: c, border: c.toLowerCase() === value.toLowerCase() ? "3px solid var(--primary)" : "1px solid var(--border-strong)" }}
           />
         ))}
       </div>

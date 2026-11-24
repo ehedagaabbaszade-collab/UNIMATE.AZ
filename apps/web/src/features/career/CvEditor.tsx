@@ -47,7 +47,7 @@ function useDebounced<T>(value: T, ms: number): T {
 function useWide(): boolean {
   const [wide, setWide] = useState(true);
   useEffect(() => {
-    const m = window.matchMedia("(min-width: 900px)");
+    const m = window.matchMedia("(min-width: 768px)");
     const on = () => setWide(m.matches);
     on();
     m.addEventListener("change", on);
@@ -229,28 +229,18 @@ function EditorInner({ doc, onReload }: { doc: CvDoc; onReload: () => void }) {
   };
   const zoomBy = (d: number) => setZoom((z) => Math.max(0.4, Math.min(2, Math.round(((typeof z === "number" ? z : 0.7) + d) * 10) / 10)));
 
-  const toolbar = (
-    <div className="row" role="toolbar" aria-label={t("cvWeb.editor.toolbar")} style={{ gap: 8, alignItems: "flex-end" }}>
-      <div style={{ flex: "1 1 200px", minWidth: 0 }}>
-        <Input
-          label={t("career.cv.title")}
-          value={title}
-          maxLength={120}
-          onChange={(e) => {
-            setTitle(e.target.value);
-            markDirty();
-          }}
-        />
-      </div>
+  const bad = status === "offline" || status === "error" || status === "conflict";
+  const sIcon = status === "saved" ? <Icon name="check" size="sm" /> : status === "saving" ? "…" : status === "unsaved" ? "●" : "!";
+  const actions = (
+    <>
       <Button variant="secondary" onClick={() => setGallery(true)}>
         {t("cvWeb.gallery.change")}
       </Button>
-      <Button variant="secondary" disabled={hist.past.length === 0} onClick={() => jump(undo)} aria-label={t("cvWeb.editor.undo")}>
-        ↶ {t("cvWeb.editor.undo")}
-      </Button>
-      <Button variant="secondary" disabled={hist.future.length === 0} onClick={() => jump(redo)} aria-label={t("cvWeb.editor.redo")}>
-        ↷ {t("cvWeb.editor.redo")}
-      </Button>
+      {!wide ? (
+        <Button variant="secondary" onClick={() => { setSide("customise"); setMobileTab("edit"); }}>
+          {t("cvWeb.editor.customise")}
+        </Button>
+      ) : null}
       <Button onClick={() => void exportPdf("designed")}>
         <Icon name="download" size="sm" />
         {t("cvWeb.editor.designed")}
@@ -259,9 +249,45 @@ function EditorInner({ doc, onReload }: { doc: CvDoc; onReload: () => void }) {
         <Icon name="download" size="sm" />
         {t("cvWeb.editor.atsExport")}
       </Button>
-      <span role="status" aria-live="polite" className={status === "offline" || status === "error" || status === "conflict" ? "warn-box" : "um-muted"} style={{ fontSize: "var(--text-sm)" }}>
-        {statusText[status]}
-      </span>
+    </>
+  );
+  const toolbar = (
+    <div className="cvbar-wrap">
+      <div className="cvbar" role="toolbar" aria-label={t("cvWeb.editor.toolbar")}>
+        <div className="cvbar__title">
+          <Input
+            label={t("career.cv.title")}
+            value={title}
+            maxLength={120}
+            onChange={(e) => {
+              setTitle(e.target.value);
+              markDirty();
+            }}
+          />
+        </div>
+        <Button variant="secondary" disabled={hist.past.length === 0} onClick={() => jump(undo)} aria-label={t("cvWeb.editor.undo")} title={t("cvWeb.editor.undo")}>
+          {wide ? `↶ ${t("cvWeb.editor.undo")}` : "↶"}
+        </Button>
+        <Button variant="secondary" disabled={hist.future.length === 0} onClick={() => jump(redo)} aria-label={t("cvWeb.editor.redo")} title={t("cvWeb.editor.redo")}>
+          {wide ? `↷ ${t("cvWeb.editor.redo")}` : "↷"}
+        </Button>
+        <span role="status" aria-live="polite" className="cvbar__status" style={{ color: bad ? "var(--danger)" : "var(--text-muted)" }}>
+          <span className="cvbar__sicon" aria-hidden="true">{sIcon}</span>
+          <span className="cvbar__stext">{statusText[status]}</span>
+        </span>
+        {wide ? (
+          <div className="cvbar__actions">{actions}</div>
+        ) : (
+          <details className="cvmenu">
+            <summary className="um-btn um-btn--secondary" aria-label={t("cvWeb.editor.moreActions")}>
+              ⋯
+            </summary>
+            <div className="cvmenu__list" onClick={(e) => (e.target as HTMLElement).closest("button") && e.currentTarget.parentElement?.removeAttribute("open")}>
+              {actions}
+            </div>
+          </details>
+        )}
+      </div>
     </div>
   );
 
@@ -277,6 +303,7 @@ function EditorInner({ doc, onReload }: { doc: CvDoc; onReload: () => void }) {
         options={CV_LANGUAGES.map((l) => ({ value: l, label: t(`career.lang.${l}`) }))}
       />
       <Chips
+        className="cv-scroll"
         label={t("cvWeb.editor.sections")}
         value={side}
         onChange={setSide}
@@ -348,19 +375,19 @@ function EditorInner({ doc, onReload }: { doc: CvDoc; onReload: () => void }) {
   );
 
   return (
-    <div className="stack-lg">
+    <div className="stack-lg cv-touch">
       <p>
         <Link href="/career">← {t("cvWeb.editor.back")}</Link>
       </p>
       {toolbar}
       {wide ? (
-        <div style={{ display: "grid", gap: 20, gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", alignItems: "start" }}>
-          <div style={{ minWidth: 0 }}>{editPane}</div>
-          <div style={{ position: "sticky", top: 8, maxHeight: "calc(100dvh - 16px)", overflow: "auto", minWidth: 0 }}>{previewPane}</div>
+        <div className="cv-split">
+          <div>{editPane}</div>
+          <div className="cv-split__side">{previewPane}</div>
         </div>
       ) : (
         <>
-          <Chips label={t("cvWeb.editor.tabs")} value={mobileTab} onChange={setMobileTab} options={[{ value: "edit" as const, label: t("cvWeb.editor.tabEdit") }, { value: "preview" as const, label: t("cvWeb.editor.tabPreview") }]} />
+          <Chips className="cv-seg" label={t("cvWeb.editor.tabs")} value={mobileTab} onChange={setMobileTab} options={[{ value: "edit" as const, label: t("cvWeb.editor.tabEdit") }, { value: "preview" as const, label: t("cvWeb.editor.tabPreview") }]} />
           {mobileTab === "edit" ? editPane : previewPane}
         </>
       )}

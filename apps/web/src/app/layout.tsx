@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { ToastProvider } from "@unimate/ui";
 import "@unimate/ui/styles.css";
 import "./globals.css";
+import "./phone.css";
 import "./select.css";
 import { catalogs, createTranslator, LOCALE_COOKIE, toLocale, type Messages } from "@unimate/i18n";
 import { I18nProvider } from "@unimate/i18n/react";
@@ -26,6 +27,7 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 export const viewport: Viewport = {
+  viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f1f5ff" },
     { media: "(prefers-color-scheme: dark)", color: "#0b1020" },

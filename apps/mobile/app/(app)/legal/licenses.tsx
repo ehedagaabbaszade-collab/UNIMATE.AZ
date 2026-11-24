@@ -60,7 +60,7 @@ export default function LicensesScreen() {
                   accessibilityRole={e.url ? "link" : "text"}
                   disabled={!e.url}
                   onPress={() => void Linking.openURL(e.url).catch(() => undefined)}
-                  style={{ paddingVertical: 6, minHeight: 36, justifyContent: "center" }}
+                  style={{ paddingVertical: 6, minHeight: 44, justifyContent: "center" }}
                 >
                   <AppText variant="caption" selectable>
                     {`${e.name} ${e.version}`}

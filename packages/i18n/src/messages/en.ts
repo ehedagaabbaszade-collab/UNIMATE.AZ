@@ -1924,6 +1924,7 @@ export const en = {
     tour: { skip: "Skip", next: "Next", done: "Done", step: "{n} of {m}", s1: "Your dashboard", s1b: "Your name and what is new today. Everything starts here.", s2: "Quick actions", s2b: "Check notifications and open your profile and settings from here.", s3: "Up next", s3b: "Deadlines, exams and absence warnings appear here, most urgent first.", s4: "Modules", s4b: "Open study tools, notes, campus and career from these tiles." },
   },
   cvMobile: {
+    more: "More",
     useSummary: "Use this summary",
     edit: "Edit",
     preview: "Preview",

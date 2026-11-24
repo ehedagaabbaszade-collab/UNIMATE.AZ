@@ -17,9 +17,9 @@ export const KIND_ICON: Record<OpportunityKind, IconName> = {
 export const STATUS_TONE: Record<TrackStatus, BadgeTone> = { saved: "neutral", applied: "info", interview: "warning", offer: "success", rejected: "danger" };
 
 /** Single-choice chip group (keyboard accessible buttons with aria-pressed). */
-export function Chips<T extends string>({ label, value, onChange, options }: { label: string; value: T; onChange: (v: T) => void; options: ReadonlyArray<{ value: T; label: string }> }) {
+export function Chips<T extends string>({ label, value, onChange, options, className = "" }: { label: string; value: T; onChange: (v: T) => void; options: ReadonlyArray<{ value: T; label: string }>; className?: string }) {
   return (
-    <div role="group" aria-label={label} className="row" style={{ gap: 8 }}>
+    <div role="group" aria-label={label} className={`row ${className}`.trim()} style={{ gap: 8 }}>
       {options.map((o) => (
         <button key={o.value} type="button" className="cite-chip" aria-pressed={o.value === value} onClick={() => onChange(o.value)}>
           {o.label}

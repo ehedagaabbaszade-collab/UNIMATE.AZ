@@ -24,7 +24,8 @@ import {
 import { useI18n } from "@unimate/i18n/react";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { AppState, View } from "react-native";
+import { AppState, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { EdgeNotice } from "../../components/EdgeNotice";
 import { Icon } from "../../components/Icon";
 import { PickerField } from "../../components/PickerField";
@@ -36,6 +37,7 @@ import { kv } from "../../lib/storage";
 import { useAsync } from "../../lib/use-async";
 import { useUser } from "../../state/session";
 import { useTheme } from "../../theme/ThemeProvider";
+import { CONTENT_MAX } from "../../theme/tokens";
 import { CV_UNREADABLE, deleteCv, duplicateCv, getCv, myTracking, saveCvGuarded } from "./api";
 import { CvCustomise } from "./CvCustomise";
 import { ACTIVITY, AI, AiWrite, CERT, COURSE, EDU, EXP, Entries, HOBBY, HONOUR, LANG, PROJ, PUBLICATION, PhotoField, Proposal, REFERENCE, SKILL, Socials, VOLUNTEER, type Obj } from "./CvEntries";
@@ -231,6 +233,8 @@ export function CvEditorScreen({ id }: { id: string }) {
   const [gallery, setGallery] = useState(false);
   const [customise, setCustomise] = useState(false);
   const [exportMenu, setExportMenu] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const insets = useSafeAreaInsets();
   const [importOpen, setImportOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [conflictOpen, setConflictOpen] = useState(false);
@@ -497,7 +501,15 @@ export function CvEditorScreen({ id }: { id: string }) {
   );
   const meta = cvTemplateMeta(cur.template);
 
+  const iconBtn = (glyph: string, label: string, onPress: () => void, disabled = false) => (
+    <PressableScale accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} onPress={disabled ? () => undefined : onPress} style={{ width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center", backgroundColor: theme.primarySoft, opacity: disabled ? 0.45 : 1 }}>
+      <Text maxFontSizeMultiplier={1.2} style={{ fontSize: 22, color: theme.text }}>
+        {glyph}
+      </Text>
+    </PressableScale>
+  );
   return (
+    <View style={{ flex: 1 }}>
     <Screen>
       {header}
       <Card>
@@ -505,13 +517,6 @@ export function CvEditorScreen({ id }: { id: string }) {
           <Badge tone={status === "saved" ? "success" : status === "error" || status === "conflict" ? "danger" : "warning"}>{statusText}</Badge>
           {status === "conflict" ? <Button small title={t("cvMobile.conflictReload")} onPress={reloadLatest} /> : null}
           {dirty && status !== "conflict" ? <Button small variant="secondary" title={t("career.cv.save")} loading={status === "saving"} onPress={() => void flush()} /> : null}
-        </View>
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-          <Button small variant="secondary" title={t("cvMobile.undo")} disabled={!hist.past.length} onPress={() => jump(historyUndo)} />
-          <Button small variant="secondary" title={t("cvMobile.redo")} disabled={!hist.future.length} onPress={() => jump(historyRedo)} />
-          <Button small variant="secondary" title={t("cvMobile.template")} onPress={() => setGallery(true)} />
-          <Button small variant="secondary" title={t("cvMobile.customise")} onPress={() => setCustomise(true)} />
-          <Button small title={t("cvMobile.export")} loading={busy} icon={<Icon name="download" size="sm" />} onPress={() => setExportMenu(true)} />
         </View>
         <Segmented
           label={t("cvMobile.edit")}
@@ -524,6 +529,22 @@ export function CvEditorScreen({ id }: { id: string }) {
         />
       </Card>
 
+      <Dialog
+        open={moreOpen}
+        title={t("cvMobile.more")}
+        onClose={() => setMoreOpen(false)}
+        actions={
+          <>
+            <Button small variant="secondary" title={t("cvMobile.template")} onPress={() => { setMoreOpen(false); setGallery(true); }} />
+            <Button small variant="secondary" title={t("cvMobile.customise")} onPress={() => { setMoreOpen(false); setCustomise(true); }} />
+            <Button small variant="secondary" title={t("common.close")} onPress={() => setMoreOpen(false)} />
+          </>
+        }
+      >
+        <AppText variant="caption" muted>
+          {`${t("career.cv.template")}: ${t(meta.nameKey)}`}
+        </AppText>
+      </Dialog>
       <TemplateGallery open={gallery} current={cur.template} actionLabel={t("cvMobile.useTemplate")} onClose={() => setGallery(false)} onUse={useTemplate} />
       <CvCustomise open={customise} template={cur.template} design={cur.design} onChange={setDesign} onClose={() => setCustomise(false)} />
       <Dialog
@@ -688,6 +709,17 @@ export function CvEditorScreen({ id }: { id: string }) {
           </Dialog>
         </>
       )}
+      <View style={{ height: 96 + insets.bottom }} />
     </Screen>
+    {/* Sticky action bar: always reachable, safe-area aware, content capped on tablets. */}
+    <View style={{ position: "absolute", left: 0, right: 0, bottom: 0, backgroundColor: theme.surface, borderTopWidth: 1, borderTopColor: theme.border, paddingTop: 8, paddingBottom: insets.bottom + 8, paddingHorizontal: 16 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, width: "100%", maxWidth: CONTENT_MAX, alignSelf: "center" }}>
+        {iconBtn("↶", t("cvMobile.undo"), () => jump(historyUndo), !hist.past.length)}
+        {iconBtn("↷", t("cvMobile.redo"), () => jump(historyRedo), !hist.future.length)}
+        <Button style={{ flex: 1, minWidth: 0 }} title={t("cvMobile.export")} loading={busy} icon={<Icon name="download" size="sm" />} onPress={() => setExportMenu(true)} />
+        {iconBtn("⋯", t("cvMobile.more"), () => setMoreOpen(true))}
+      </View>
+    </View>
+    </View>
   );
 }

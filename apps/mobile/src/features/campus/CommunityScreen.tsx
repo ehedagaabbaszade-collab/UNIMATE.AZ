@@ -160,7 +160,7 @@ export function CommunityScreen({ id }: { id: string }) {
           {!d.my_status ? <Button small title={t(d.visibility === "public" ? "campus.communities.join" : "campus.communities.requestJoin")} loading={busy} onPress={() => void join()} /> : null}
           {member && d.my_role !== "owner" ? <Button small variant="ghost" title={t("campus.communities.leave")} onPress={() => setConfirmLeave(true)} /> : null}
           {d.can_moderate ? (
-            <PressableScale onPress={() => router.push(`/campus/moderation/${id}`)} accessibilityRole="button" style={{ minHeight: 36, justifyContent: "center" }}>
+            <PressableScale onPress={() => router.push(`/campus/moderation/${id}`)} accessibilityRole="button" style={{ minHeight: 44, justifyContent: "center" }}>
               <Badge tone="warning">{`${t("campus.community.moderate")}${d.pending_requests ? ` (${d.pending_requests})` : ""}`}</Badge>
             </PressableScale>
           ) : null}

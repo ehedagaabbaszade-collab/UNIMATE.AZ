@@ -2,7 +2,7 @@ import { CV_DEFAULT_TEMPLATE, CV_LANGUAGES, CV_MAX_DOCUMENTS, cvTemplateMeta, em
 import { useI18n } from "@unimate/i18n/react";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useRef, useState } from "react";
-import { Image, View } from "react-native";
+import { Image, View, useWindowDimensions } from "react-native";
 import { Icon } from "../../components/Icon";
 import { AppText, Badge, Button, Card, Dialog, EmptyState, ErrorState, Input, Skeleton, useToast } from "../../components/ui";
 import { useAsync } from "../../lib/use-async";
@@ -15,6 +15,7 @@ import { TemplateGallery, cvPreviewFor } from "./TemplatePicker";
 /** CV management: thumbnail, title, last modified, default badge; create / edit / rename / duplicate / default / export / delete. */
 export function CvList() {
   const { t, date, locale } = useI18n();
+  const thumb = useWindowDimensions().width < 360 ? 52 : 64;
   const router = useRouter();
   const { toast } = useToast();
   const { user, supabase: sb } = useUser();
@@ -119,7 +120,7 @@ export function CvList() {
         list.map((c) => (
           <Card key={c.id}>
             <View style={{ flexDirection: "row", gap: 12 }}>
-              <Image source={cvPreviewFor(c.template)} accessibilityIgnoresInvertColors style={{ width: 64, aspectRatio: 400 / 566, borderRadius: 6 }} resizeMode="cover" />
+              <Image source={cvPreviewFor(c.template)} accessibilityIgnoresInvertColors style={{ width: thumb, aspectRatio: 400 / 566, borderRadius: 6 }} resizeMode="cover" />
               <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
                 <AppText variant="heading" numberOfLines={2}>
                   {c.title}
@@ -135,8 +136,8 @@ export function CvList() {
               </View>
             </View>
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-              <Button small title={t("cvMobile.editCv")} icon={<Icon name="pencil" size="sm" />} onPress={() => open(c.id)} />
-              <Button small variant="secondary" title={t("cvMobile.exportPdf")} loading={busy === c.id} icon={<Icon name="download" size="sm" />} onPress={() => void exportPdf(c.id)} />
+              <Button small style={{ flexGrow: 1 }} title={t("cvMobile.editCv")} icon={<Icon name="pencil" size="sm" />} onPress={() => open(c.id)} />
+              <Button small style={{ flexGrow: 1 }} variant="secondary" title={t("cvMobile.exportPdf")} loading={busy === c.id} icon={<Icon name="download" size="sm" />} onPress={() => void exportPdf(c.id)} />
               <Button small variant="secondary" title={t("cvMobile.rename")} onPress={() => { setName(c.title); setRenaming(c); }} />
               <Button small variant="secondary" title={t("career.cv.duplicate")} disabled={list.length >= CV_MAX_DOCUMENTS || busy === c.id} onPress={() => void duplicate(c.id)} />
               {c.isDefault ? null : <Button small variant="secondary" title={t("cvMobile.setDefault")} disabled={busy === c.id} onPress={() => void makeDefault(c.id)} />}

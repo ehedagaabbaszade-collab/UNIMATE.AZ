@@ -1925,6 +1925,7 @@ export const tr = {
     tour: { skip: "Geç", next: "İleri", done: "Bitir", step: "{n} / {m}", s1: "Ana ekranın", s1b: "Adın ve bugün neler var. Her şey buradan başlar.", s2: "Hızlı işlemler", s2b: "Bildirimlere bak, profilini ve ayarları buradan aç.", s3: "Sıradakiler", s3b: "Son tarihler, sınavlar ve devamsızlık uyarıları en acilden başlayarak burada görünür.", s4: "Modüller", s4b: "Çalışma araçlarını, notları, kampüsü ve kariyeri bu kutucuklardan aç." },
   },
   cvMobile: {
+    more: "Diğer",
     useSummary: "Bu özeti kullan",
     edit: "Düzenle",
     preview: "Önizleme",

@@ -3,8 +3,9 @@ import { useI18n } from "@unimate/i18n/react";
 import { useMemo, useState } from "react";
 import { Image, Modal, ScrollView, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { AppText, Badge, Button, PressableScale, Segmented } from "../../components/ui";
+import { AppText, Badge, Button, PillRow, PressableScale } from "../../components/ui";
 import { useTheme } from "../../theme/ThemeProvider";
+import { CONTENT_MAX } from "../../theme/tokens";
 import { buildSampleHtml } from "./cv-export";
 import { CvWebPreview } from "./CvWebPreview";
 
@@ -48,13 +49,18 @@ export function TemplateGallery({ open, current, busy, actionLabel, onClose, onU
   const shown = CV_TEMPLATE_CATALOG.filter((m) => filter === "all" || m.categories.includes(filter));
   const currentId = current ? cvTemplateMeta(current).id : null;
   const pm = preview ? cvTemplateMeta(preview) : null;
-  const { height: wh } = useWindowDimensions();
+  const { height: wh, width: ww } = useWindowDimensions();
+  // Columns from the usable width: 1 under 360dp (or very large text), 2 on phones, 3 on tablets. Gap-based widths, no percentages that overflow.
+  const avail = Math.min(ww, CONTENT_MAX + 32) - 32;
+  const cols = avail < 300 ? 1 : avail < 560 ? 2 : 3;
+  const cardW = Math.floor((avail - 16 * (cols - 1)) / cols);
   const lang = (CV_LANGUAGES as readonly string[]).includes(locale) ? (locale as CvLanguage) : "az";
   const sampleHtml = useMemo(() => (pm ? buildSampleHtml(pm.id, lang) : null), [pm, lang]);
   const chips = [{ value: "all" as Filter, label: t("cvMobile.categoryAll") }, ...CV_TEMPLATE_CATEGORIES.map((c) => ({ value: c as Filter, label: t(`career.cv.templateCategory.${c}`) }))];
   return (
     <Modal visible={open} animationType="slide" onRequestClose={pm ? () => setPreview(null) : onClose} accessibilityViewIsModal>
-      <View style={{ flex: 1, backgroundColor: theme.surface, paddingTop: insets.top + 12, paddingBottom: insets.bottom + 12, paddingHorizontal: 16, gap: 12 }}>
+      <View style={{ flex: 1, backgroundColor: theme.surface }}>
+      <View style={{ flex: 1, width: "100%", maxWidth: CONTENT_MAX + 32, alignSelf: "center", paddingTop: insets.top + 12, paddingBottom: insets.bottom + 12, paddingHorizontal: 16, gap: 12 }}>
         {pm ? (
           <>
             <AppText variant="heading">{t(pm.nameKey)}</AppText>
@@ -72,19 +78,19 @@ export function TemplateGallery({ open, current, busy, actionLabel, onClose, onU
         ) : (
           <>
             <AppText variant="heading">{t("cvMobile.galleryTitle")}</AppText>
-            <Segmented label={t("career.cv.template")} value={filter} onChange={setFilter} options={chips} />
+            <PillRow label={t("career.cv.template")} value={filter} onChange={setFilter} options={chips} />
             <View style={{ flex: 1 }}>
-              <ScrollView contentContainerStyle={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: 16, paddingBottom: 8 }}>
+              <ScrollView contentContainerStyle={{ flexDirection: "row", flexWrap: "wrap", gap: 16, paddingBottom: 8 }}>
                 {shown.map((m) => {
                   const selected = m.id === currentId;
                   return (
-                    <View key={m.id} style={{ width: "48%", minWidth: 0, gap: 4 }}>
+                    <View key={m.id} style={{ width: cardW, gap: 4 }}>
                       <PressableScale accessibilityRole="button" accessibilityLabel={t(m.nameKey)} accessibilityState={{ selected }} onPress={() => setPreview(m.id)}>
                         <View style={{ borderRadius: 12, borderWidth: selected ? 2 : 1, borderColor: selected ? theme.active : theme.border, overflow: "hidden" }}>
                           <Image source={CV_PREVIEWS[m.id]} accessibilityIgnoresInvertColors style={{ width: "100%", aspectRatio: 400 / 566 }} resizeMode="cover" />
                         </View>
                       </PressableScale>
-                      <AppText variant="label" numberOfLines={1}>
+                      <AppText variant="label" numberOfLines={2}>
                         {t(m.nameKey)}
                       </AppText>
                       <AppText variant="caption" muted numberOfLines={3}>
@@ -100,6 +106,7 @@ export function TemplateGallery({ open, current, busy, actionLabel, onClose, onU
             <Button title={t("common.close")} variant="secondary" onPress={onClose} />
           </>
         )}
+      </View>
       </View>
     </Modal>
   );

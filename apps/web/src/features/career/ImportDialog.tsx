@@ -60,7 +60,7 @@ export function ImportDialog({ open, cv, onClose, onApply }: { open: boolean; cv
         </>
       }
     >
-      <div className="stack">
+      <div className="stack cv-sheet cv-touch">
         <p className="um-muted">{t("cvWeb.imp.body")}</p>
         {src.loading && !p ? <Skeleton height={80} /> : null}
         {src.error ? (

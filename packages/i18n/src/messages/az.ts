@@ -1925,6 +1925,7 @@ export const az = {
     tour: { skip: "Keç", next: "Növbəti", done: "Bitir", step: "{n} / {m}", s1: "İdarə paneliniz", s1b: "Adınız və bu gün nə var. Hər şey buradan başlayır.", s2: "Sürətli əməliyyatlar", s2b: "Bildirişlərə baxın, profilinizi və parametrləri buradan açın.", s3: "Növbəti işlər", s3b: "Son tarixlər, imtahanlar və davamiyyət xəbərdarlıqları ən vacibindən başlayaraq burada görünür.", s4: "Modullar", s4b: "Dərs alətlərini, qeydləri, kampusu və karyeranı bu kafellərdən açın." },
   },
   cvMobile: {
+    more: "Daha çox",
     useSummary: "Bu xülasəni istifadə et",
     edit: "Redaktə",
     preview: "Ön izləmə",

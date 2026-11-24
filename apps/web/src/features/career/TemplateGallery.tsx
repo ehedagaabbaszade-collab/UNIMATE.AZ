@@ -3,32 +3,46 @@
 import { CV_TEMPLATE_CATALOG, CV_TEMPLATE_CATEGORIES, type CvLanguage, type CvTemplate, type CvTemplateCategory, type CvTemplateMeta } from "@unimate/core";
 import { useI18n } from "@unimate/i18n/react";
 import { Badge, Button, Dialog, Icon } from "@unimate/ui";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CvPreview } from "./cv-preview";
 import { SAMPLE_CV } from "./cv-sample";
 import { Chips } from "./parts";
 
 const PAGES_KEY = { "1": "cvWeb.gallery.pages1", "1-2": "cvWeb.gallery.pages12", "2+": "cvWeb.gallery.pages2" } as const;
-const MAX_COMPARE = 3;
+
+function useNarrow(): boolean {
+  const [n, setN] = useState(false);
+  useEffect(() => {
+    const m = window.matchMedia("(max-width: 640px)");
+    const on = () => setN(m.matches);
+    on();
+    m.addEventListener("change", on);
+    return () => m.removeEventListener("change", on);
+  }, []);
+  return n;
+}
 
 /** Template gallery: category tabs, real PNG cards, full-screen live preview with sample data, and side-by-side compare. */
 export function TemplateGallery({ value, language, busy, onPick }: { value?: string | undefined; language: CvLanguage; busy?: boolean; onPick: (id: CvTemplate) => void }) {
   const { t } = useI18n();
+  const MAX_COMPARE = useNarrow() ? 2 : 3; // two A4 previews side by side do not fit a phone
   const [cat, setCat] = useState<CvTemplateCategory | "all">("all");
   const [big, setBig] = useState<CvTemplateMeta | null>(null);
   const [picked, setPicked] = useState<CvTemplate[]>([]);
   const [comparing, setComparing] = useState(false);
   const list = CV_TEMPLATE_CATALOG.filter((m) => cat === "all" || m.categories.includes(cat));
   const toggle = (id: CvTemplate) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : p.length >= MAX_COMPARE ? p : [...p, id]));
-  const compared = picked.map((id) => CV_TEMPLATE_CATALOG.find((m) => m.id === id)!).filter(Boolean);
+  const shown = picked.slice(0, MAX_COMPARE);
+  const compared = shown.map((id) => CV_TEMPLATE_CATALOG.find((m) => m.id === id)!).filter(Boolean);
   const use = (id: CvTemplate) => {
     setBig(null);
     setComparing(false);
     onPick(id);
   };
   return (
-    <div className="stack">
+    <div className="stack cv-touch">
       <Chips
+        className="cv-scroll"
         label={t("cvWeb.gallery.categories")}
         value={cat}
         onChange={setCat}
@@ -36,13 +50,13 @@ export function TemplateGallery({ value, language, busy, onPick }: { value?: str
       />
       <div className="row row--between">
         <p className="um-muted" style={{ fontSize: "var(--text-sm)" }}>
-          {t("cvWeb.gallery.compareHint")}
+          {t("cvWeb.gallery.compareHint", { n: MAX_COMPARE })}
         </p>
-        <Button size="sm" variant="secondary" disabled={picked.length < 2} onClick={() => setComparing(true)}>
-          {t("cvWeb.gallery.compareOpen", { n: picked.length })}
+        <Button size="sm" variant="secondary" disabled={shown.length < 2} onClick={() => setComparing(true)}>
+          {t("cvWeb.gallery.compareOpen", { n: shown.length })}
         </Button>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 200px), 1fr))", gap: 16 }}>
+      <div className="cv-gal">
         {list.map((m) => {
           const name = t(m.nameKey);
           const on = m.id === value;
@@ -64,7 +78,7 @@ export function TemplateGallery({ value, language, busy, onPick }: { value?: str
                 <Badge>{m.columns === 2 ? t("cvWeb.gallery.columns2") : t("cvWeb.gallery.columns1")}</Badge>
                 <Badge>{t(PAGES_KEY[m.pages])}</Badge>
               </div>
-              <label className="row" style={{ gap: 8, fontSize: "var(--text-sm)" }}>
+              <label className="row" style={{ gap: 8, fontSize: "var(--text-sm)", minHeight: 44 }}>
                 <input type="checkbox" checked={picked.includes(m.id)} disabled={!picked.includes(m.id) && picked.length >= MAX_COMPARE} onChange={() => toggle(m.id)} aria-label={t("cvWeb.gallery.pickTick", { name })} />
                 {t("cvWeb.gallery.compare")}
               </label>
@@ -80,7 +94,7 @@ export function TemplateGallery({ value, language, busy, onPick }: { value?: str
           );
         })}
       </div>
-      {picked.length >= MAX_COMPARE ? <p className="um-muted">{t("cvWeb.gallery.compareMax")}</p> : null}
+      {picked.length >= MAX_COMPARE ? <p className="um-muted">{t("cvWeb.gallery.compareMax", { n: MAX_COMPARE })}</p> : null}
 
       <Dialog
         open={big !== null}
@@ -96,7 +110,7 @@ export function TemplateGallery({ value, language, busy, onPick }: { value?: str
         }
       >
         {big ? (
-          <div className="cv-wide stack">
+          <div className="cv-wide stack cv-touch">
             <p className="um-muted" style={{ fontSize: "var(--text-sm)" }}>
               {big.atsFriendly ? `${t("career.cv.atsFriendly")}. ${t("cvWeb.gallery.atsNote")} ` : ""}
               {t("cvWeb.gallery.sampleNote")}
@@ -116,7 +130,7 @@ export function TemplateGallery({ value, language, busy, onPick }: { value?: str
         }
       >
         {comparing ? (
-          <div className="cv-wide" style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))" }}>
+          <div className="cv-wide cv-cmp cv-touch">
             {compared.map((m) => (
               <div key={m.id} className="stack" style={{ minWidth: 0 }}>
                 <div className="row row--between">

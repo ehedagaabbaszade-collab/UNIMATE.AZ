@@ -75,7 +75,7 @@ export function CvList() {
   if (cvs.loading && !cvs.data) return <Skeleton height={100} />;
   if (cvs.error && !cvs.data) return <ErrorState title={t("career.loadFailed")} description={cvs.error} action={<Button onClick={cvs.reload}>{t("common.retry")}</Button>} />;
   return (
-    <div className="stack-lg">
+    <div className="stack-lg cv-touch">
       <div className="row">
         <Button loading={busy} disabled={full} onClick={() => setPicking(true)}>
           <Icon name="add" size="sm" />
@@ -86,7 +86,7 @@ export function CvList() {
       {list.length === 0 ? (
         <EmptyState title={t("career.empty.cvs")} description={t("career.empty.cvsBody")} />
       ) : (
-        <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 240px), 1fr))" }}>
+        <div className="cv-gal">
           {list.map((c) => (
             <Card key={c.id} className="doc-card">
               <div className="stack" style={{ gap: 8, minWidth: 0 }}>
@@ -105,7 +105,7 @@ export function CvList() {
                 <p className="um-muted" style={{ fontSize: "var(--text-xs)" }}>
                   {t("cvWeb.list.edited", { date: date(c.updatedAt) })}
                 </p>
-                <div className="row" style={{ gap: 6 }} role="group" aria-label={t("cvWeb.list.actions", { title: c.title })}>
+                <div className="row cv-card-actions" style={{ gap: 6 }} role="group" aria-label={t("cvWeb.list.actions", { title: c.title })}>
                   <Button size="sm" onClick={() => router.push(`/career/cv/${c.id}`)}>
                     {t("cvWeb.list.edit")}
                   </Button>
@@ -134,7 +134,7 @@ export function CvList() {
         </div>
       )}
       <Dialog open={picking} title={t("cvWeb.gallery.title")} onClose={() => setPicking(false)} actions={<Button variant="secondary" onClick={() => setPicking(false)}>{t("common.cancel")}</Button>}>
-        <div className="cv-wide">
+        <div className="cv-wide cv-touch">
           <TemplateGallery value={CV_DEFAULT_TEMPLATE} language={lang} busy={busy} onPick={(id) => void create(id)} />
         </div>
       </Dialog>

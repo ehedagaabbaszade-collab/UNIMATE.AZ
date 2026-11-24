@@ -328,11 +328,11 @@ export function DocumentsScreen() {
                 style={{ flex: 1, height: COMPOSER_H, color: theme.text, fontSize: 16 }}
               />
               {hasText ? (
-                <PressableScale disabled={!canSend} accessibilityRole="button" accessibilityLabel={t("mobile.aiStudy.send")} onPress={() => void send()} style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: theme.primary, alignItems: "center", justifyContent: "center", opacity: canSend ? 1 : 0.4 }}>
+                <PressableScale disabled={!canSend} accessibilityRole="button" accessibilityLabel={t("mobile.aiStudy.send")} onPress={() => void send()} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: theme.primary, alignItems: "center", justifyContent: "center", opacity: canSend ? 1 : 0.4 }}>
                   <Icon name="arrow-up" size={20} color={theme.onPrimary} />
                 </PressableScale>
               ) : (
-                <PressableScale disabled={!doc} accessibilityRole="button" accessibilityLabel={t("mobile.aiStudy.mic")} onPress={dictate} style={{ width: 38, height: 38, alignItems: "center", justifyContent: "center" }}>
+                <PressableScale disabled={!doc} accessibilityRole="button" accessibilityLabel={t("mobile.aiStudy.mic")} onPress={dictate} style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
                   <Icon name="mic" size={20} color={theme.textMuted} />
                 </PressableScale>
               )}

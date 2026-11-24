@@ -5,6 +5,7 @@ import { Modal, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, Button, Card, Input, PressableScale, Segmented } from "../../components/ui";
 import { useTheme } from "../../theme/ThemeProvider";
+import { CONTENT_MAX } from "../../theme/tokens";
 import { isHex, moveItem, toggleIn } from "./cv-helpers";
 
 const PRESETS = ["#111827", "#1F3A5F", "#2563EB", "#0EA5A4", "#16A34A", "#F59E0B", "#DC2626", "#7C3AED"];
@@ -59,7 +60,8 @@ export function CvCustomise({ open, template, design, onChange, onClose }: { ope
   const scale = (delta: number) => set({ headingScale: Math.min(CV_HEADING_SCALE.max, Math.max(CV_HEADING_SCALE.min, Math.round((d.headingScale + delta) * 10) / 10)) });
   return (
     <Modal visible={open} animationType="slide" onRequestClose={onClose} accessibilityViewIsModal>
-      <View style={{ flex: 1, backgroundColor: theme.surface, paddingTop: insets.top + 12, paddingBottom: insets.bottom + 12, paddingHorizontal: 16, gap: 12 }}>
+      <View style={{ flex: 1, backgroundColor: theme.surface }}>
+      <View style={{ flex: 1, width: "100%", maxWidth: CONTENT_MAX + 32, alignSelf: "center", paddingTop: insets.top + 12, paddingBottom: insets.bottom + 12, paddingHorizontal: 16, gap: 12 }}>
         <AppText variant="heading">{t("cvMobile.customise")}</AppText>
         <View style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={{ gap: 12, paddingBottom: 12 }} keyboardShouldPersistTaps="handled">
@@ -115,6 +117,7 @@ export function CvCustomise({ open, template, design, onChange, onClose }: { ope
           </ScrollView>
         </View>
         <Button title={t("common.close")} onPress={onClose} />
+      </View>
       </View>
     </Modal>
   );

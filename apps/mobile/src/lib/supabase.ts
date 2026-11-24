@@ -5,11 +5,20 @@ import { createChunkedStorage } from "./chunk-store";
 import { getSupabaseEnv } from "./env";
 
 // Sessions live in the OS keystore (Keychain / Keystore) via SecureStore, split into chunks (value size limit).
-const secureStorage = createChunkedStorage({
-  get: (k) => SecureStore.getItemAsync(k),
-  set: (k, v) => SecureStore.setItemAsync(k, v),
-  remove: (k) => SecureStore.deleteItemAsync(k),
-});
+// Web (dev inspection only): SecureStore has no web implementation, so fall back to localStorage.
+const ls = (globalThis as unknown as { localStorage?: Record<"getItem" | "setItem" | "removeItem", (...a: string[]) => string | null | void> }).localStorage;
+const secureStorage =
+  process.env.EXPO_OS === "web"
+    ? {
+        getItem: async (k: string) => (ls ? ls.getItem(k) : null),
+        setItem: async (k: string, v: string) => void ls?.setItem(k, v),
+        removeItem: async (k: string) => void ls?.removeItem(k),
+      }
+    : createChunkedStorage({
+        get: (k) => SecureStore.getItemAsync(k),
+        set: (k, v) => SecureStore.setItemAsync(k, v),
+        remove: (k) => SecureStore.deleteItemAsync(k),
+      });
 
 let client: SupabaseClient | null | undefined;
 

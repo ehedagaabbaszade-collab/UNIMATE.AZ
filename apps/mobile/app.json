@@ -4,7 +4,8 @@
     "slug": "unimate",
     "platforms": [
       "ios",
-      "android"
+      "android",
+      "web"
     ],
     "scheme": "unimate",
     "version": "0.1.0",

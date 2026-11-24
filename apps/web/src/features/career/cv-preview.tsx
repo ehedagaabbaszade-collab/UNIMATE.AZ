@@ -83,7 +83,7 @@ export function CvPreview({ cv, template, design, language, photoSrc, zoom = "fi
   const limit = maxWidth ? Math.min(avail, maxWidth) : avail;
   const z = zoom === "fit" ? Math.max(0.2, Math.min(1, (limit - 4) / A4_W)) : zoom;
   const pageH = (297 - 2 * doc.marginMm) * MM;
-  const guides = Math.max(0, Math.ceil((h - doc.marginMm * MM) / pageH) - 1);
+  const guides = h <= A4_H + 2 ? 0 : Math.max(0, Math.ceil((h - doc.marginMm * MM) / pageH) - 1); // content fits one A4: no page-break guide
   return (
     <div ref={box} style={{ width: "100%", minWidth: 0, overflow: zoom === "fit" ? "hidden" : "auto" }}>
       <div style={{ position: "relative", width: A4_W * z, height: h * z, margin: "0 auto", boxShadow: "0 2px 14px rgba(17,21,43,.22)", background: "#fff" }}>

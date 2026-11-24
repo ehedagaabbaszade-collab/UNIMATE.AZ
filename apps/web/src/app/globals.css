@@ -341,10 +341,31 @@
 @media (min-width: 900px) { .cv-split__side { top: 8px; max-height: calc(100dvh - 16px); } }
 .cv-gal { display: grid; gap: var(--space-4); grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); }
 .cv-gal > * { min-width: 0; }
+.cv-card { grid-template-columns: 72px minmax(0, 1fr); align-items: start; padding: var(--space-3); }
+.cv-card__thumb { display: block; width: 72px; aspect-ratio: 400 / 566; overflow: hidden; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+.cv-card__thumb img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.cv-icon-btn { width: 40px; min-width: 40px; padding: 0; justify-content: center; }
+.cv-card-actions .cvmenu__list { z-index: 30; }
+.cvbar-m { display: grid; gap: 2px; min-width: 0; }
+.cvbar-m__top { display: flex; align-items: flex-end; gap: var(--space-1, 4px); min-width: 0; }
+.cvbar-m__tools { display: flex; align-items: center; gap: 2px; min-width: 0; }
+.cvbar-m .cvbar__sicon { width: 40px; height: 40px; }
+.cvbar-m .cvmenu__list .um-select, .cvbar-m .cvmenu__list select { width: 100%; }
+.cvbar-m .um-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.cvbar-m__top > a.um-btn { flex: none; }
+@media (min-width: 768px) {
+  .cv-gal { grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); }
+  .cv-card { grid-template-columns: minmax(0, 1fr); padding: var(--space-5); }
+  .cv-card__thumb { width: 100%; }
+}
 .cv-cmp { display: grid; gap: var(--space-4); grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); }
 .cv-entry-tools { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 @media (max-width: 899px) {
   .cvbar-wrap { position: sticky; top: 52px; z-index: 20; margin-inline: calc(-1 * var(--space-4)); padding: var(--space-2) var(--space-4); background: var(--surface); border-bottom: 1px solid var(--border); }
+}
+@media (max-width: 767px) {
+  .cv-gal { grid-template-columns: minmax(0, 1fr); gap: var(--space-3); }
+  .cv-seg-tabs .cite-chip { padding: 0 6px; }
 }
 @media (max-width: 640px) {
   .cvbar .um-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
@@ -358,7 +379,8 @@
   .um-dialog:has(:is(.cv-wide, .cv-sheet)) { width: 100vw; max-width: 100vw; height: 100dvh; max-height: 100dvh; margin: 0; inset: 0; border: 0; border-radius: 0; padding: var(--space-4); padding-bottom: 0; }
   .um-dialog:has(:is(.cv-wide, .cv-sheet)) .um-dialog__actions { position: sticky; bottom: 0; margin: var(--space-4) calc(-1 * var(--space-4)) 0; padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom)); background: var(--surface); border-top: 1px solid var(--border); }
   .um-dialog:has(:is(.cv-wide, .cv-sheet)) .um-dialog__actions > .um-btn { flex: 1 1 0; }
-  .cv-card-actions > .um-btn { flex: 1 1 calc(50% - var(--space-2)); }
+  .cv-card-actions > .um-btn:first-child { flex: 1 1 auto; }
+  .cv-card-actions .cv-icon-btn { min-height: 40px; }
 }
 
 /* Theme tokens for the public site (.lp), auth (.auth) and portal (.shell): light is the base, dark mirrors packages/ui (system preference or data-theme="dark"). */

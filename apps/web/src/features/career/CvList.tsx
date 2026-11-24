@@ -88,45 +88,51 @@ export function CvList() {
       ) : (
         <div className="cv-gal">
           {list.map((c) => (
-            <Card key={c.id} className="doc-card">
-              <div className="stack" style={{ gap: 8, minWidth: 0 }}>
-                <Link href={`/career/cv/${c.id}`} aria-label={`${t("cvWeb.list.edit")}: ${c.title}`}>
-                  {/* eslint-disable-next-line @next/next/no-img-element -- static template thumbnail */}
-                  <img src={`/cv-templates/${cvTemplateMeta(c.template).id}.png`} alt="" loading="lazy" style={{ width: "100%", aspectRatio: "400 / 566", objectFit: "cover", objectPosition: "top", borderRadius: "var(--radius-sm)", border: "1px solid var(--border)", display: "block" }} />
-                </Link>
+            <Card key={c.id} className="doc-card cv-card">
+              <Link href={`/career/cv/${c.id}`} aria-label={`${t("cvWeb.list.edit")}: ${c.title}`} className="cv-card__thumb">
+                {/* eslint-disable-next-line @next/next/no-img-element -- static template thumbnail */}
+                <img src={`/cv-templates/${cvTemplateMeta(c.template).id}.png`} alt="" loading="lazy" />
+              </Link>
+              <div className="stack" style={{ gap: 6, minWidth: 0 }}>
+                <h3 style={{ overflowWrap: "anywhere" }}>
+                  <Link href={`/career/cv/${c.id}`}>{c.title}</Link>
+                </h3>
                 <div className="row" style={{ gap: 6 }}>
                   {c.isDefault ? <Badge tone="success">{t("cvWeb.list.default")}</Badge> : null}
                   <Badge tone="info">{t(`career.lang.${c.language}`)}</Badge>
                   <Badge>{t(cvTemplateMeta(c.template).nameKey)}</Badge>
                 </div>
-                <h3 style={{ overflowWrap: "anywhere" }}>
-                  <Link href={`/career/cv/${c.id}`}>{c.title}</Link>
-                </h3>
                 <p className="um-muted" style={{ fontSize: "var(--text-xs)" }}>
                   {t("cvWeb.list.edited", { date: date(c.updatedAt) })}
                 </p>
-                <div className="row cv-card-actions" style={{ gap: 6 }} role="group" aria-label={t("cvWeb.list.actions", { title: c.title })}>
+                <div className="row cv-card-actions" style={{ gap: 6, flexWrap: "nowrap" }} role="group" aria-label={t("cvWeb.list.actions", { title: c.title })}>
                   <Button size="sm" onClick={() => router.push(`/career/cv/${c.id}`)}>
                     {t("cvWeb.list.edit")}
                   </Button>
-                  <Button size="sm" variant="secondary" onClick={() => setRen({ item: c, title: c.title })}>
-                    {t("cvWeb.list.rename")}
-                  </Button>
-                  <Button size="sm" variant="secondary" disabled={full} onClick={() => void duplicate(c)}>
-                    {t("cvWeb.list.duplicate")}
-                  </Button>
-                  {c.isDefault ? null : (
-                    <Button size="sm" variant="secondary" onClick={() => void makeDefault(c)}>
-                      {t("cvWeb.list.setDefault")}
-                    </Button>
-                  )}
-                  <Button size="sm" variant="secondary" onClick={() => router.push(`/career/cv/${c.id}/print?autoprint=1`)}>
+                  <Button size="sm" variant="ghost" className="cv-icon-btn" aria-label={`${t("cvWeb.list.download")}: ${c.title}`} title={t("cvWeb.list.download")} onClick={() => router.push(`/career/cv/${c.id}/print?autoprint=1`)}>
                     <Icon name="download" size="sm" />
-                    {t("cvWeb.list.download")}
                   </Button>
-                  <Button size="sm" variant="danger" aria-label={`${t("career.cv.delete")}: ${c.title}`} onClick={() => setDel(c)}>
-                    {t("common.delete")}
-                  </Button>
+                  <details className="cvmenu">
+                    <summary className="um-btn um-btn--ghost um-btn--sm cv-icon-btn" aria-label={`${t("cvWeb.editor.moreActions")}: ${c.title}`}>
+                      <Icon name="more-horizontal" size="sm" />
+                    </summary>
+                    <div className="cvmenu__list" onClick={(e) => (e.target as HTMLElement).closest("button") && e.currentTarget.parentElement?.removeAttribute("open")}>
+                      <Button variant="ghost" size="sm" onClick={() => setRen({ item: c, title: c.title })}>
+                        {t("cvWeb.list.rename")}
+                      </Button>
+                      <Button variant="ghost" size="sm" disabled={full} onClick={() => void duplicate(c)}>
+                        {t("cvWeb.list.duplicate")}
+                      </Button>
+                      {c.isDefault ? null : (
+                        <Button variant="ghost" size="sm" onClick={() => void makeDefault(c)}>
+                          {t("cvWeb.list.setDefault")}
+                        </Button>
+                      )}
+                      <Button variant="ghost" size="sm" style={{ color: "var(--danger)" }} aria-label={`${t("career.cv.delete")}: ${c.title}`} onClick={() => setDel(c)}>
+                        {t("common.delete")}
+                      </Button>
+                    </div>
+                  </details>
                 </div>
               </div>
             </Card>

@@ -2,7 +2,7 @@
 
 import { CV_LANGUAGES, cvMissingRequired, resolveCvDesign, type CvData, type CvDesign, type CvLanguage } from "@unimate/core";
 import { useI18n } from "@unimate/i18n/react";
-import { Button, Card, Dialog, EmptyState, ErrorState, Icon, Input, Skeleton, useToast } from "@unimate/ui";
+import { Button, Card, Dialog, EmptyState, ErrorState, Icon, Input, Select, Skeleton, useToast } from "@unimate/ui";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -233,6 +233,27 @@ function EditorInner({ doc, onReload }: { doc: CvDoc; onReload: () => void }) {
   const sIcon = status === "saved" ? <Icon name="check" size="sm" /> : status === "saving" ? "…" : status === "unsaved" ? "●" : "!";
   const actions = (
     <>
+      {!wide ? (
+        <>
+          <Select
+            label={t("career.cv.language")}
+            value={language}
+            onChange={(e) => {
+              setLanguage(e.target.value as CvLanguage);
+              markDirty();
+            }}
+          >
+            {CV_LANGUAGES.map((l) => (
+              <option key={l} value={l}>
+                {t(`career.lang.${l}`)}
+              </option>
+            ))}
+          </Select>
+          <Button variant="secondary" onClick={() => setImporting(true)}>
+            {t("cvWeb.imp.open")}
+          </Button>
+        </>
+      ) : null}
       <Button variant="secondary" onClick={() => setGallery(true)}>
         {t("cvWeb.gallery.change")}
       </Button>
@@ -251,59 +272,82 @@ function EditorInner({ doc, onReload }: { doc: CvDoc; onReload: () => void }) {
       </Button>
     </>
   );
-  const toolbar = (
+  const titleInput = (
+    <Input
+      label={t("career.cv.title")}
+      value={title}
+      maxLength={120}
+      onChange={(e) => {
+        setTitle(e.target.value);
+        markDirty();
+      }}
+    />
+  );
+  const statusEl = (
+    <span role="status" aria-live="polite" className="cvbar__status" style={{ color: bad ? "var(--danger)" : "var(--text-muted)" }}>
+      <span className="cvbar__sicon" aria-hidden="true">{sIcon}</span>
+      <span className="cvbar__stext">{statusText[status]}</span>
+    </span>
+  );
+  const toolbar = wide ? (
     <div className="cvbar-wrap">
       <div className="cvbar" role="toolbar" aria-label={t("cvWeb.editor.toolbar")}>
-        <div className="cvbar__title">
-          <Input
-            label={t("career.cv.title")}
-            value={title}
-            maxLength={120}
-            onChange={(e) => {
-              setTitle(e.target.value);
-              markDirty();
-            }}
-          />
-        </div>
+        <div className="cvbar__title">{titleInput}</div>
         <Button variant="secondary" disabled={hist.past.length === 0} onClick={() => jump(undo)} aria-label={t("cvWeb.editor.undo")} title={t("cvWeb.editor.undo")}>
-          {wide ? `↶ ${t("cvWeb.editor.undo")}` : "↶"}
+          {`↶ ${t("cvWeb.editor.undo")}`}
         </Button>
         <Button variant="secondary" disabled={hist.future.length === 0} onClick={() => jump(redo)} aria-label={t("cvWeb.editor.redo")} title={t("cvWeb.editor.redo")}>
-          {wide ? `↷ ${t("cvWeb.editor.redo")}` : "↷"}
+          {`↷ ${t("cvWeb.editor.redo")}`}
         </Button>
-        <span role="status" aria-live="polite" className="cvbar__status" style={{ color: bad ? "var(--danger)" : "var(--text-muted)" }}>
-          <span className="cvbar__sicon" aria-hidden="true">{sIcon}</span>
-          <span className="cvbar__stext">{statusText[status]}</span>
-        </span>
-        {wide ? (
-          <div className="cvbar__actions">{actions}</div>
-        ) : (
-          <details className="cvmenu">
-            <summary className="um-btn um-btn--secondary" aria-label={t("cvWeb.editor.moreActions")}>
-              ⋯
+        {statusEl}
+        <div className="cvbar__actions">{actions}</div>
+      </div>
+    </div>
+  ) : (
+    <div className="cvbar-wrap">
+      <div className="cvbar-m" role="toolbar" aria-label={t("cvWeb.editor.toolbar")}>
+        <div className="cvbar-m__top">
+          <Link href="/career" className="um-btn um-btn--ghost cv-icon-btn" aria-label={t("cvWeb.editor.back")} title={t("cvWeb.editor.back")}>
+            <Icon name="chevron-left" size="sm" />
+          </Link>
+          <div className="cvbar__title">{titleInput}</div>
+        </div>
+        <div className="cvbar-m__tools">
+          <Button variant="ghost" className="cv-icon-btn" disabled={hist.past.length === 0} onClick={() => jump(undo)} aria-label={t("cvWeb.editor.undo")} title={t("cvWeb.editor.undo")}>
+            ↶
+          </Button>
+          <Button variant="ghost" className="cv-icon-btn" disabled={hist.future.length === 0} onClick={() => jump(redo)} aria-label={t("cvWeb.editor.redo")} title={t("cvWeb.editor.redo")}>
+            ↷
+          </Button>
+          {statusEl}
+          <details className="cvmenu" style={{ marginInlineStart: "auto" }}>
+            <summary className="um-btn um-btn--ghost cv-icon-btn" aria-label={t("cvWeb.editor.moreActions")}>
+              <Icon name="more-horizontal" size="sm" />
             </summary>
             <div className="cvmenu__list" onClick={(e) => (e.target as HTMLElement).closest("button") && e.currentTarget.parentElement?.removeAttribute("open")}>
               {actions}
             </div>
           </details>
-        )}
+        </div>
       </div>
     </div>
   );
 
   const editPane = (
     <div className="stack" style={{ minWidth: 0 }}>
+      {wide ? (
+        <Chips
+          label={t("career.cv.language")}
+          value={language}
+          onChange={(v) => {
+            setLanguage(v);
+            markDirty();
+          }}
+          options={CV_LANGUAGES.map((l) => ({ value: l, label: t(`career.lang.${l}`) }))}
+        />
+      ) : null}
       <Chips
-        label={t("career.cv.language")}
-        value={language}
-        onChange={(v) => {
-          setLanguage(v);
-          markDirty();
-        }}
-        options={CV_LANGUAGES.map((l) => ({ value: l, label: t(`career.lang.${l}`) }))}
-      />
-      <Chips
-        className="cv-scroll"
+        className={wide ? "cv-scroll" : "cv-seg cv-seg-tabs"}
         label={t("cvWeb.editor.sections")}
         value={side}
         onChange={setSide}
@@ -315,11 +359,13 @@ function EditorInner({ doc, onReload }: { doc: CvDoc; onReload: () => void }) {
       />
       {side === "content" ? (
         <>
-          <div className="row">
-            <Button size="sm" variant="secondary" onClick={() => setImporting(true)}>
-              {t("cvWeb.imp.open")}
-            </Button>
-          </div>
+          {wide ? (
+            <div className="row">
+              <Button size="sm" variant="secondary" onClick={() => setImporting(true)}>
+                {t("cvWeb.imp.open")}
+              </Button>
+            </div>
+          ) : null}
           {exportBlocked && missing.length ? (
             <p className="err-box" role="alert">
               {`${missing.map((k) => t(`career.cv.field.${k}`)).join(", ")}: ${t("career.cv.required")}`}
@@ -376,9 +422,11 @@ function EditorInner({ doc, onReload }: { doc: CvDoc; onReload: () => void }) {
 
   return (
     <div className="stack-lg cv-touch">
-      <p>
-        <Link href="/career">← {t("cvWeb.editor.back")}</Link>
-      </p>
+      {wide ? (
+        <p>
+          <Link href="/career">← {t("cvWeb.editor.back")}</Link>
+        </p>
+      ) : null}
       {toolbar}
       {wide ? (
         <div className="cv-split">

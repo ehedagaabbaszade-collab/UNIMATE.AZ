@@ -492,7 +492,7 @@ export function CvEditor({ id }: { id: string }) {
           <AiWrite
             kind="summary"
             language={draft.language}
-            context={{ title: cv.personal.headline, skills: cv.skills.join(", ") }}
+            context={{ title: cv.personal.headline, skills: cv.skills.map((s) => s.name).join(", ") }}
             current={cv.summary}
             onText={(text) => {
               setData("summary", text);
@@ -506,7 +506,7 @@ export function CvEditor({ id }: { id: string }) {
       <Card>
         <div className="stack">
           <h2>{t("career.cv.section.skills")}</h2>
-          <ListField label={t("career.cv.field.skills")} value={cv.skills} parse={csv} join=", " onChange={(v) => setData("skills", v.slice(0, CV_SECTION_ITEMS_MAX).map((s) => s.slice(0, 50)))} />
+          <ListField label={t("career.cv.field.skills")} value={cv.skills.map((s) => s.name)} parse={csv} join=", " onChange={(v) => setData("skills", v.slice(0, CV_SECTION_ITEMS_MAX).map((s) => s.slice(0, 50)).map((name) => ({ ...cv.skills.find((x) => x.name === name), name })))} />
         </div>
       </Card>
       <Entries title={t("career.cv.section.languages")} items={cv.languages} fields={LANG} rev={rev} language={draft.language} make={() => ({ name: "", level: "", native: false, listening: "", reading: "", spokenProduction: "", spokenInteraction: "", writing: "" })} onChange={sectionList("languages")} />

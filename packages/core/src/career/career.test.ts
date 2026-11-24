@@ -7,6 +7,7 @@ import {
   buildCvDescribeData,
   cvMissingRequired,
   CvDataSchema,
+  cvTemplateMeta,
   CvPersonalSchema,
   CvFeedbackSchema,
   InterviewRequestSchema,
@@ -101,7 +102,7 @@ describe("CV schema", () => {
     const cv = emptyCv();
     expect(cv.personal.fullName).toBe("");
     expect(cv.education).toEqual([]);
-    expect(Object.keys(cv).sort()).toEqual(["activities", "certificates", "education", "experience", "hobbies", "honours", "languages", "personal", "projects", "skills", "summary"]);
+    expect(Object.keys(cv).sort()).toEqual(["activities", "certificates", "courses", "education", "experience", "hobbies", "honours", "languages", "personal", "projects", "publications", "references", "skills", "summary", "volunteer"]);
   });
   it("rejects non-https links, too many items, over-long text and unknown shapes", () => {
     expect(CvDataSchema.safeParse({ personal: { linkedin: "javascript:alert(1)" } }).success).toBe(false);
@@ -115,7 +116,7 @@ describe("CV schema", () => {
     expect(parseCvData({}).ok).toBe(true);
     expect(parseCvData({ skills: [123] })).toEqual({ ok: false, error: "invalid" });
     const big = { education: Array.from({ length: 30 }, () => ({ description: "ж".repeat(600), institution: "ж".repeat(160), degree: "ж".repeat(160), field: "ж".repeat(160) })), experience: Array.from({ length: 30 }, () => ({ bullets: Array(8).fill("ж".repeat(300)) })) };
-    expect(CV_MAX_BYTES).toBe(60_000);
+    expect(CV_MAX_BYTES).toBe(100_000);
     expect(parseCvData(big)).toEqual({ ok: false, error: "too_large" });
   });
 });
@@ -242,7 +243,9 @@ describe("layout templates", () => {
       expect(html).toContain("&lt;script&gt;");
       expect(html).toContain("Present");
       expect(html).not.toContain("<img");
-      expect(r(full, { photoSrc: "https://example.org/p.png" })).toContain('<img class="nt-photo" src="https://example.org/p.png"');
+      const t = cvTemplateMeta(template);
+      const photo = r(full, { photoSrc: "https://example.org/p.png" }).includes('<img class="ph" src="https://example.org/p.png"');
+      expect(photo).toBe(t.supportsPhoto && t.defaults.showPhoto); // legacy id renders through its builder alias
       expect(renderCvHtml(CvDataSchema.parse(full), { template, language: "en", title: "t", labels })).toContain(`cv-${template}`);
     });
   }
@@ -259,9 +262,9 @@ describe("Europass template", () => {
   };
   const render = (data: object, assets?: { logoSrc?: string; photoSrc?: string }) => renderCvBodyHtml(CvDataSchema.parse(data), { template: "europass", labels, assets });
 
-  it("is the first and default template", () => {
-    expect(CV_TEMPLATES[0]).toBe("europass");
-    expect(CV_DEFAULT_TEMPLATE).toBe("europass");
+  it("is a legacy template; new CVs start on its builder successor", () => {
+    expect(CV_TEMPLATES).not.toContain("europass");
+    expect(CV_DEFAULT_TEMPLATE).toBe("modern-european");
   });
   it("renders the photo and logo when given and escapes the src", () => {
     const html = render(base, { photoSrc: "https://x.az/p.png?a=1&b=2", logoSrc: "/brand/full-logo.png" });
@@ -308,7 +311,7 @@ describe("Europass template", () => {
     const cv = CvDataSchema.parse({ ...base, hobbies: [{ title: "Chess" }], honours: [{ title: "Award" }], activities: [{ title: "Club" }] });
     const html = renderCvBodyHtml(cv, { template: "classic", labels });
     expect(html).toContain("Chess");
-    expect(html).toContain("GitHub: https://github.com/a");
+    expect(html).toContain('href="https://github.com/a"');
   });
 });
 

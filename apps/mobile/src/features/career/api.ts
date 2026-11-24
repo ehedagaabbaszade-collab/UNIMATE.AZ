@@ -10,7 +10,7 @@ import {
   type CvData,
   type CvDocumentInput,
   type CvLanguage,
-  type CvTemplate,
+  type CvTemplateId,
   type OpportunityDetail,
   type OpportunityKind,
   type OpportunityListItem,
@@ -97,7 +97,7 @@ export interface CvListItem {
   id: string;
   title: string;
   language: CvLanguage;
-  template: CvTemplate;
+  template: CvTemplateId;
   updatedAt: string;
 }
 export interface CvDoc extends CvListItem {
@@ -105,7 +105,7 @@ export interface CvDoc extends CvListItem {
 }
 export async function listCvs(sb: SupabaseClient): Promise<CvListItem[]> {
   const rows = ok(await sb.from("cv_documents").select("id,title,language,template,updated_at").order("updated_at", { ascending: false })) as Array<Record<string, string>>;
-  return rows.map((r) => ({ id: r.id!, title: r.title!, language: r.language as CvLanguage, template: r.template as CvTemplate, updatedAt: r.updated_at! }));
+  return rows.map((r) => ({ id: r.id!, title: r.title!, language: r.language as CvLanguage, template: r.template as CvTemplateId, updatedAt: r.updated_at! }));
 }
 export async function getCv(sb: SupabaseClient, id: string): Promise<CvDoc | null> {
   const r = ok(await sb.from("cv_documents").select("id,title,language,template,updated_at,data").eq("id", id).maybeSingle<Record<string, unknown>>());
@@ -115,7 +115,7 @@ export async function getCv(sb: SupabaseClient, id: string): Promise<CvDoc | nul
     id: String(r.id),
     title: String(r.title),
     language: r.language as CvLanguage,
-    template: r.template as CvTemplate,
+    template: r.template as CvTemplateId,
     updatedAt: String(r.updated_at),
     data: parsed.ok ? parsed.data : CvDataSchema.parse({}),
   };
@@ -146,5 +146,7 @@ export async function deleteCv(sb: SupabaseClient, id: string): Promise<void> {
 /** Skills from all of the user's CVs (deduplicated by the matching functions). */
 export async function myCvSkills(sb: SupabaseClient): Promise<string[]> {
   const rows = ok(await sb.from("cv_documents").select("data")) as Array<{ data: { skills?: unknown } | null }>;
-  return rows.flatMap((r) => (Array.isArray(r.data?.skills) ? (r.data!.skills as unknown[]).filter((s): s is string => typeof s === "string") : []));
+  // skills are strings (legacy) or { name, level?, kind? } objects (since migration 005800)
+  const name = (s: unknown) => (typeof s === "string" ? s : s && typeof s === "object" && typeof (s as { name?: unknown }).name === "string" ? (s as { name: string }).name : null);
+  return rows.flatMap((r) => (Array.isArray(r.data?.skills) ? (r.data!.skills as unknown[]).map(name).filter((s): s is string => s !== null) : []));
 }

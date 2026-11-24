@@ -353,7 +353,7 @@ describe("cv_documents", () => {
     await fails(S1, "insert into public.cv_documents (user_id, data) values ($1, '{\"hack\": 1}')", [S1]);
     await fails(S1, "insert into public.cv_documents (user_id, data) values ($1, '{\"skills\": \"SQL\"}')", [S1]);
     await fails(S1, "insert into public.cv_documents (user_id, data) values ($1, '{\"personal\": []}')", [S1]);
-    await fails(S1, "insert into public.cv_documents (user_id, data) values ($1, $2::jsonb)", [S1, JSON.stringify({ summary: "x".repeat(61_000) })]);
+    await fails(S1, "insert into public.cv_documents (user_id, data) values ($1, $2::jsonb)", [S1, JSON.stringify({ summary: "x".repeat(101_000) })]);
     await fails(S1, "insert into public.cv_documents (user_id, language, data) values ($1, 'de', '{}')", [S1]);
     await fails(S1, "insert into public.cv_documents (user_id, template, data) values ($1, 'Bad Template!', '{}')", [S1]);
     await fails(S1, "insert into public.cv_documents (user_id, title, data) values ($1, '  ', '{}')", [S1]);
@@ -368,9 +368,9 @@ describe("cv_documents", () => {
     await fails(S1, "insert into public.cv_documents (user_id, data) values ($1, $2::jsonb)", [S1, JSON.stringify({ honours: Array.from({ length: 31 }, () => ({})) })]);
     await raw("delete from public.cv_documents where user_id = $1", [S1]);
   });
-  it("limits an account to 5 CVs", async () => {
-    for (let i = 0; i < 5; i++) await insert(S2, S2);
-    expect(await fails(S2, "insert into public.cv_documents (user_id, data) values ($1, '{}')", [S2])).toMatch(/at most 5/);
+  it("limits an account to 10 CVs (raised from 5 in 005800)", async () => {
+    for (let i = 0; i < 10; i++) await insert(S2, S2);
+    expect(await fails(S2, "insert into public.cv_documents (user_id, data) values ($1, '{}')", [S2])).toMatch(/at most 10/);
     await raw("delete from public.cv_documents where user_id = $1", [S2]);
   });
 });

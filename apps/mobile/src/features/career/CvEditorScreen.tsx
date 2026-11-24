@@ -591,7 +591,7 @@ export function CvEditorScreen({ id }: { id: string }) {
         <AiWrite
           kind="summary"
           language={draft.language}
-          context={{ ...(cv.personal.headline ? { title: cv.personal.headline.slice(0, 200) } : {}), ...(cv.skills.length ? { skills: cv.skills.join(", ").slice(0, 200) } : {}) }}
+          context={{ ...(cv.personal.headline ? { title: cv.personal.headline.slice(0, 200) } : {}), ...(cv.skills.length ? { skills: cv.skills.map((s) => s.name).join(", ").slice(0, 200) } : {}) }}
           current={cv.summary}
           max={1500}
           onText={(v) => {
@@ -604,7 +604,7 @@ export function CvEditorScreen({ id }: { id: string }) {
       <Entries title={t("career.cv.section.experience")} items={cv.experience} fields={EXP} rev={rev} language={draft.language} ai={AI.experience} make={() => ({ company: "", role: "", location: "", start: "", end: "", current: false, bullets: [] })} onChange={sectionList("experience")} />
       <Card>
         <AppText variant="heading">{t("career.cv.section.skills")}</AppText>
-        <ListField label={t("career.cv.field.skills")} value={cv.skills} parse={csv} join=", " onChange={(v) => setData("skills", v.slice(0, CV_SECTION_ITEMS_MAX).map((s) => s.slice(0, 50)))} />
+        <ListField label={t("career.cv.field.skills")} value={cv.skills.map((s) => s.name)} parse={csv} join=", " onChange={(v) => setData("skills", v.slice(0, CV_SECTION_ITEMS_MAX).map((s) => s.slice(0, 50)).map((name) => ({ ...cv.skills.find((x) => x.name === name), name })))} />
       </Card>
       <Entries title={t("career.cv.section.languages")} items={cv.languages} fields={LANG} rev={rev} language={draft.language} make={() => ({ name: "", level: "", native: false, listening: "", reading: "", spokenProduction: "", spokenInteraction: "", writing: "" })} onChange={sectionList("languages")} />
       <Entries title={t("career.cv.section.projects")} items={cv.projects} fields={PROJ} rev={rev} language={draft.language} ai={AI.projects} make={() => ({ name: "", link: "", description: "", tech: [] })} onChange={sectionList("projects")} />

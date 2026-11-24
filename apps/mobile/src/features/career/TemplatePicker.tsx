@@ -7,25 +7,21 @@ import { Icon } from "../../components/Icon";
 import { AppText, Button, PressableScale } from "../../components/ui";
 import { useTheme } from "../../theme/ThemeProvider";
 
+// Real renders of the shared renderer: node scripts/cv-pdf-check.mjs --previews
 const PREVIEWS: Record<CvTemplate, number> = {
-  europass: require("../../../assets/cv-templates/europass.png"),
-  sidebar: require("../../../assets/cv-templates/sidebar.png"),
-  headline: require("../../../assets/cv-templates/headline.png"),
-  timeline: require("../../../assets/cv-templates/timeline.png"),
-  elegant: require("../../../assets/cv-templates/elegant.png"),
-  photocard: require("../../../assets/cv-templates/photocard.png"),
-  split: require("../../../assets/cv-templates/split.png"),
-  classic: require("../../../assets/cv-templates/classic.png"),
-  modern: require("../../../assets/cv-templates/modern.png"),
-  compact: require("../../../assets/cv-templates/compact.png"),
-  minimal: require("../../../assets/cv-templates/minimal.png"),
-  executive: require("../../../assets/cv-templates/executive.png"),
-  corporate: require("../../../assets/cv-templates/corporate.png"),
-  creative: require("../../../assets/cv-templates/creative.png"),
-  ats: require("../../../assets/cv-templates/ats.png"),
+  "modern-minimal": require("../../../assets/cv-templates/modern-minimal.png"),
+  "corporate": require("../../../assets/cv-templates/corporate.png"),
+  "executive": require("../../../assets/cv-templates/executive.png"),
+  "creative": require("../../../assets/cv-templates/creative.png"),
+  "academic": require("../../../assets/cv-templates/academic.png"),
+  "graduate": require("../../../assets/cv-templates/graduate.png"),
+  "two-column": require("../../../assets/cv-templates/two-column.png"),
+  "ats-classic": require("../../../assets/cv-templates/ats-classic.png"),
+  "modern-european": require("../../../assets/cv-templates/modern-european.png"),
+  "clean-international": require("../../../assets/cv-templates/clean-international.png"),
 };
 
-export function TemplatePicker({ value, onChange }: { value: CvTemplate; onChange: (v: CvTemplate) => void }) {
+export function TemplatePicker({ value, onChange }: { value: string; onChange: (v: CvTemplate) => void }) {
   const { t } = useI18n();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();

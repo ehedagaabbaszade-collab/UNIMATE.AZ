@@ -678,6 +678,24 @@
   "url": "https://github.com/expo/expo"
  },
  {
+  "name": "@fontsource/inter",
+  "version": "5.3.0",
+  "license": "OFL-1.1",
+  "url": "https://github.com/fontsource/font-files"
+ },
+ {
+  "name": "@fontsource/noto-sans",
+  "version": "5.3.0",
+  "license": "OFL-1.1",
+  "url": "https://github.com/fontsource/font-files"
+ },
+ {
+  "name": "@fontsource/noto-serif",
+  "version": "5.3.0",
+  "license": "OFL-1.1",
+  "url": "https://github.com/fontsource/font-files"
+ },
+ {
   "name": "@img/colour",
   "version": "1.1.0",
   "license": "MIT",
@@ -1192,6 +1210,12 @@
   "version": "5.2.0",
   "license": "MIT",
   "url": "https://github.com/chalk/ansi-styles"
+ },
+ {
+  "name": "arg",
+  "version": "4.1.3",
+  "license": "MIT",
+  "url": "https://github.com/zeit/arg"
  },
  {
   "name": "arg",
@@ -1776,6 +1800,12 @@
   "url": "https://github.com/expo/expo"
  },
  {
+  "name": "expo-eas-client",
+  "version": "58.0.2",
+  "license": "MIT",
+  "url": "https://github.com/expo/expo"
+ },
+ {
   "name": "expo-file-system",
   "version": "58.0.13",
   "license": "MIT",
@@ -1980,8 +2010,20 @@
   "url": "https://github.com/expo/expo"
  },
  {
+  "name": "expo-structured-headers",
+  "version": "58.0.1",
+  "license": "MIT",
+  "url": "https://github.com/expo/expo"
+ },
+ {
   "name": "expo-symbols",
   "version": "58.0.5",
+  "license": "MIT",
+  "url": "https://github.com/expo/expo"
+ },
+ {
+  "name": "expo-updates",
+  "version": "58.0.22",
   "license": "MIT",
   "url": "https://github.com/expo/expo"
  },

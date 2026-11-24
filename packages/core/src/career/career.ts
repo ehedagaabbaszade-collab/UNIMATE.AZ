@@ -433,7 +433,7 @@ export function cvToPlainText(cv: CvData): string {
     out.push("PROJECTS:\n" + cv.projects.map((x) => `- ${x.name}${x.tech.length ? ` [${x.tech.join(", ")}]` : ""}${filled(x.description) ? `: ${x.description}` : ""}`).join("\n"));
   if (cv.skills.length) out.push(`SKILLS: ${cvSkillNames(cv).join(", ")}`);
   if (cv.languages.length) out.push(`LANGUAGES: ${cv.languages.map((l) => `${l.name}${l.native ? " (native)" : filled(l.level) ? ` (${l.level})` : ""}`).join(", ")}`);
-  if (cv.certificates.length) out.push("CERTIFICATES:\n" + cv.certificates.map((c) => `- ${[c.name, c.issuer, c.year].filter(filled).join(", ")}`).join("\n"));
+  if (cv.certificates.length) out.push("CERTIFICATES:\n" + cv.certificates.map((c) => `- ${[c.name, c.issuer, c.date || c.year].filter(filled).join(", ")}`).join("\n"));
   if (cv.honours.length) out.push("HONOURS:\n" + cv.honours.map((h) => `- ${[h.title, h.issuer, h.date].filter(filled).join(", ")}${filled(h.description) ? `: ${h.description}` : ""}`).join("\n"));
   if (cv.activities.length) out.push("ACTIVITIES:\n" + cv.activities.map((a) => `- ${[a.title, a.place, a.date].filter(filled).join(", ")}${filled(a.description) ? `: ${a.description}` : ""}`).join("\n"));
   if (cv.volunteer.length) out.push("VOLUNTEERING:\n" + cv.volunteer.map((v) => `- ${[v.role, v.organization, v.location].filter(filled).join(", ")}${filled(v.description) ? `: ${v.description}` : ""}`).join("\n"));

@@ -59,7 +59,10 @@ describe("builder renderer", () => {
         expect(html).toContain('href="https://github.com/a"');
         expect(html).toContain('lang="az"');
         for (const s of ["summary", "experience", "education", "projects", "languages", "certificates", "courses", "volunteer", "publications", "references", "honours", "activities", "hobbies"]) expect(h2(html)).toContain(`L_${s}`);
-        expect(html).toContain("@bottom-right");
+        if (mode === "designed" && ["creative", "two-column", "modern-european"].includes(id)) {
+          expect(html).toContain("@page{size:A4;margin:0}"); // side panel bleeds to every page edge; margins are padding
+          expect(html).toContain("box-decoration-break:clone");
+        } else expect(html).toContain("@bottom-right");
         expect(html).toMatch(/\.en\{[^}]*break-inside:avoid/);
         expect(html).toMatch(/h2\{[^}]*break-after:avoid/);
       });
@@ -166,5 +169,10 @@ describe("CV data additions", () => {
   it("documents the strip behaviour: unknown keys are dropped by this schema (old clients drop keys added later)", () => {
     const r = CvDataSchema.parse({ futureSection: [1], personal: { futureField: "x" } } as unknown);
     expect("futureSection" in r).toBe(false);
+  });
+  it("keeps brand/link contact labels in natural case (no az uppercasing of LinkedIn/GitHub)", () => {
+    const html = render("creative", {});
+    expect(html).toContain('<b class="nb">L_linkedin</b>');
+    expect(html).not.toContain('<b class="nb">L_email</b>');
   });
 });

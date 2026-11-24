@@ -36,7 +36,7 @@ import { kv } from "../../lib/storage";
 import { useAsync } from "../../lib/use-async";
 import { useUser } from "../../state/session";
 import { useTheme } from "../../theme/ThemeProvider";
-import { deleteCv, duplicateCv, getCv, myTracking, saveCvGuarded } from "./api";
+import { CV_UNREADABLE, deleteCv, duplicateCv, getCv, myTracking, saveCvGuarded } from "./api";
 import { CvCustomise } from "./CvCustomise";
 import { ACTIVITY, AI, AiWrite, CERT, COURSE, EDU, EXP, Entries, HOBBY, HONOUR, LANG, PROJ, PUBLICATION, PhotoField, Proposal, REFERENCE, SKILL, Socials, VOLUNTEER, type Obj } from "./CvEntries";
 import { buildCvHtml, exportCvPdf, previewCv } from "./cv-export";
@@ -266,11 +266,17 @@ export function CvEditorScreen({ id }: { id: string }) {
     savedPhoto.current = d.data.personal.photoPath;
     conflict.current = false;
     setConflictOpen(false);
-    if (d.data.personal.photoPath) known.current.add(d.data.personal.photoPath);
     void kv.getItem(dKey).then((raw) => {
-      const draft = parseDraft(raw, d.updatedAt);
-      if (draft && snapshot(draft) !== savedJson.current) {
-        if (draft.data.personal.photoPath) known.current.add(draft.data.personal.photoPath);
+      const parsedDraft = parseDraft(raw, d.updatedAt);
+      const draft = parsedDraft?.doc;
+      if (draft && parsedDraft.stale) {
+        // The CV changed on the server since this draft was made: keep the draft and let the user choose.
+        localDraft.current = true;
+        conflict.current = true;
+        setHist(historyInit(draft));
+        setStatus("conflict");
+        setConflictOpen(true);
+      } else if (draft && snapshot(draft) !== savedJson.current) {
         localDraft.current = true;
         setHist(historyInit(draft));
         setStatus("unsaved");
@@ -320,7 +326,7 @@ export function CvEditorScreen({ id }: { id: string }) {
     } else if (r.kind === "offline") setStatus("offline");
     else {
       setStatus("error");
-      setStatusNote(r.kind === "invalid" ? t(r.error === "too_large" ? "career.cv.tooLarge" : "career.cv.invalid") : t("cvMobile.saveError"));
+      setStatusNote(r.kind === "empty" ? t("cvMobile.emptyOverwrite") : r.kind === "invalid" ? t(r.error === "too_large" ? "career.cv.tooLarge" : "career.cv.invalid") : t("cvMobile.saveError"));
     }
     if (queued.current && r.kind === "saved") {
       queued.current = false;
@@ -378,6 +384,14 @@ export function CvEditorScreen({ id }: { id: string }) {
       <Screen>
         {header}
         <Skeleton height={220} />
+      </Screen>
+    );
+  }
+  if (doc.error === CV_UNREADABLE) {
+    return (
+      <Screen>
+        {header}
+        <ErrorState title={t("cvMobile.unreadableTitle")} description={t("cvMobile.unreadableBody")} />
       </Screen>
     );
   }

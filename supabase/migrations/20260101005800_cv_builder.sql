@@ -78,6 +78,7 @@ language plpgsql set search_path = public, pg_temp as $$
 begin
   if tg_op = 'INSERT' then
     new.updated_at := now();
+    perform pg_advisory_xact_lock(hashtext('cv_cap:' || new.user_id::text)); -- serialise concurrent inserts before counting
     if (select count(*) from public.cv_documents where user_id = new.user_id) >= 10 then
       raise exception 'at most 10 CVs per account' using errcode = '54000';
     end if;
@@ -86,6 +87,34 @@ begin
   end if;
   return new;
 end $$;
+
+-- ---------------------------------------------------------------- data-loss guard: never replace a CV that has content with an empty one
+-- (what an old client that failed to parse the data would send).
+create function public.career_cv_has_content(p jsonb) returns boolean
+language sql immutable set search_path = pg_catalog as $$
+  select coalesce(
+    btrim(coalesce(p #>> '{personal,fullName}', '')) <> '' or btrim(coalesce(p #>> '{personal,email}', '')) <> ''
+    or btrim(coalesce(p #>> '{personal,phone}', '')) <> '' or btrim(coalesce(p ->> 'summary', '')) <> ''
+    or exists (
+      select 1 from jsonb_each(case when jsonb_typeof(p) = 'object' then p else '{}'::jsonb end) e
+      where case when jsonb_typeof(e.value) = 'array' then jsonb_array_length(e.value) > 0 else false end), false)
+$$;
+revoke all on function public.career_cv_has_content(jsonb) from public, anon, authenticated, service_role;
+grant execute on function public.career_cv_has_content(jsonb) to anon, authenticated, service_role;
+create function public.cv_documents_no_wipe() returns trigger
+language plpgsql set search_path = public, pg_temp as $$
+begin
+  if public.career_cv_has_content(old.data) and not public.career_cv_has_content(new.data) then
+    raise exception 'CV_EMPTY_OVERWRITE' using errcode = 'P0001';
+  end if;
+  return new;
+end $$;
+create trigger cv_documents_no_wipe before update on public.cv_documents
+  for each row execute function public.cv_documents_no_wipe();
+
+-- Clients may insert only these columns; is_default goes through set_default_cv. The insert RLS policy (user_id = auth.uid()) is unchanged.
+revoke insert on public.cv_documents from authenticated;
+grant insert (user_id, title, language, template, data, design) on public.cv_documents to authenticated;
 
 -- ---------------------------------------------------------------- default CV
 create function public.set_default_cv(p_id uuid) returns void
@@ -106,6 +135,8 @@ grant execute on function public.set_default_cv(uuid) to authenticated;
 
 -- ---------------------------------------------------------------- ROLLBACK (manual, in this order)
 -- drop function public.set_default_cv(uuid);
+-- drop trigger cv_documents_no_wipe on public.cv_documents; drop function public.cv_documents_no_wipe(), public.career_cv_has_content(jsonb);
+-- revoke insert on public.cv_documents from authenticated; grant insert on public.cv_documents to authenticated;
 -- (re-run the cv_documents_guard body from 20260101004310_career.sql: cap 5)
 -- revoke update (design) on public.cv_documents from authenticated;
 -- drop index public.cv_documents_one_default;

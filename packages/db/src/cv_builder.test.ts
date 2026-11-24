@@ -137,3 +137,33 @@ describe("content validator and cap", () => {
     await clear();
   });
 });
+
+describe("insert grant and wipe guard", () => {
+  it("denies inserting is_default=true but allows the client columns", async () => {
+    await fails(A, "insert into public.cv_documents (user_id, is_default) values ($1, true)", [A]);
+    expect(await newCv(A)).toBeTruthy();
+    await clear();
+  });
+  it("blocks replacing a CV that has content with an empty one, allows normal edits", async () => {
+    const id = await newCv(A, { personal: { fullName: "Ali", email: "a@b.az" }, skills: [{ name: "x" }] });
+    const upd = (d: unknown) => rows(A, "update public.cv_documents set data = $2::jsonb where id = $1 returning id", [id, JSON.stringify(d)]);
+    for (const empty of [{}, { personal: {}, summary: "", skills: [] }]) {
+      let code = "";
+      let msg = "";
+      try {
+        await upd(empty);
+      } catch (e) {
+        code = (e as { code?: string }).code ?? "";
+        msg = (e as Error).message;
+      }
+      expect([code, msg]).toEqual(["P0001", expect.stringContaining("CV_EMPTY")]);
+      expect(msg).toContain("CV_EMPTY_OVERWRITE");
+    }
+    expect(await upd({ personal: { fullName: "Ali" } })).toHaveLength(1); // clearing single fields/sections is fine
+    expect(await upd({ summary: "hi" })).toHaveLength(1);
+    await clear();
+    const empty = await newCv(A, {});
+    expect(await rows(A, "update public.cv_documents set data = '{}'::jsonb where id = $1 returning id", [empty])).toHaveLength(1);
+    await clear();
+  });
+});

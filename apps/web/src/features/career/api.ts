@@ -1,6 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
-  CvDataSchema,
   CvDesignSchema,
   CvDocumentInputSchema,
   parseCvDesign,
@@ -120,10 +119,13 @@ export async function listCvs(sb: SupabaseClient): Promise<CvListItem[]> {
     isDefault: r.is_default === true,
   }));
 }
+/** Thrown (as Error.message) when stored data does not parse in this version: never shown as, or saved over by, an empty CV. */
+export const CV_UNREADABLE = "CV_UNREADABLE";
 export async function getCv(sb: SupabaseClient, id: string): Promise<CvDoc | null> {
   const r = ok(await sb.from("cv_documents").select("id,title,language,template,updated_at,data,design,is_default").eq("id", id).maybeSingle<Record<string, unknown>>());
   if (!r) return null;
   const parsed = parseCvData(r.data);
+  if (!parsed.ok) throw new Error(CV_UNREADABLE);
   return {
     id: String(r.id),
     title: String(r.title),
@@ -132,7 +134,7 @@ export async function getCv(sb: SupabaseClient, id: string): Promise<CvDoc | nul
     updatedAt: String(r.updated_at),
     design: parseCvDesign(r.design),
     isDefault: r.is_default === true,
-    data: parsed.ok ? parsed.data : CvDataSchema.parse({}),
+    data: parsed.data,
   };
 }
 export type CvSaveError = "invalid" | "too_large" | "limit" | "failed";
@@ -151,7 +153,7 @@ export async function createCv(sb: SupabaseClient, userId: string, input: CvDocu
 }
 /** Copies title ("<title> (<suffix>)"), data, design and template into a new CV. The 10-CV cap surfaces as error "limit" (errcode 54000). */
 export async function duplicateCv(sb: SupabaseClient, userId: string, id: string, copySuffix: string): Promise<CvSaveResult> {
-  const src = await getCv(sb, id);
+  const src = await getCv(sb, id).catch(() => null); // unreadable source: refuse, never copy an empty CV
   if (!src) return { ok: false, error: "failed" };
   const title = `${src.title.slice(0, 120 - copySuffix.length - 3)} (${copySuffix})`;
   return createCv(sb, userId, { title, language: src.language, template: src.template, data: src.data }, src.design);

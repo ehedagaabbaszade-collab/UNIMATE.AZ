@@ -56,9 +56,10 @@ export function mergeEducation(data: CvData, edu: { institution: string; field: 
   return { ...data, education: [...data.education, CvEducationSchema.parse({ institution: inst, field: edu.field.trim().slice(0, 160) })] };
 }
 
-export type SaveOutcome = { kind: "saved"; updatedAt: string } | { kind: "conflict" } | { kind: "offline" } | { kind: "error" };
+export type SaveOutcome = { kind: "saved"; updatedAt: string } | { kind: "conflict" } | { kind: "offline" } | { kind: "empty" } | { kind: "error" };
 /** Interprets an update ... where updated_at = <expected> ... returning updated_at. Zero rows = someone else saved first. */
 export function classifySave(res: { data: Array<{ updated_at: string }> | null; error: { message: string } | null }): SaveOutcome {
+  if (res.error?.message.includes("CV_EMPTY_OVERWRITE")) return { kind: "empty" }; // DB data-loss guard
   if (res.error) return /network|fetch|offline|timed? ?out|failed to load/i.test(res.error.message) ? { kind: "offline" } : { kind: "error" };
   const row = res.data?.[0];
   return row ? { kind: "saved", updatedAt: row.updated_at } : { kind: "conflict" };
@@ -70,7 +71,7 @@ export function pdfFileName(title: string): string {
   return `${base || "CV"}.pdf`;
 }
 
-/** cv-photos objects to delete when the editor closes: every upload/initial photo that neither the saved CV nor a kept local draft still uses. */
+/** cv-photos objects to delete when the editor closes: photos uploaded in THIS session that neither the saved CV nor a kept local draft still uses (a loaded photo may be shared with a duplicate). */
 export function orphanPaths(known: Iterable<string>, keep: ReadonlyArray<string | undefined>): string[] {
   const k = new Set(keep.filter((x): x is string => !!x));
   return [...new Set(known)].filter((p) => p && !k.has(p));
@@ -86,15 +87,15 @@ export interface CvDocState {
   design: CvDesign;
   data: CvData;
 }
-/** Local offline draft: only used while the server row is still at the version the draft was based on. */
+/** Local offline draft. `stale` = the server row moved on since the draft was based on it: keep the draft, ask the user, never drop it silently. */
 export const serializeDraft = (baseUpdatedAt: string, doc: CvDocState): string => JSON.stringify({ baseUpdatedAt, doc });
-export function parseDraft(raw: string | null, baseUpdatedAt: string): CvDocState | null {
+export function parseDraft(raw: string | null, baseUpdatedAt: string): { doc: CvDocState; stale: boolean } | null {
   if (!raw) return null;
   try {
     const j = JSON.parse(raw) as { baseUpdatedAt?: unknown; doc?: Record<string, unknown> };
-    if (j.baseUpdatedAt !== baseUpdatedAt || !j.doc) return null;
+    if (!j.doc) return null;
     const r = CvDocumentInputSchema.safeParse(j.doc);
-    return r.success ? { ...r.data, design: parseCvDesign(j.doc.design) } : null;
+    return r.success ? { doc: { ...r.data, design: parseCvDesign(j.doc.design) }, stale: j.baseUpdatedAt !== baseUpdatedAt } : null;
   } catch {
     return null;
   }

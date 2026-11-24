@@ -68,10 +68,10 @@ describe("misc", () => {
 
 describe("local draft", () => {
   const doc = { title: "T", language: "az" as const, template: "corporate" as const, design: { primary: "#111111" as const }, data: emptyCv() };
-  it("restores only for the matching server version", () => {
+  it("keeps a draft whose server version moved on, flagged stale (never dropped silently)", () => {
     const raw = serializeDraft("v1", doc);
-    expect(parseDraft(raw, "v1")?.design).toEqual({ primary: "#111111" });
-    expect(parseDraft(raw, "v2")).toBeNull();
+    expect(parseDraft(raw, "v1")).toMatchObject({ stale: false, doc: { design: { primary: "#111111" } } });
+    expect(parseDraft(raw, "v2")).toMatchObject({ stale: true, doc: { title: "T" } });
     expect(parseDraft("{bad", "v1")).toBeNull();
     expect(parseDraft(null, "v1")).toBeNull();
   });

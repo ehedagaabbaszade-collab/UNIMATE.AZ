@@ -1,6 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
-  CvDataSchema,
   CvDesignSchema,
   CvDocumentInputSchema,
   OPPORTUNITY_PAGE_SIZE,
@@ -113,10 +112,13 @@ export async function listCvs(sb: SupabaseClient): Promise<CvListItem[]> {
   const rows = ok(await sb.from("cv_documents").select("id,title,language,template,design,is_default,updated_at").order("updated_at", { ascending: false })) as Array<Record<string, unknown>>;
   return rows.map((r) => ({ id: String(r.id), title: String(r.title), language: r.language as CvLanguage, template: r.template as CvTemplateId, design: parseCvDesign(r.design), isDefault: r.is_default === true, updatedAt: String(r.updated_at) }));
 }
+/** Thrown (as Error.message) when stored data does not parse in this version: never shown as, or saved over by, an empty CV. */
+export const CV_UNREADABLE = "CV_UNREADABLE";
 export async function getCv(sb: SupabaseClient, id: string): Promise<CvDoc | null> {
   const r = ok(await sb.from("cv_documents").select("id,title,language,template,design,is_default,updated_at,data").eq("id", id).maybeSingle<Record<string, unknown>>());
   if (!r) return null;
   const parsed = parseCvData(r.data);
+  if (!parsed.ok) throw new Error(CV_UNREADABLE);
   return {
     id: String(r.id),
     title: String(r.title),
@@ -125,7 +127,7 @@ export async function getCv(sb: SupabaseClient, id: string): Promise<CvDoc | nul
     design: parseCvDesign(r.design),
     isDefault: r.is_default === true,
     updatedAt: String(r.updated_at),
-    data: parsed.ok ? parsed.data : CvDataSchema.parse({}),
+    data: parsed.data,
   };
 }
 export type CvSaveError = "invalid" | "too_large" | "limit" | "failed";
@@ -155,7 +157,7 @@ export async function saveCvGuarded(sb: SupabaseClient, id: string, input: CvDoc
   }
 }
 export async function duplicateCv(sb: SupabaseClient, userId: string, id: string, copyLabel: string): Promise<CvSaveResult> {
-  const src = await getCv(sb, id);
+  const src = await getCv(sb, id).catch(() => null); // unreadable source: refuse, never copy an empty CV
   if (!src) return { ok: false, error: "failed" };
   return createCv(sb, userId, { title: `${src.title} ${copyLabel}`.slice(0, 120), language: src.language, template: src.template, data: src.data }, src.design);
 }

@@ -68,7 +68,7 @@ const BASE_CSS =
   ".cvb .ph{display:block;flex:none;width:30mm;height:30mm;object-fit:cover;border-radius:var(--pr)}.cvb .hd{display:flex;gap:12pt;align-items:center;break-inside:avoid}.cvb .hdw{flex:1;min-width:0}" +
   ".cvb .g{display:grid;grid-template-columns:var(--gc);align-items:start}.cvb .g-r{grid-template-areas:'mn sd'}.cvb .g-l{grid-template-areas:'sd mn'}.cvb .mn{grid-area:mn;min-width:0}.cvb .sd{grid-area:sd;min-width:0}" +
   ".cvb .g-r .mn{padding-right:7mm}.cvb .g-l .mn{padding-left:7mm}.cvb .sd .en{display:block}.cvb .sd .en-d{text-align:left;white-space:normal}.cvb .sd .sk{display:block}.cvb .sd .sk li{margin:0 0 3pt}" +
-  ".cvb .ctl{list-style:none;padding:0;margin:0 0 8pt}.cvb .ctl li{margin:0 0 4pt;overflow-wrap:anywhere}.cvb .ctl b{display:block;font-size:.78em;text-transform:uppercase;letter-spacing:.06em;opacity:.75}.cvb .cf{font-size:.86em;color:var(--mu)}" +
+  ".cvb .ctl{list-style:none;padding:0;margin:0 0 8pt}.cvb .ctl li{margin:0 0 4pt;overflow-wrap:anywhere}.cvb .ctl b.nb{text-transform:none}.cvb .ctl b{display:block;font-size:.78em;text-transform:uppercase;letter-spacing:.06em;opacity:.75}.cvb .cf{font-size:.86em;color:var(--mu)}" +
   "@media print{.cvb.hb{background:transparent}.cvb.hb .sd{background:none!important}}" +
   "@media screen and (max-width:560px){.cvb .g{grid-template-columns:minmax(0,1fr)!important;grid-template-areas:'mn' 'sd'!important}.cvb .g .mn{padding:0!important}.cvb .hd{flex-wrap:wrap}.cvb .en{grid-template-columns:minmax(0,1fr)!important}.cvb .en-d{grid-column:1!important;grid-row:auto!important;text-align:left!important}}";
 
@@ -276,7 +276,9 @@ export function renderCvBuilderBody(cv: CvData, o: CvRenderOptions): string {
   const name = has(p.fullName) ? `<h1>${e(p.fullName.trim())}</h1>` : "";
   const headline = has(p.headline) ? `<p class="hl">${e(p.headline.trim())}</p>` : "";
   const contactLine = contacts.length ? (ats ? `<p class="ct">${contacts.map(([, v]) => v).join(" | ")}</p>` : `<p class="ct">${contacts.map(([, v]) => `<span>${v}</span>`).join("")}</p>`) : "";
-  const contactList = (xs: Array<[string, string]>) => (xs.length ? `<ul class="ctl">${xs.map(([k, v]) => `<li><b>${e(k)}</b>${v}</li>`).join("")}</ul>` : "");
+  // Brand/link labels keep their natural case (uppercasing in az turns "LinkedIn" into "LİNKEDİN").
+  const brand = new Set([L.linkedin, L.github, L.website, L.portfolio, ...p.socials.map((x) => x.platform)]);
+  const contactList = (xs: Array<[string, string]>) => (xs.length ? `<ul class="ctl">${xs.map(([k, v]) => `<li><b${brand.has(k) ? ' class="nb"' : ""}>${e(k)}</b>${v}</li>`).join("")}</ul>` : "");
 
   let body: string;
   if (!sideCfg) {
@@ -306,8 +308,10 @@ export function renderCvBuilderBody(cv: CvData, o: CvRenderOptions): string {
     `--pr:${PHOTO_RADIUS[d.photoShape]}`,
     ...(cols ? [`--gc:${cols}`] : []),
   ].join(";");
+  // Band templates print with @page margin 0 so the side panel bleeds to every page edge; the page margins become top/bottom padding
+  // repeated on every fragment of both columns (box-decoration-break:clone). No page-number box: margin boxes need a page margin.
   const page = band
-    ? `@page{size:A4;margin:${m}mm 0;@bottom-right{content:counter(page) " / " counter(pages);font-family:${CV_FONT_STACKS[d.font]};font-size:8pt;color:#777;padding-right:10mm}}.cvb.hb .mn{padding-${band.side === "l" ? "right" : "left"}:${m}mm}`
+    ? `@page{size:A4;margin:0}@media print{.cvb.hb .mn,.cvb.hb .sd{padding-top:${m}mm;padding-bottom:${m}mm;-webkit-box-decoration-break:clone;box-decoration-break:clone}}.cvb.hb .mn{padding-${band.side === "l" ? "right" : "left"}:${m}mm}`
     : `@page{size:A4;margin:${m}mm;@bottom-right{content:counter(page) " / " counter(pages);font-family:${CV_FONT_STACKS[d.font]};font-size:8pt;color:#777}}`;
   // Full-height sidebar on every printed page: the root background is painted on each page box, margins included.
   const bandColor = band ? (band.band === "p" ? d.primary : `color-mix(in srgb,${d.primary} 8%,#fff)`) : "";

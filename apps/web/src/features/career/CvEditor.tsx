@@ -9,7 +9,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useUser } from "@/components/user";
 import { getBrowserClient } from "@/lib/supabase/browser";
 import { useAsync } from "@/lib/use-async";
-import { getCv, type CvDoc } from "./api";
+import { CV_UNREADABLE, getCv, type CvDoc } from "./api";
 import { AssistantPanel } from "./AssistantPanel";
 import { saveCvGuarded, type SaveOutcome } from "./cv-autosave";
 import { initHistory, pushHistory, redo, undo, type History } from "./cv-history";
@@ -82,6 +82,9 @@ function EditorInner({ doc, onReload }: { doc: CvDoc; onReload: () => void }) {
   // ---- save machinery: everything the async code needs lives in refs
   const latest = useRef({ snap, title, language });
   latest.current = { snap, title, language };
+  const histRef = useRef(hist);
+  histRef.current = hist;
+  const savedSnap = useRef(JSON.stringify(hist.present));
   const version = useRef(0);
   const savedVersion = useRef(0);
   const loadedAt = useRef(doc.updatedAt);
@@ -91,7 +94,8 @@ function EditorInner({ doc, onReload }: { doc: CvDoc; onReload: () => void }) {
   const lastPush = useRef(0);
 
   // cv-photos: never delete an object undo could restore while the editor is open; on unmount delete uploads nobody references.
-  const seenPhotos = useRef(new Set<string>(doc.data.personal.photoPath ? [doc.data.personal.photoPath] : []));
+  // Only objects uploaded in THIS session are deletable: the loaded photo may be shared with a duplicated CV.
+  const seenPhotos = useRef(new Set<string>());
   const savedPhoto = useRef(doc.data.personal.photoPath);
 
   const flush = useCallback(async (): Promise<boolean> => {
@@ -111,6 +115,7 @@ function EditorInner({ doc, onReload }: { doc: CvDoc; onReload: () => void }) {
           loadedAt.current = o.updatedAt;
           savedVersion.current = v;
           savedPhoto.current = s.data.personal.photoPath;
+          savedSnap.current = JSON.stringify(s);
           setStatus(version.current === v ? "saved" : "unsaved");
           return true;
         }
@@ -121,7 +126,7 @@ function EditorInner({ doc, onReload }: { doc: CvDoc; onReload: () => void }) {
         } else if (o.kind === "offline") setStatus("offline");
         else {
           setStatus("error");
-          toast(o.kind === "too_large" ? t("career.cv.tooLarge") : o.kind === "invalid" ? t("career.cv.invalid") : t("career.cv.saveFailed"), "error");
+          toast(o.kind === "empty" ? t("cvWeb.editor.emptyOverwrite") : o.kind === "too_large" ? t("career.cv.tooLarge") : o.kind === "invalid" ? t("career.cv.invalid") : t("career.cv.saveFailed"), "error");
         }
         return false;
       };
@@ -150,7 +155,7 @@ function EditorInner({ doc, onReload }: { doc: CvDoc; onReload: () => void }) {
     setHist(fn);
     setRev((r) => r + 1);
     lastPush.current = 0;
-    markDirty();
+    if (JSON.stringify(fn(histRef.current).present) !== savedSnap.current) markDirty(); // undo back to the saved state needs no save
   };
   const updateData = (fn: (cv: CvData) => CvData, structural = false) => commit((s) => ({ ...s, data: fn(s.data) }), structural);
   const setDesign = (patch: Partial<Record<keyof CvDesign, unknown>>, structural = false) => commit((s) => ({ ...s, design: patchDesign(s.design, patch) }), structural);
@@ -388,6 +393,7 @@ function EditorInner({ doc, onReload }: { doc: CvDoc; onReload: () => void }) {
 export function CvEditor({ id }: { id: string }) {
   const { t } = useI18n();
   const doc = useAsync(() => getCv(getBrowserClient(), id), [id]);
+  const unreadable = doc.error === CV_UNREADABLE;
   const back = (
     <p>
       <Link href="/career">← {t("career.title")}</Link>
@@ -398,6 +404,14 @@ export function CvEditor({ id }: { id: string }) {
       <div className="stack-lg">
         {back}
         <Skeleton height={220} />
+      </div>
+    );
+  }
+  if (unreadable) {
+    return (
+      <div className="stack-lg">
+        {back}
+        <ErrorState title={t("cvWeb.editor.unreadableTitle")} description={t("cvWeb.editor.unreadableBody")} />
       </div>
     );
   }

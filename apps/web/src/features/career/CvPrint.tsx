@@ -1,6 +1,6 @@
 "use client";
 
-import { cvMissingRequired, renderCvBodyHtml } from "@unimate/core";
+import { cvMissingRequired, renderCvBodyHtml, renderCvHtml } from "@unimate/core";
 import { useI18n } from "@unimate/i18n/react";
 import { Button, EmptyState, ErrorState, Skeleton } from "@unimate/ui";
 import Link from "next/link";
@@ -29,16 +29,40 @@ export function CvPrint({ id, mode, autoprint }: { id: string; mode: "designed" 
   const data = doc.data;
   const blocked = data ? cvMissingRequired(data.data).length > 0 : true;
 
+  // Prints the CV as its own standalone document (same renderCvHtml output the PDF check verifies) in a hidden iframe,
+  // so the app shell, its dark background and its scroll containers never reach the PDF.
   const print = async () => {
-    await document.fonts.ready;
+    if (!data) return;
+    const design = mode === "ats" ? { ...data.design, mode: "ats" as const } : data.design;
+    const abs = (p: string) => new URL(p, window.location.origin).href;
+    const html = renderCvHtml(data.data, {
+      template: data.template,
+      design,
+      language: data.language,
+      title: data.title,
+      labels: cvLabels(data.language),
+      fonts: (f) => abs(cvFontUrl(f)),
+      assets: { logoSrc: abs("/brand/full-logo.png"), photoSrc: data.photo || undefined },
+    });
+    const frame = document.createElement("iframe");
+    frame.setAttribute("aria-hidden", "true");
+    frame.style.cssText = "position:fixed;right:0;bottom:0;width:210mm;height:297mm;border:0;visibility:hidden;";
     const prev = document.title;
-    if (data) document.title = data.title;
-    const restore = () => {
-      document.title = prev;
-      window.removeEventListener("afterprint", restore);
+    document.title = data.title; // Chrome names the PDF after the top document's title
+    frame.onload = async () => {
+      const win = frame.contentWindow;
+      if (!win) return;
+      await win.document.fonts.ready;
+      const done = () => {
+        document.title = prev;
+        frame.remove();
+      };
+      win.addEventListener("afterprint", done, { once: true });
+      win.focus();
+      win.print();
     };
-    window.addEventListener("afterprint", restore);
-    window.print();
+    frame.srcdoc = html;
+    document.body.appendChild(frame);
   };
   useEffect(() => {
     if (autoprint && data && !blocked && !printed.current) {

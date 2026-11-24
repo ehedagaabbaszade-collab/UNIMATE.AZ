@@ -249,7 +249,7 @@ export function renderCvBuilderBody(cv: CvData, o: CvRenderOptions): string {
   // Heading + FIRST entry stay together (break-after:avoid alone leaves orphan headings in Chrome); later entries flow.
   const firstBlock = (html: string): number => {
     let depth = 0;
-    for (const m of html.matchAll(/<(\/?)([a-z][a-z0-9]*)[^>]*>/gi)) {
+    for (const m of html.matchAll(/<(\/?)([a-z][a-z0-9]*)b[^>]*>/gi)) {
       if (m.index === 0 && m[1]) return 0;
       if (/^(img|br|hr|input)$/i.test(m[2]!)) {
         if (depth === 0) return m.index + m[0].length;

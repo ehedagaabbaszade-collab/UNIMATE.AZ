@@ -1,338 +1,72 @@
 import {
-  CEFR_LEVELS,
   CV_LANGUAGES,
-  CV_PRINT_LABEL_KEYS,
   CV_SECTION_ITEMS_MAX,
+  CvCertificateSchema,
+  CvCourseSchema,
+  CvEducationSchema,
+  CvExperienceSchema,
+  CvHobbySchema,
+  CvHonourSchema,
+  CvActivitySchema,
+  CvLanguageSchema,
+  CvProjectSchema,
+  CvPublicationSchema,
+  CvReferenceSchema,
+  CvVolunteerSchema,
   cvCompleteness,
-  cvMissingRequired,
-  renderCvHtml,
+  cvTemplateMeta,
   type CvData,
-  type CvDescribeKind,
-  type CvDocumentInput,
+  type CvDesign,
   type CvFeedback,
   type CvLanguage,
-  type CvPrintLabels,
+  type CvTemplate,
 } from "@unimate/core";
-import { t as translate, type MessageKey } from "@unimate/i18n";
 import { useI18n } from "@unimate/i18n/react";
-import { Asset } from "expo-asset";
-import * as Crypto from "expo-crypto";
-import { File, Paths } from "expo-file-system";
-import * as ImagePicker from "expo-image-picker";
-import * as Print from "expo-print";
 import { useRouter } from "expo-router";
-import * as Sharing from "expo-sharing";
 import { useEffect, useRef, useState } from "react";
-import { Image, View } from "react-native";
+import { AppState, View } from "react-native";
 import { EdgeNotice } from "../../components/EdgeNotice";
 import { Icon } from "../../components/Icon";
 import { PickerField } from "../../components/PickerField";
 import { ProgressRing } from "../../components/ProgressRing";
-import { AppText, Badge, Button, Card, Dialog, EmptyState, ErrorState, Input, Screen, ScreenHeader, Segmented, Skeleton, useToast, PressableScale } from "../../components/ui";
+import { AppText, Badge, Button, Card, Dialog, EmptyState, ErrorState, Input, PressableScale, Screen, ScreenHeader, Segmented, Skeleton, useOnline, useToast } from "../../components/ui";
 import type { EdgeError } from "../../lib/edge";
-import { cvDescribe, cvFeedback } from "../../lib/edge-client";
+import { cvFeedback } from "../../lib/edge-client";
+import { kv } from "../../lib/storage";
 import { useAsync } from "../../lib/use-async";
-import { useTheme } from "../../theme/ThemeProvider";
 import { useUser } from "../../state/session";
-import { TemplatePicker } from "./TemplatePicker";
-import { createCv, deleteCv, getCv, myTracking, saveCv } from "./api";
+import { useTheme } from "../../theme/ThemeProvider";
+import { deleteCv, duplicateCv, getCv, myTracking, saveCvGuarded } from "./api";
+import { CvCustomise } from "./CvCustomise";
+import { ACTIVITY, AI, AiWrite, CERT, COURSE, EDU, EXP, Entries, HOBBY, HONOUR, LANG, PROJ, PUBLICATION, PhotoField, Proposal, REFERENCE, SKILL, Socials, VOLUNTEER, type Obj } from "./CvEntries";
+import { buildCvHtml, exportCvPdf, previewCv } from "./cv-export";
+import { CvWebPreview } from "./CvWebPreview";
+import {
+  IMPORT_FIELDS,
+  draftKey,
+  historyInit,
+  historyPush,
+  historyRedo,
+  historyUndo,
+  mergeEducation,
+  mergeImport,
+  orphanPaths,
+  parseDraft,
+  serializeDraft,
+  toggleIn,
+  type CvDocState,
+  type History,
+  type ImportField,
+} from "./cv-helpers";
+import { TemplateGallery } from "./TemplatePicker";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- CV JSON is schema-less in the editor
-type Obj = Record<string, any>;
-type Kind = "text" | "csv" | "lines" | "bool" | "cefr";
-interface FieldDef {
-  key: string;
-  label: MessageKey;
-  kind?: Kind;
-  multiline?: boolean;
-  /** Hidden when this returns true (CEFR pickers for a native language). */
-  hideIf?: (it: Obj) => boolean;
-}
-/** Which description field gets the "write with AI" button, the non-PII context sent to the model, and the field's length cap. */
-interface AiDef {
-  kind: CvDescribeKind;
-  field: string;
-  max: number;
-  ctx: (it: Obj) => Record<string, string>;
-}
-const pick = (o: Obj, ...keys: string[]): Record<string, string> =>
-  Object.fromEntries(keys.map((k) => [k, (Array.isArray(o[k]) ? o[k].join(", ") : String(o[k] ?? "")).slice(0, 200)] as const).filter(([, v]) => v.trim()));
-const SOCIAL_CHIPS = ["LinkedIn", "Instagram", "WhatsApp", "GitHub", "Telegram"];
-const CEFR_OPTIONS = ["", ...CEFR_LEVELS].map((l) => ({ id: l, label: l || "-" }));
+const AUTOSAVE_MS = 1500;
+const COALESCE_MS = 1200;
+type Status = "saved" | "saving" | "unsaved" | "offline" | "error" | "conflict";
+type ListKey = "education" | "experience" | "languages" | "projects" | "certificates" | "hobbies" | "honours" | "activities" | "volunteer" | "publications" | "courses" | "references";
+const snapshot = (d: CvDocState): string => JSON.stringify(d);
 
-/** "Write with AI" for one description field. Sends only the allow-listed entry context, never personal identifiers. */
-function AiWrite({ kind, language, context, current, max, asLines, onText }: { kind: CvDescribeKind; language: CvLanguage; context: Record<string, string>; current: string; max: number; asLines?: boolean; onText: (v: string) => void }) {
-  const { t } = useI18n();
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState("");
-  const run = async () => {
-    // the server refuses to write from nothing (no invented facts); say so instead of a generic failure
-    if (!Object.values(context).some((v) => v.trim()) && !current.trim()) return setMsg(t("career.cv.ai.needContext"));
-    setBusy(true);
-    setMsg("");
-    const r = await cvDescribe({ kind, language, context, ...(current.trim() ? { current: current.slice(0, 1500) } : {}) });
-    setBusy(false);
-    if (!r.ok) return setMsg(t(r.error.kind === "provider_not_configured" ? "career.cv.ai.notConfigured" : "career.cv.ai.failed"));
-    onText(asLines ? lines(r.data.text.replace(/^\s*[-*\u2022]\s*/gm, "")).slice(0, 8).map((l) => l.slice(0, 300)).join("\n") : r.data.text.slice(0, max));
-  };
-  return (
-    <View style={{ gap: 4, alignItems: "flex-start" }}>
-      <Button small variant="secondary" title={busy ? t("career.cv.ai.working") : t(current.trim() ? "career.cv.ai.improve" : "career.cv.ai.write")} loading={busy} icon={<Icon name="ai-chat" size="sm" />} onPress={() => void run()} />
-      {msg ? (
-        <AppText variant="caption" muted>
-          {msg}
-        </AppText>
-      ) : null}
-    </View>
-  );
-}
-const csv = (s: string) => s.split(",").map((x) => x.trim()).filter(Boolean);
-const lines = (s: string) => s.split("\n").map((x) => x.trim()).filter(Boolean);
-
-/** Keeps its own text while typing so separators (commas, newlines) are not eaten by the parse/join round trip. */
-function ListField({ label, value, parse, join, multiline, onChange }: { label: string; value: string[]; parse: (s: string) => string[]; join: string; multiline?: boolean; onChange: (v: string[]) => void }) {
-  const [text, setText] = useState(value.join(join));
-  return (
-    <Input
-      label={label}
-      value={text}
-      onChangeText={(s) => {
-        setText(s);
-        onChange(parse(s));
-      }}
-      multiline={multiline}
-      autoCapitalize="none"
-      style={multiline ? { minHeight: 80, textAlignVertical: "top" } : undefined}
-    />
-  );
-}
-
-function Entries({ title, items, fields, make, onChange, rev, ai, language }: { title: string; items: Obj[]; fields: FieldDef[]; make: () => Obj; onChange: (next: Obj[]) => void; rev: number; ai?: AiDef; language: CvLanguage }) {
-  const { t } = useI18n();
-  const { theme } = useTheme();
-  const [aiRev, setAiRev] = useState(0); // remounts text fields after AI replaced their content
-  const set = (i: number, k: string, v: unknown) => onChange(items.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
-  const aiButton = (it: Obj, i: number, f: FieldDef) =>
-    ai && ai.field === f.key ? (
-      <AiWrite
-        key={`ai-${f.key}`}
-        kind={ai.kind}
-        language={language}
-        context={ai.ctx(it)}
-        current={f.kind === "lines" ? (it[f.key] ?? []).join("\n") : String(it[f.key] ?? "")}
-        max={ai.max}
-        asLines={f.kind === "lines"}
-        onText={(v) => {
-          set(i, f.key, f.kind === "lines" ? lines(v) : v);
-          setAiRev((r) => r + 1);
-        }}
-      />
-    ) : null;
-  return (
-    <Card>
-      <AppText variant="heading">{title}</AppText>
-      {items.map((it, i) => (
-        <View key={`${rev}-${i}`} style={{ gap: 8, paddingTop: 8, borderTopWidth: i ? 1 : 0, borderTopColor: theme.border }}>
-          {fields.flatMap((f) => [
-            f.hideIf?.(it) ? null : f.kind === "cefr" ? (
-              <PickerField key={f.key} label={t(f.label)} sections={[{ data: CEFR_OPTIONS }]} value={String(it[f.key] ?? "")} onChange={(v) => set(i, f.key, v)} />
-            ) : f.kind === "bool" ? (
-              <PressableScale key={f.key} onPress={() => set(i, f.key, !it[f.key])} accessibilityRole="checkbox" accessibilityState={{ checked: !!it[f.key] }} accessibilityLabel={t(f.label)} style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 44 }}>
-                <Icon name={it[f.key] ? "check" : "add"} size="sm" color={it[f.key] ? theme.success : theme.textMuted} />
-                <AppText>{t(f.label)}</AppText>
-              </PressableScale>
-            ) : f.kind === "csv" || f.kind === "lines" ? (
-              <ListField key={`${rev}-${aiRev}-${i}-${f.key}`} label={t(f.label)} value={it[f.key] ?? []} parse={f.kind === "csv" ? csv : lines} join={f.kind === "csv" ? ", " : "\n"} multiline={f.kind === "lines"} onChange={(v) => set(i, f.key, v)} />
-            ) : (
-              <Input key={`${aiRev}-${f.key}`} label={t(f.label)} value={String(it[f.key] ?? "")} onChangeText={(v) => set(i, f.key, v)} multiline={f.multiline} style={f.multiline ? { minHeight: 70, textAlignVertical: "top" } : undefined} />
-            ),
-            aiButton(it, i, f),
-          ])}
-          <Button small variant="danger" title={t("career.cv.removeEntry")} onPress={() => onChange(items.filter((_, j) => j !== i))} />
-        </View>
-      ))}
-      <Button small variant="secondary" title={t("career.cv.add")} disabled={items.length >= CV_SECTION_ITEMS_MAX} icon={<Icon name="add" size="sm" />} onPress={() => onChange([...items, make()])} />
-    </Card>
-  );
-}
-
-const EDU: FieldDef[] = [
-  { key: "institution", label: "career.cv.field.institution" },
-  { key: "degree", label: "career.cv.field.degree" },
-  { key: "field", label: "career.cv.field.fieldOfStudy" },
-  { key: "start", label: "career.cv.field.start" },
-  { key: "end", label: "career.cv.field.end" },
-  { key: "gpa", label: "career.cv.field.gpa" },
-  { key: "description", label: "career.cv.field.description", multiline: true },
-  { key: "city", label: "career.cv.field.city" },
-  { key: "website", label: "career.cv.field.website" },
-  { key: "eqfLevel", label: "career.cv.field.eqfLevel" },
-];
-const EXP: FieldDef[] = [
-  { key: "role", label: "career.cv.field.role" },
-  { key: "company", label: "career.cv.field.company" },
-  { key: "location", label: "career.cv.field.location" },
-  { key: "start", label: "career.cv.field.start" },
-  { key: "end", label: "career.cv.field.end" },
-  { key: "current", label: "career.cv.field.current", kind: "bool" },
-  { key: "bullets", label: "career.cv.field.bullets", kind: "lines" },
-];
-const LANG: FieldDef[] = [
-  { key: "name", label: "career.cv.field.langName" },
-  { key: "native", label: "career.cv.field.native", kind: "bool" },
-  { key: "level", label: "career.cv.field.langLevel", hideIf: (it) => !!it.native },
-  ...(["listening", "reading", "spokenProduction", "spokenInteraction", "writing"] as const).map((k): FieldDef => ({ key: k, label: `career.cv.field.${k}`, kind: "cefr", hideIf: (it) => !!it.native })),
-];
-const PROJ: FieldDef[] = [
-  { key: "name", label: "career.cv.field.projectName" },
-  { key: "link", label: "career.cv.field.link" },
-  { key: "description", label: "career.cv.field.description", multiline: true },
-  { key: "tech", label: "career.cv.field.tech", kind: "csv" },
-];
-const CERT: FieldDef[] = [
-  { key: "name", label: "career.cv.field.certName" },
-  { key: "issuer", label: "career.cv.field.issuer" },
-  { key: "year", label: "career.cv.field.year" },
-  { key: "date", label: "career.cv.field.date" },
-  { key: "mode", label: "career.cv.field.mode" },
-  { key: "link", label: "career.cv.field.link" },
-  { key: "description", label: "career.cv.field.description", multiline: true },
-];
-const HOBBY: FieldDef[] = [
-  { key: "title", label: "career.cv.field.title" },
-  { key: "description", label: "career.cv.field.description", multiline: true },
-];
-const HONOUR: FieldDef[] = [
-  { key: "title", label: "career.cv.field.title" },
-  { key: "issuer", label: "career.cv.field.issuer" },
-  { key: "date", label: "career.cv.field.date" },
-  { key: "description", label: "career.cv.field.description", multiline: true },
-];
-const ACTIVITY: FieldDef[] = [
-  { key: "title", label: "career.cv.field.title" },
-  { key: "place", label: "career.cv.field.place" },
-  { key: "date", label: "career.cv.field.date" },
-  { key: "description", label: "career.cv.field.description", multiline: true },
-];
-const AI: Record<string, AiDef> = {
-  education: { kind: "education", field: "description", max: 600, ctx: (o) => pick(o, "institution", "degree", "field") },
-  experience: { kind: "experience", field: "bullets", max: 300, ctx: (o) => ({ ...pick(o, "role", "company", "location"), ...(o.start || o.end ? { dates: `${o.start ?? ""} - ${o.current ? "" : (o.end ?? "")}`.slice(0, 200) } : {}) }) },
-  projects: { kind: "project", field: "description", max: 600, ctx: (o) => pick(o, "name", "tech") },
-  certificates: { kind: "certificate", field: "description", max: 1000, ctx: (o) => pick(o, "name", "issuer", "date", "mode") },
-  hobbies: { kind: "hobby", field: "description", max: 1000, ctx: (o) => pick(o, "title") },
-  honours: { kind: "honour", field: "description", max: 1000, ctx: (o) => pick(o, "title", "issuer", "date") },
-  activities: { kind: "activity", field: "description", max: 1000, ctx: (o) => pick(o, "title", "place", "date") },
-};
-
-let logoCache: string | undefined;
-/** The bundled official full logo as a data URI (the print HTML accepts only https or data:image). */
-async function logoDataUri(): Promise<string | undefined> {
-  if (logoCache) return logoCache;
-  try {
-    const a = await Asset.fromModule(require("../../../assets/full-logo.png") as number).downloadAsync();
-    if (!a.localUri) return undefined;
-    return (logoCache = `data:image/png;base64,${await new File(a.localUri).base64()}`);
-  } catch {
-    return undefined;
-  }
-}
-/** Photo as a data URI for the PDF renderer; falls back to the https URL when the download fails. */
-async function photoSrc(url: string): Promise<string> {
-  const tmp = new File(Paths.cache, `cvphoto-${Crypto.randomUUID()}.jpg`);
-  try {
-    const f = await File.downloadFileAsync(url, tmp);
-    return `data:image/jpeg;base64,${await f.base64()}`;
-  } catch {
-    return url;
-  } finally {
-    try {
-      if (tmp.exists) tmp.delete();
-    } catch {
-      /* temp file; harmless */
-    }
-  }
-}
-
-const SIGNED_URL_TTL_S = 600;
-function PhotoField({ url, path, uid, onChange }: { url: string; path: string; uid: string; onChange: (p: { photoUrl: string; photoPath: string }) => void }) {
-  const { t } = useI18n();
-  const { theme } = useTheme();
-  const { toast } = useToast();
-  const { supabase: sb } = useUser();
-  const [busy, setBusy] = useState(false);
-  const [preview, setPreview] = useState("");
-  useEffect(() => {
-    let live = true;
-    if (!path) setPreview("");
-    else void sb.storage.from("cv-photos").createSignedUrl(path, SIGNED_URL_TTL_S).then((r) => live && setPreview(r.data?.signedUrl ?? ""));
-    return () => {
-      live = false;
-    };
-  }, [path, sb]);
-  const shown = path ? preview : url;
-  const pickPhoto = async () => {
-    setBusy(true);
-    try {
-      const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], allowsEditing: true, aspect: [1, 1], quality: 0.7 });
-      if (res.canceled || !res.assets[0]) return;
-      const next = `${uid}/${Crypto.randomUUID()}.jpg`;
-      const bytes = await new File(res.assets[0].uri).arrayBuffer();
-      const up = await sb.storage.from("cv-photos").upload(next, bytes, { contentType: "image/jpeg", upsert: false });
-      if (up.error) throw new Error(up.error.message);
-      onChange({ photoUrl: "", photoPath: next });
-    } catch {
-      toast(t("common.genericError"), "error");
-    } finally {
-      setBusy(false);
-    }
-  };
-  const removePhoto = () => {
-    onChange({ photoUrl: "", photoPath: "" });
-  };
-  return (
-    <View style={{ gap: 8 }}>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 12 }}>
-        {shown ? <Image source={{ uri: shown }} accessibilityIgnoresInvertColors style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: theme.border }} /> : null}
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, flexShrink: 1, minWidth: 0 }}>
-          <Button small variant="secondary" title={t("career.cv.photo.add")} loading={busy} icon={<Icon name="add" size="sm" />} onPress={() => void pickPhoto()} />
-          {shown || path ? <Button small variant="danger" title={t("career.cv.photo.remove")} onPress={() => void removePhoto()} /> : null}
-        </View>
-      </View>
-      <AppText variant="caption" muted>
-        {t("career.cv.photo.hint")}
-      </AppText>
-    </View>
-  );
-}
-
-type Social = { platform: string; value: string };
-function Socials({ items, onChange }: { items: Social[]; onChange: (next: Social[]) => void }) {
-  const { t } = useI18n();
-  const { theme } = useTheme();
-  const set = (i: number, k: keyof Social, v: string) => onChange(items.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
-  return (
-    <View style={{ gap: 8 }}>
-      <AppText variant="label">{t("career.cv.field.socials")}</AppText>
-      {items.map((it, i) => (
-        <View key={i} style={{ gap: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: theme.border }}>
-          <Input label={t("career.cv.field.platform")} value={it.platform} onChangeText={(v) => set(i, "platform", v)} maxLength={40} />
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-            {SOCIAL_CHIPS.map((c) => (
-              <PressableScale key={c} onPress={() => set(i, "platform", c)} accessibilityRole="button" accessibilityLabel={c} style={{ minHeight: 44, justifyContent: "center" }}>
-                <Badge tone={it.platform === c ? "info" : "neutral"}>{c}</Badge>
-              </PressableScale>
-            ))}
-          </View>
-          <Input label={t("career.cv.field.socialValue")} value={it.value} onChangeText={(v) => set(i, "value", v)} autoCapitalize="none" maxLength={200} />
-          <Button small variant="danger" title={t("career.cv.removeEntry")} onPress={() => onChange(items.filter((_, j) => j !== i))} />
-        </View>
-      ))}
-      <Button small variant="secondary" title={t("career.cv.add")} disabled={items.length >= 10} icon={<Icon name="add" size="sm" />} onPress={() => onChange([...items, { platform: "", value: "" }])} />
-    </View>
-  );
-}
-
-function FeedbackPanel({ cvId, language, ensureSaved }: { cvId: string; language: CvLanguage; ensureSaved: () => Promise<boolean> }) {
+function FeedbackPanel({ cvId, language, ensureSaved, onApplySummary }: { cvId: string; language: CvLanguage; ensureSaved: () => Promise<boolean>; onApplySummary: (v: string) => void }) {
   const { t } = useI18n();
   const { supabase: sb } = useUser();
   const tracked = useAsync(() => myTracking(sb), [sb]);
@@ -341,10 +75,12 @@ function FeedbackPanel({ cvId, language, ensureSaved }: { cvId: string; language
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<EdgeError | null>(null);
   const [out, setOut] = useState<{ feedback: CvFeedback; cached: boolean } | null>(null);
+  const [proposal, setProposal] = useState<string | null>(null);
   const listings = (tracked.data ?? []).filter((i) => i.listingState === "published" && i.opportunityId);
   const run = async () => {
     setBusy(true);
     setError(null);
+    setProposal(null);
     if (!(await ensureSaved())) return setBusy(false);
     const r = await cvFeedback(cvId, { ...(target ? { opportunityId: target } : {}), outputLanguage: lang });
     setBusy(false);
@@ -404,7 +140,23 @@ function FeedbackPanel({ cvId, language, ensureSaved }: { cvId: string; language
           {out.feedback.rewrittenSummary ? (
             <>
               <AppText variant="label">{t("career.ai.summary")}</AppText>
-              <AppText muted>{out.feedback.rewrittenSummary}</AppText>
+              {proposal === null ? (
+                <>
+                  <AppText muted>{out.feedback.rewrittenSummary}</AppText>
+                  <View style={{ alignItems: "flex-start" }}>
+                    <Button small variant="secondary" title={t("cvMobile.useSummary")} onPress={() => setProposal(out.feedback.rewrittenSummary)} />
+                  </View>
+                </>
+              ) : (
+                <Proposal
+                  text={proposal}
+                  onAccept={() => {
+                    onApplySummary(proposal.slice(0, 1500));
+                    setProposal(null);
+                  }}
+                  onDiscard={() => setProposal(null)}
+                />
+              )}
             </>
           ) : null}
           <AppText variant="caption" muted>
@@ -416,36 +168,209 @@ function FeedbackPanel({ cvId, language, ensureSaved }: { cvId: string; language
   );
 }
 
+/** Profile import: only the user's own account data; ticked fields; fills empty fields unless overwrite is ticked; the profile is never modified. */
+function ImportDialog({ open, onClose, onApply }: { open: boolean; onClose: () => void; onApply: (source: Partial<Record<ImportField, string>>, picked: ImportField[], overwrite: boolean, edu: { institution: string; field: string } | null) => void }) {
+  const { t } = useI18n();
+  const { theme } = useTheme();
+  const { user, profile, supabase: sb } = useUser();
+  // Own profile only: university name and, when set, the major with its faculty (same reads as the profile and BOSS.AZ screens).
+  const eduInfo = useAsync(async () => {
+    const uni = profile?.university_id ? (await sb.from("universities").select("name").eq("id", profile.university_id).maybeSingle<{ name: string }>()).data?.name ?? "" : "";
+    const major = profile?.major_id ? (await sb.from("majors").select("name, faculties(name)").eq("id", profile.major_id).maybeSingle<{ name: string; faculties: { name: string } | { name: string }[] | null }>()).data : null;
+    const fac = Array.isArray(major?.faculties) ? major?.faculties[0]?.name : major?.faculties?.name;
+    return { institution: uni, field: [major?.name, fac].filter(Boolean).join(", ") };
+  }, [profile?.university_id, profile?.major_id, sb], open);
+  const edu = eduInfo.data?.institution ? eduInfo.data : null;
+  const [pickEdu, setPickEdu] = useState(true);
+  const source: Partial<Record<ImportField, string>> = { fullName: profile?.display_name ?? "", email: user.email ?? "", phone: user.phone ?? "" };
+  const available = IMPORT_FIELDS.filter((k) => (source[k] ?? "").trim());
+  const [picked, setPicked] = useState<ImportField[]>([...IMPORT_FIELDS]);
+  const [overwrite, setOverwrite] = useState(false);
+  const box = (on: boolean, label: string, onPress: () => void) => (
+    <PressableScale accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel={label} onPress={onPress} style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 44 }}>
+      <Icon name={on ? "check" : "add"} size="sm" color={on ? theme.success : theme.textMuted} />
+      <AppText style={{ flex: 1 }}>{label}</AppText>
+    </PressableScale>
+  );
+  return (
+    <Dialog
+      open={open}
+      title={t("cvMobile.importTitle")}
+      onClose={onClose}
+      actions={
+        <>
+          <Button small title={t("cvMobile.importApply")} disabled={!available.some((k) => picked.includes(k)) && !(edu && pickEdu)} onPress={() => onApply(source, picked, overwrite, edu && pickEdu ? edu : null)} />
+          <Button small variant="secondary" title={t("common.cancel")} onPress={onClose} />
+        </>
+      }
+    >
+      <AppText variant="caption" muted>
+        {t("cvMobile.importBody")}
+      </AppText>
+      {available.length === 0 && !edu ? <AppText>{t("cvMobile.importNothing")}</AppText> : null}
+      {available.map((k) => box(picked.includes(k), `${t(`career.cv.field.${k}`)}: ${source[k]}`, () => setPicked((p) => toggleIn(p, k))))}
+      {edu ? box(pickEdu, `${t("career.cv.section.education")}: ${[edu.institution, edu.field].filter(Boolean).join(" - ")}`, () => setPickEdu((v) => !v)) : null}
+      {box(overwrite, t("cvMobile.importOverwrite"), () => setOverwrite((v) => !v))}
+    </Dialog>
+  );
+}
+
 export function CvEditorScreen({ id }: { id: string }) {
   const { t } = useI18n();
   const { theme } = useTheme();
   const router = useRouter();
   const { toast } = useToast();
+  const online = useOnline();
   const { user, supabase: sb } = useUser();
   const doc = useAsync(() => getCv(sb, id), [sb, id]);
-  const [draft, setDraft] = useState<CvDocumentInput | null>(null);
-  const [dirty, setDirty] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [exporting, setExporting] = useState(false);
+  const [hist, setHist] = useState<History<CvDocState> | null>(null);
+  const [status, setStatus] = useState<Status>("saved");
+  const [statusNote, setStatusNote] = useState("");
+  const [mode, setMode] = useState<"edit" | "preview">("edit");
   const [rev, setRev] = useState(0);
-  const [sumRev, setSumRev] = useState(0);
+  const [gallery, setGallery] = useState(false);
+  const [customise, setCustomise] = useState(false);
+  const [exportMenu, setExportMenu] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [conflictOpen, setConflictOpen] = useState(false);
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  // cv-photos objects: replaced/removed ones are deleted only after a successful save; never-saved uploads are deleted on leave.
+
+  // Live copies for timers, AppState and unmount (closures would be stale there).
+  const cur = hist?.present ?? null;
+  const curRef = useRef<CvDocState | null>(null);
+  curRef.current = cur;
+  const baseUpdated = useRef("");
+  const savedJson = useRef("");
+  const inflight = useRef(false);
+  const queued = useRef(false);
+  const conflict = useRef(false);
+  const localDraft = useRef(false);
+  const needInit = useRef(true);
+  const lastGroup = useRef<{ g: string; at: number } | null>(null);
+  // cv-photos objects: every photo path seen in this session. Nothing is deleted while the editor is open (undo may bring one back);
+  // on close, anything neither the saved CV nor a kept offline draft references is removed.
   const savedPhoto = useRef("");
-  const uploadedPhotos = useRef(new Set<string>());
+  const known = useRef(new Set<string>());
   const sbRef = useRef(sb);
+  const dKey = draftKey(user.id, id);
+
   useEffect(() => {
-    const up = uploadedPhotos.current;
+    if (!doc.data || !needInit.current) return;
+    needInit.current = false;
+    const d = doc.data;
+    const server: CvDocState = { title: d.title, language: d.language, template: d.template, design: d.design, data: d.data };
+    baseUpdated.current = d.updatedAt;
+    savedJson.current = snapshot(server);
+    savedPhoto.current = d.data.personal.photoPath;
+    conflict.current = false;
+    setConflictOpen(false);
+    if (d.data.personal.photoPath) known.current.add(d.data.personal.photoPath);
+    void kv.getItem(dKey).then((raw) => {
+      const draft = parseDraft(raw, d.updatedAt);
+      if (draft && snapshot(draft) !== savedJson.current) {
+        if (draft.data.personal.photoPath) known.current.add(draft.data.personal.photoPath);
+        localDraft.current = true;
+        setHist(historyInit(draft));
+        setStatus("unsaved");
+        toast(t("cvMobile.draftRestored"));
+      } else {
+        void kv.removeItem(dKey);
+        setHist(historyInit(server));
+        setStatus("saved");
+      }
+      setRev((r) => r + 1);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs when a (re)load delivers a new document
+  }, [doc.data]);
+
+  /** Writes the current state; optimistic concurrency on updated_at. Returns true when nothing is left unsaved. */
+  const flush = async (): Promise<boolean> => {
+    const c = curRef.current;
+    if (!c) return true;
+    if (snapshot(c) === savedJson.current) return true;
+    if (conflict.current) return false;
+    if (inflight.current) {
+      queued.current = true;
+      return false;
+    }
+    inflight.current = true;
+    setStatus("saving");
+    localDraft.current = true;
+    void kv.setItem(dKey, serializeDraft(baseUpdated.current, c)); // keep the draft on the device until the server has it
+    const clean: CvDocState = { ...c, data: { ...c.data, skills: c.data.skills.filter((s) => s.name.trim()) } }; // a blank skill row is not a skill yet
+    const r = await saveCvGuarded(sb, id, { title: c.title, language: c.language, template: c.template, data: clean.data }, c.design, baseUpdated.current);
+    inflight.current = false;
+    let ok = false;
+    if (r.kind === "saved") {
+      baseUpdated.current = r.updatedAt;
+      savedJson.current = snapshot(c);
+      savedPhoto.current = c.data.personal.photoPath;
+      ok = true;
+      if (snapshot(curRef.current ?? c) === savedJson.current) {
+        localDraft.current = false;
+        void kv.removeItem(dKey);
+        setStatus("saved");
+      } else setStatus("unsaved");
+    } else if (r.kind === "conflict") {
+      conflict.current = true;
+      setStatus("conflict");
+      setConflictOpen(true);
+    } else if (r.kind === "offline") setStatus("offline");
+    else {
+      setStatus("error");
+      setStatusNote(r.kind === "invalid" ? t(r.error === "too_large" ? "career.cv.tooLarge" : "career.cv.invalid") : t("cvMobile.saveError"));
+    }
+    if (queued.current && r.kind === "saved") {
+      queued.current = false;
+      return flush();
+    }
+    queued.current = false;
+    return ok && snapshot(curRef.current ?? c) === savedJson.current;
+  };
+  const flushRef = useRef(flush);
+  flushRef.current = flush;
+
+  const dirty = cur !== null && snapshot(cur) !== savedJson.current;
+  // Autosave: debounce while editing; retry when connectivity returns.
+  useEffect(() => {
+    if (!dirty || conflict.current || status === "saving") return;
+    if (status === "saved") setStatus("unsaved");
+    const timer = setTimeout(() => void flushRef.current(), AUTOSAVE_MS);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- status only gates; edits and connectivity re-arm the timer
+  }, [cur, online]);
+  // Save when the app goes to the background.
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (s) => {
+      if (s !== "active") void flushRef.current();
+    });
+    return () => sub.remove();
+  }, []);
+  // Save on leave, then remove photo uploads nothing references.
+  useEffect(() => {
     const client = sbRef.current;
+    const knownPhotos = known.current;
     return () => {
-      const orphans = [...up].filter((x) => x !== savedPhoto.current);
-      if (orphans.length) void client.storage.from("cv-photos").remove(orphans);
+      void flushRef.current().finally(() => {
+        const draftPhoto = localDraft.current ? curRef.current?.data.personal.photoPath : undefined;
+        const orphans = orphanPaths(knownPhotos, [savedPhoto.current, draftPhoto]);
+        if (orphans.length) void client.storage.from("cv-photos").remove(orphans);
+      });
     };
   }, []);
+
+  // Live preview: re-render the shared renderer's HTML ~300ms after the last change.
   useEffect(() => {
-    if (doc.data && !draft) savedPhoto.current = doc.data.data.personal.photoPath;
-    if (doc.data && !draft) setDraft({ title: doc.data.title, language: doc.data.language, template: doc.data.template, data: doc.data.data });
-  }, [doc.data, draft]);
+    if (mode !== "preview" || !cur) return;
+    let live = true;
+    const timer = setTimeout(() => void buildCvHtml(sb, cur).then((h) => live && setPreviewHtml(h)).catch(() => undefined), 300);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
+  }, [mode, cur, sb]);
 
   const header = <ScreenHeader title={t("career.tabs.cv")} onBack={() => router.back()} />;
   if (doc.loading && !doc.data) {
@@ -464,68 +389,77 @@ export function CvEditorScreen({ id }: { id: string }) {
       </Screen>
     );
   }
-  if (!doc.data || !draft) {
+  if (!doc.data || !hist || !cur) {
     return (
       <Screen>
         {header}
-        <EmptyState title={t("career.notFound")} />
+        {doc.data ? <Skeleton height={220} /> : <EmptyState title={t("career.notFound")} />}
       </Screen>
     );
   }
 
-  const cv = draft.data;
+  const cv = cur.data;
   const score = cvCompleteness(cv);
-  const edit = (fn: (d: CvDocumentInput) => CvDocumentInput) => {
-    setDraft((d) => (d ? fn(d) : d));
-    setDirty(true);
+  /** Applies an edit. Edits with the same group inside COALESCE_MS share one undo step (typing); others each get their own. */
+  const edit = (fn: (d: CvDocState) => CvDocState, group?: string) => {
+    const now = Date.now();
+    const same = !!group && lastGroup.current?.g === group && now - lastGroup.current.at < COALESCE_MS;
+    lastGroup.current = group ? { g: group, at: now } : null;
+    setHist((h) => {
+      if (!h) return h;
+      const next = fn(h.present);
+      return same ? { ...h, present: next } : historyPush(h, next);
+    });
   };
-  const setData = <K extends keyof CvData>(k: K, v: CvData[K]) => edit((d) => ({ ...d, data: { ...d.data, [k]: v } }));
-  const setPersonal = <K extends keyof CvData["personal"]>(k: K, v: CvData["personal"][K]) => setData("personal", { ...cv.personal, [k]: v });
-  const sectionList = <K extends "education" | "experience" | "languages" | "projects" | "certificates" | "hobbies" | "honours" | "activities">(k: K) => (next: Obj[]) => {
-    if (next.length < cv[k].length) setRev((r) => r + 1);
-    setData(k, next as CvData[K]);
+  const setData = <K extends keyof CvData>(k: K, v: CvData[K], group?: string) => edit((d) => ({ ...d, data: { ...d.data, [k]: v } }), group);
+  const setPersonal = <K extends keyof CvData["personal"]>(k: K, v: CvData["personal"][K]) => setData("personal", { ...cv.personal, [k]: v }, `personal.${k}`);
+  const list = (k: ListKey) => (next: Obj[], group?: string) => {
+    if (next.length !== cv[k].length) setRev((r) => r + 1);
+    setData(k, next as CvData[ListKey] as never, group);
   };
-
-  const save = async (): Promise<boolean> => {
-    if (!dirty) return true;
-    setSaving(true);
-    const r = await saveCv(sb, id, draft);
-    setSaving(false);
-    if (r.ok) {
-      setDirty(false);
-      toast(t("career.cv.saved"));
-      const cur = draft.data.personal.photoPath;
-      const stale = [savedPhoto.current, ...uploadedPhotos.current].filter((x) => x && x !== cur);
-      savedPhoto.current = cur;
-      uploadedPhotos.current.clear();
-      if (stale.length) void sbRef.current.storage.from("cv-photos").remove(stale); // best effort
-
-      return true;
-    }
-    toast(r.error === "too_large" ? t("career.cv.tooLarge") : r.error === "invalid" ? t("career.cv.invalid") : t("career.cv.saveFailed"), "error");
-    return false;
+  const jump = (fn: (h: History<CvDocState>) => History<CvDocState>) => {
+    lastGroup.current = null;
+    setHist((h) => (h ? fn(h) : h));
+    setRev((r) => r + 1); // text fields keep their own text; remount them with the restored state
   };
-  const exportPdf = async () => {
-    const missing = cvMissingRequired(cv);
-    if (missing.length) return toast(`${t("career.cv.required")}: ${missing.map((k) => t(`career.cv.field.${k}`)).join(", ")}`, "error");
-    setExporting(true);
+  const useTemplate = (tpl: CvTemplate) => {
+    edit((d) => ({ ...d, template: tpl })); // data and design are untouched
+    setGallery(false);
+  };
+  const setDesign = (design: CvDesign) => edit((d) => ({ ...d, design }), "design");
+  const exportAs = async (m: "designed" | "ats") => {
+    setExportMenu(false);
+    setBusy(true);
     try {
-      const labels = Object.fromEntries(CV_PRINT_LABEL_KEYS.map((k) => [k, translate(draft.language, `career.cv.sectionPrint.${k}` as MessageKey)])) as CvPrintLabels;
-      const signed = cv.personal.photoPath ? (await sb.storage.from("cv-photos").createSignedUrl(cv.personal.photoPath, SIGNED_URL_TTL_S)).data?.signedUrl : undefined;
-      const photoLink = signed ?? cv.personal.photoUrl;
-      const [logo, photo] = await Promise.all([logoDataUri(), photoLink ? photoSrc(photoLink) : Promise.resolve(undefined)]);
-      const html = renderCvHtml(cv, { template: draft.template, language: draft.language, title: draft.title, labels, assets: { logoSrc: logo, photoSrc: photo } });
-      const file = await Print.printToFileAsync({ html });
-      if (!(await Sharing.isAvailableAsync())) toast(t("career.cv.sharingUnavailable"), "error");
-      else await Sharing.shareAsync(file.uri, { mimeType: "application/pdf", UTI: "com.adobe.pdf" });
+      const r = await exportCvPdf(sb, cur, m);
+      if (r.kind === "missing") toast(`${t("career.cv.required")}: ${r.fields.map((k) => t(`career.cv.field.${k as "fullName"}`)).join(", ")}`, "error");
+      else if (r.kind === "unavailable") toast(t("career.cv.sharingUnavailable"), "error");
     } catch {
       toast(t("career.cv.exportFailed"), "error");
     } finally {
-      setExporting(false);
+      setBusy(false);
     }
   };
+  const openPreview = async () => {
+    setBusy(true);
+    try {
+      await previewCv(sb, cur);
+    } catch {
+      toast(t("career.cv.exportFailed"), "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+  const reloadLatest = () => {
+    void kv.removeItem(dKey);
+    localDraft.current = false;
+    needInit.current = true;
+    setConflictOpen(false);
+    doc.reload();
+  };
   const duplicate = async () => {
-    const res = await createCv(sb, user.id, { title: `${draft.title} (2)`.slice(0, 120), language: draft.language, template: draft.template, data: draft.data });
+    if (!(await flush())) return toast(t("career.cv.saveFailed"), "error");
+    const res = await duplicateCv(sb, user.id, id, "(2)");
     if (res.ok) {
       toast(t("career.cv.duplicated"), "success");
       router.replace(`/career/cv/${res.id}` as never);
@@ -535,114 +469,211 @@ export function CvEditorScreen({ id }: { id: string }) {
     setConfirmDelete(false);
     try {
       await deleteCv(sb, id);
+      localDraft.current = false;
+      curRef.current = null; // nothing left to save on leave
+      void kv.removeItem(dKey);
       router.back();
     } catch {
       toast(t("career.cv.saveFailed"), "error");
     }
   };
+  const statusText = status === "error" && statusNote ? statusNote : status === "conflict" ? t("cvMobile.conflictTitle") : t(status === "saved" ? "cvMobile.saved" : status === "saving" ? "cvMobile.saving" : status === "offline" ? "cvMobile.offline" : "cvMobile.unsaved");
+  const entries = (k: ListKey, fields: Parameters<typeof Entries>[0]["fields"], make: () => Obj) => (
+    <Entries key={k} group={k} title={t(`career.cv.section.${k}`)} items={cv[k] as Obj[]} fields={fields} rev={rev} language={cur.language} {...(AI[k] ? { ai: AI[k] } : {})} make={make} onChange={list(k)} />
+  );
+  const meta = cvTemplateMeta(cur.template);
 
   return (
     <Screen>
       {header}
       <Card>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
-          <ProgressRing fraction={score.score / 100} track={theme.border} from={theme.primary} to={theme.info} label={t("career.cv.score")}>
-            {`${score.score}%`}
-          </ProgressRing>
-          <View style={{ flex: 1, gap: 4 }}>
-            <AppText variant="heading">{t("career.cv.scoreValue", { n: score.score })}</AppText>
-            {score.missing.length ? <AppText variant="label">{t("career.cv.improve")}</AppText> : null}
-            {score.missing.filter((k) => k !== "hobbies" && k !== "honours" && k !== "activities").slice(0, 3).map((k) => (
-              <AppText key={k} variant="caption" muted>
-                {`• ${t(`career.cv.tip.${k}`)}`}
-              </AppText>
-            ))}
-          </View>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+          <Badge tone={status === "saved" ? "success" : status === "error" || status === "conflict" ? "danger" : "warning"}>{statusText}</Badge>
+          {status === "conflict" ? <Button small title={t("cvMobile.conflictReload")} onPress={reloadLatest} /> : null}
+          {dirty && status !== "conflict" ? <Button small variant="secondary" title={t("career.cv.save")} loading={status === "saving"} onPress={() => void flush()} /> : null}
         </View>
-      </Card>
-
-      <Card>
-        <Input label={t("career.cv.title")} value={draft.title} onChangeText={(v) => edit((d) => ({ ...d, title: v }))} maxLength={120} />
-        <Segmented label={t("career.cv.language")} value={draft.language} onChange={(v) => edit((d) => ({ ...d, language: v }))} options={CV_LANGUAGES.map((l) => ({ value: l, label: t(`career.lang.${l}`) }))} />
-        <TemplatePicker value={draft.template} onChange={(v) => edit((d) => ({ ...d, template: v }))} />
-      </Card>
-
-      <Card>
-        <AppText variant="heading">{t("career.cv.section.personal")}</AppText>
-        <PhotoField url={cv.personal.photoUrl} path={cv.personal.photoPath} uid={user.id} onChange={(p) => {
-            if (p.photoPath) uploadedPhotos.current.add(p.photoPath);
-            setData("personal", { ...cv.personal, ...p });
-          }} />
-        {(["fullName", "headline", "email", "phone", "city", "address", "idNumber", "birthDate", "nationality", "gender", "linkedin", "website"] as const).map((k) => (
-          <Input
-            key={k}
-            label={k === "fullName" || k === "email" || k === "phone" ? `${t(`career.cv.field.${k}`)} * (${t("career.cv.required")})` : t(`career.cv.field.${k}`)}
-            value={cv.personal[k]}
-            onChangeText={(v) => setPersonal(k, v)}
-            autoCapitalize={k === "email" || k === "linkedin" || k === "website" ? "none" : "words"}
-            keyboardType={k === "email" ? "email-address" : k === "phone" ? "phone-pad" : "default"}
-          />
-        ))}
-        <Socials items={cv.personal.socials} onChange={(v) => setPersonal("socials", v)} />
-      </Card>
-      <Card>
-        <AppText variant="heading">{t("career.cv.section.summary")}</AppText>
-        <Input key={`sum-${sumRev}`} label={t("career.cv.field.summary")} value={cv.summary} onChangeText={(v) => setData("summary", v)} multiline maxLength={1500} style={{ minHeight: 100, textAlignVertical: "top" }} />
-        <AiWrite
-          kind="summary"
-          language={draft.language}
-          context={{ ...(cv.personal.headline ? { title: cv.personal.headline.slice(0, 200) } : {}), ...(cv.skills.length ? { skills: cv.skills.map((s) => s.name).join(", ").slice(0, 200) } : {}) }}
-          current={cv.summary}
-          max={1500}
-          onText={(v) => {
-            setData("summary", v);
-            setSumRev((r) => r + 1);
-          }}
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+          <Button small variant="secondary" title={t("cvMobile.undo")} disabled={!hist.past.length} onPress={() => jump(historyUndo)} />
+          <Button small variant="secondary" title={t("cvMobile.redo")} disabled={!hist.future.length} onPress={() => jump(historyRedo)} />
+          <Button small variant="secondary" title={t("cvMobile.template")} onPress={() => setGallery(true)} />
+          <Button small variant="secondary" title={t("cvMobile.customise")} onPress={() => setCustomise(true)} />
+          <Button small title={t("cvMobile.export")} loading={busy} icon={<Icon name="download" size="sm" />} onPress={() => setExportMenu(true)} />
+        </View>
+        <Segmented
+          label={t("cvMobile.edit")}
+          value={mode}
+          onChange={setMode}
+          options={[
+            { value: "edit", label: t("cvMobile.edit") },
+            { value: "preview", label: t("cvMobile.preview") },
+          ]}
         />
       </Card>
-      <Entries title={t("career.cv.section.education")} items={cv.education} fields={EDU} rev={rev} language={draft.language} ai={AI.education} make={() => ({ institution: "", degree: "", field: "", start: "", end: "", gpa: "", description: "", city: "", website: "", eqfLevel: "" })} onChange={sectionList("education")} />
-      <Entries title={t("career.cv.section.experience")} items={cv.experience} fields={EXP} rev={rev} language={draft.language} ai={AI.experience} make={() => ({ company: "", role: "", location: "", start: "", end: "", current: false, bullets: [] })} onChange={sectionList("experience")} />
-      <Card>
-        <AppText variant="heading">{t("career.cv.section.skills")}</AppText>
-        <ListField label={t("career.cv.field.skills")} value={cv.skills.map((s) => s.name)} parse={csv} join=", " onChange={(v) => setData("skills", v.slice(0, CV_SECTION_ITEMS_MAX).map((s) => s.slice(0, 50)).map((name) => ({ ...cv.skills.find((x) => x.name === name), name })))} />
-      </Card>
-      <Entries title={t("career.cv.section.languages")} items={cv.languages} fields={LANG} rev={rev} language={draft.language} make={() => ({ name: "", level: "", native: false, listening: "", reading: "", spokenProduction: "", spokenInteraction: "", writing: "" })} onChange={sectionList("languages")} />
-      <Entries title={t("career.cv.section.projects")} items={cv.projects} fields={PROJ} rev={rev} language={draft.language} ai={AI.projects} make={() => ({ name: "", link: "", description: "", tech: [] })} onChange={sectionList("projects")} />
-      <Entries title={t("career.cv.section.certificates")} items={cv.certificates} fields={CERT} rev={rev} language={draft.language} ai={AI.certificates} make={() => ({ name: "", issuer: "", year: "", link: "", date: "", mode: "", description: "" })} onChange={sectionList("certificates")} />
-      <Entries title={t("career.cv.section.hobbies")} items={cv.hobbies} fields={HOBBY} rev={rev} language={draft.language} ai={AI.hobbies} make={() => ({ title: "", description: "" })} onChange={sectionList("hobbies")} />
-      <Entries title={t("career.cv.section.honours")} items={cv.honours} fields={HONOUR} rev={rev} language={draft.language} ai={AI.honours} make={() => ({ title: "", issuer: "", date: "", description: "" })} onChange={sectionList("honours")} />
-      <Entries title={t("career.cv.section.activities")} items={cv.activities} fields={ACTIVITY} rev={rev} language={draft.language} ai={AI.activities} make={() => ({ title: "", place: "", date: "", description: "" })} onChange={sectionList("activities")} />
 
-      <Button title={t("career.cv.save")} loading={saving} disabled={!dirty} onPress={() => void save()} />
-      {dirty ? (
-        <AppText variant="caption" muted>
-          {t("career.cv.unsaved")}
-        </AppText>
-      ) : null}
-      <Card>
-        <Button title={t("career.cv.export")} variant="secondary" icon={<Icon name="download" size="sm" />} loading={exporting} onPress={() => void exportPdf()} />
-        <AppText variant="caption" muted>
-          {t("career.cv.exportHintMobile")}
-        </AppText>
-      </Card>
-
-      <FeedbackPanel cvId={id} language={draft.language} ensureSaved={save} />
-
-      <Button title={t("career.cv.duplicate")} variant="secondary" onPress={() => void duplicate()} />
-      <Button title={t("career.cv.delete")} variant="danger" onPress={() => setConfirmDelete(true)} />
+      <TemplateGallery open={gallery} current={cur.template} actionLabel={t("cvMobile.useTemplate")} onClose={() => setGallery(false)} onUse={useTemplate} />
+      <CvCustomise open={customise} template={cur.template} design={cur.design} onChange={setDesign} onClose={() => setCustomise(false)} />
       <Dialog
-        open={confirmDelete}
-        title={t("career.cv.delete")}
-        onClose={() => setConfirmDelete(false)}
+        open={exportMenu}
+        title={t("cvMobile.export")}
+        onClose={() => setExportMenu(false)}
         actions={
           <>
-            <Button small variant="secondary" title={t("common.cancel")} onPress={() => setConfirmDelete(false)} />
-            <Button small variant="danger" title={t("common.delete")} onPress={() => void remove()} />
+            <Button small title={t("cvMobile.exportDesigned")} onPress={() => void exportAs("designed")} />
+            <Button small variant="secondary" title={t("cvMobile.exportAts")} onPress={() => void exportAs("ats")} />
+            <Button small variant="secondary" title={t("common.cancel")} onPress={() => setExportMenu(false)} />
           </>
         }
       >
-        <AppText>{t("career.cv.deleteConfirm")}</AppText>
+        <AppText variant="caption" muted>
+          {t("career.cv.design.atsHint")}
+        </AppText>
       </Dialog>
+      <Dialog
+        open={conflictOpen}
+        title={t("cvMobile.conflictTitle")}
+        onClose={() => setConflictOpen(false)}
+        actions={
+          <>
+            <Button small title={t("cvMobile.conflictReload")} onPress={reloadLatest} />
+            <Button small variant="secondary" title={t("cvMobile.conflictKeep")} onPress={() => setConflictOpen(false)} />
+          </>
+        }
+      >
+        <AppText>{t("cvMobile.conflictBody")}</AppText>
+      </Dialog>
+      <ImportDialog
+        key={importOpen ? "open" : "closed"}
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onApply={(source, picked, overwrite, eduPick) => {
+          edit((d) => ({ ...d, data: eduPick ? mergeEducation(mergeImport(d.data, source, picked, overwrite), eduPick) : mergeImport(d.data, source, picked, overwrite) }));
+          setRev((r) => r + 1);
+          setImportOpen(false);
+          toast(t("cvMobile.importDone"), "success");
+        }}
+      />
+
+      {mode === "preview" ? (
+        <>
+          <Card>
+            <AppText variant="heading">{t(meta.nameKey)}</AppText>
+            <AppText variant="caption" muted>
+              {t("cvMobile.previewHint")}
+            </AppText>
+            <CvWebPreview html={previewHtml} />
+            <Button variant="secondary" title={t("cvMobile.printPreview")} loading={busy} icon={<Icon name="eye" size="sm" />} onPress={() => void openPreview()} />
+          </Card>
+        </>
+      ) : (
+        <>
+          <Card>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
+              <ProgressRing fraction={score.score / 100} track={theme.border} from={theme.primary} to={theme.info} label={t("career.cv.score")}>
+                {`${score.score}%`}
+              </ProgressRing>
+              <View style={{ flex: 1, gap: 4 }}>
+                <AppText variant="heading">{t("career.cv.scoreValue", { n: score.score })}</AppText>
+                {score.missing.length ? <AppText variant="label">{t("career.cv.improve")}</AppText> : null}
+                {score.missing.filter((k) => ["personal", "summary", "education", "experience", "skills", "languages", "projects", "certificates"].includes(k)).slice(0, 3).map((k) => (
+                  <AppText key={k} variant="caption" muted>
+                    {`• ${t(`career.cv.tip.${k as "personal"}`)}`}
+                  </AppText>
+                ))}
+              </View>
+            </View>
+          </Card>
+
+          <Card>
+            <Input label={t("career.cv.title")} value={cur.title} onChangeText={(v) => edit((d) => ({ ...d, title: v }), "title")} maxLength={120} />
+            <Segmented label={t("career.cv.language")} value={cur.language} onChange={(v) => edit((d) => ({ ...d, language: v }))} options={CV_LANGUAGES.map((l) => ({ value: l, label: t(`career.lang.${l}`) }))} />
+            <AppText variant="caption" muted>
+              {`${t("career.cv.template")}: ${t(meta.nameKey)}`}
+            </AppText>
+          </Card>
+
+          <Card>
+            <AppText variant="heading">{t("career.cv.section.personal")}</AppText>
+            <Button small variant="secondary" title={t("cvMobile.importTitle")} onPress={() => setImportOpen(true)} />
+            <PhotoField
+              url={cv.personal.photoUrl}
+              path={cv.personal.photoPath}
+              uid={user.id}
+              onChange={(p) => {
+                if (p.photoPath) known.current.add(p.photoPath);
+                setData("personal", { ...cv.personal, ...p });
+              }}
+            />
+            {(["fullName", "headline", "email", "phone", "city", "address", "idNumber", "birthDate", "nationality", "gender", "linkedin", "github", "portfolio", "website"] as const).map((k) => (
+              <Input
+                key={`${rev}-${k}`}
+                label={k === "fullName" || k === "email" || k === "phone" ? `${t(`career.cv.field.${k}`)} * (${t("career.cv.required")})` : t(`career.cv.field.${k}`)}
+                value={cv.personal[k]}
+                onChangeText={(v) => setPersonal(k, v)}
+                autoCapitalize={k === "email" || k === "linkedin" || k === "website" || k === "github" || k === "portfolio" ? "none" : "words"}
+                keyboardType={k === "email" ? "email-address" : k === "phone" ? "phone-pad" : "default"}
+              />
+            ))}
+            <Socials items={cv.personal.socials} onChange={(v) => setPersonal("socials", v)} />
+          </Card>
+          <Card>
+            <AppText variant="heading">{t("career.cv.section.summary")}</AppText>
+            <Input key={`sum-${rev}`} label={t("career.cv.field.summary")} value={cv.summary} onChangeText={(v) => setData("summary", v, "summary")} multiline maxLength={1500} style={{ minHeight: 100, textAlignVertical: "top" }} />
+            <AiWrite
+              kind="summary"
+              language={cur.language}
+              context={{ ...(cv.personal.headline ? { title: cv.personal.headline.slice(0, 200) } : {}), ...(cv.skills.length ? { skills: cv.skills.map((s) => s.name).join(", ").slice(0, 200) } : {}) }}
+              current={cv.summary}
+              max={1500}
+              onText={(v) => {
+                setData("summary", v);
+                setRev((r) => r + 1);
+              }}
+            />
+          </Card>
+          {entries("experience", EXP, () => CvExperienceSchema.parse({}))}
+          {entries("education", EDU, () => CvEducationSchema.parse({}))}
+          <Entries group="skills" title={t("career.cv.section.skills")} items={cv.skills as Obj[]} fields={SKILL} rev={rev} language={cur.language} make={() => ({ name: "" })} onChange={(next, g) => {
+            if (next.length !== cv.skills.length) setRev((r) => r + 1);
+            setData("skills", next.slice(0, CV_SECTION_ITEMS_MAX).map((s) => ({ ...s, name: String(s.name ?? "").slice(0, 50) })) as CvData["skills"], g);
+          }} />
+          {entries("languages", LANG, () => CvLanguageSchema.parse({}))}
+          {entries("certificates", CERT, () => CvCertificateSchema.parse({}))}
+          {entries("projects", PROJ, () => CvProjectSchema.parse({}))}
+          {entries("honours", HONOUR, () => CvHonourSchema.parse({}))}
+          {entries("volunteer", VOLUNTEER, () => CvVolunteerSchema.parse({}))}
+          {entries("publications", PUBLICATION, () => CvPublicationSchema.parse({}))}
+          {entries("courses", COURSE, () => CvCourseSchema.parse({}))}
+          {entries("hobbies", HOBBY, () => CvHobbySchema.parse({}))}
+          {entries("activities", ACTIVITY, () => CvActivitySchema.parse({}))}
+          {entries("references", REFERENCE, () => CvReferenceSchema.parse({}))}
+
+          <FeedbackPanel
+            cvId={id}
+            language={cur.language}
+            ensureSaved={flush}
+            onApplySummary={(v) => {
+              setData("summary", v);
+              setRev((r) => r + 1);
+            }}
+          />
+
+          <Button title={t("career.cv.duplicate")} variant="secondary" onPress={() => void duplicate()} />
+          <Button title={t("career.cv.delete")} variant="danger" onPress={() => setConfirmDelete(true)} />
+          <Dialog
+            open={confirmDelete}
+            title={t("career.cv.delete")}
+            onClose={() => setConfirmDelete(false)}
+            actions={
+              <>
+                <Button small variant="secondary" title={t("common.cancel")} onPress={() => setConfirmDelete(false)} />
+                <Button small variant="danger" title={t("common.delete")} onPress={() => void remove()} />
+              </>
+            }
+          >
+            <AppText>{t("career.cv.deleteConfirm")}</AppText>
+          </Dialog>
+        </>
+      )}
     </Screen>
   );
 }

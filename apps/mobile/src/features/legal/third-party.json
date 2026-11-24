@@ -1710,6 +1710,12 @@
   "url": "https://github.com/sindresorhus/escape-string-regexp"
  },
  {
+  "name": "escape-string-regexp",
+  "version": "4.0.0",
+  "license": "MIT",
+  "url": "https://github.com/sindresorhus/escape-string-regexp"
+ },
+ {
   "name": "etag",
   "version": "1.8.1",
   "license": "MIT",
@@ -2896,6 +2902,12 @@
   "version": "15.16.0",
   "license": "MIT",
   "url": "https://github.com/software-mansion/react-native-svg"
+ },
+ {
+  "name": "react-native-webview",
+  "version": "14.0.1",
+  "license": "MIT",
+  "url": "https://github.com/react-native-webview/react-native-webview"
  },
  {
   "name": "react-native-worklets",

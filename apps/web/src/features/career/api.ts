@@ -1,7 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   CvDataSchema,
+  CvDesignSchema,
   CvDocumentInputSchema,
+  parseCvDesign,
+  type CvDesign,
   OPPORTUNITY_PAGE_SIZE,
   mapOpportunityDetail,
   mapOpportunityRow,
@@ -99,16 +102,26 @@ export interface CvListItem {
   language: CvLanguage;
   template: CvTemplateId;
   updatedAt: string;
+  design: CvDesign;
+  isDefault: boolean;
 }
 export interface CvDoc extends CvListItem {
   data: CvData;
 }
 export async function listCvs(sb: SupabaseClient): Promise<CvListItem[]> {
-  const rows = ok(await sb.from("cv_documents").select("id,title,language,template,updated_at").order("updated_at", { ascending: false })) as Array<Record<string, string>>;
-  return rows.map((r) => ({ id: r.id!, title: r.title!, language: r.language as CvLanguage, template: r.template as CvTemplateId, updatedAt: r.updated_at! }));
+  const rows = ok(await sb.from("cv_documents").select("id,title,language,template,updated_at,design,is_default").order("updated_at", { ascending: false })) as Array<Record<string, unknown>>;
+  return rows.map((r) => ({
+    id: String(r.id),
+    title: String(r.title),
+    language: r.language as CvLanguage,
+    template: r.template as CvTemplateId,
+    updatedAt: String(r.updated_at),
+    design: parseCvDesign(r.design),
+    isDefault: r.is_default === true,
+  }));
 }
 export async function getCv(sb: SupabaseClient, id: string): Promise<CvDoc | null> {
-  const r = ok(await sb.from("cv_documents").select("id,title,language,template,updated_at,data").eq("id", id).maybeSingle<Record<string, unknown>>());
+  const r = ok(await sb.from("cv_documents").select("id,title,language,template,updated_at,data,design,is_default").eq("id", id).maybeSingle<Record<string, unknown>>());
   if (!r) return null;
   const parsed = parseCvData(r.data);
   return {
@@ -117,6 +130,8 @@ export async function getCv(sb: SupabaseClient, id: string): Promise<CvDoc | nul
     language: r.language as CvLanguage,
     template: r.template as CvTemplateId,
     updatedAt: String(r.updated_at),
+    design: parseCvDesign(r.design),
+    isDefault: r.is_default === true,
     data: parsed.ok ? parsed.data : CvDataSchema.parse({}),
   };
 }
@@ -127,12 +142,32 @@ const checkInput = (input: CvDocumentInput): CvSaveError | null => {
   const size = parseCvData(input.data);
   return size.ok ? null : size.error;
 };
-export async function createCv(sb: SupabaseClient, userId: string, input: CvDocumentInput): Promise<CvSaveResult> {
+export async function createCv(sb: SupabaseClient, userId: string, input: CvDocumentInput, design: CvDesign = {}): Promise<CvSaveResult> {
   const bad = checkInput(input);
   if (bad) return { ok: false, error: bad };
-  const res = await sb.from("cv_documents").insert({ user_id: userId, ...input }).select("id").single<{ id: string }>();
+  const res = await sb.from("cv_documents").insert({ user_id: userId, ...input, design }).select("id").single<{ id: string }>();
   if (res.error) return { ok: false, error: res.error.code === "54000" ? "limit" : "failed" };
   return { ok: true, id: res.data.id };
+}
+/** Copies title ("<title> (<suffix>)"), data, design and template into a new CV. The 10-CV cap surfaces as error "limit" (errcode 54000). */
+export async function duplicateCv(sb: SupabaseClient, userId: string, id: string, copySuffix: string): Promise<CvSaveResult> {
+  const src = await getCv(sb, id);
+  if (!src) return { ok: false, error: "failed" };
+  const title = `${src.title.slice(0, 120 - copySuffix.length - 3)} (${copySuffix})`;
+  return createCv(sb, userId, { title, language: src.language, template: src.template, data: src.data }, src.design);
+}
+export async function renameCv(sb: SupabaseClient, id: string, title: string): Promise<boolean> {
+  const t = title.trim().slice(0, 120);
+  if (!t) return false;
+  return !(await sb.from("cv_documents").update({ title: t }).eq("id", id)).error;
+}
+/** Only the design column (a template switch or a style tweak made outside the editor). */
+export async function saveDesign(sb: SupabaseClient, id: string, design: CvDesign): Promise<boolean> {
+  if (!CvDesignSchema.safeParse(design).success) return false;
+  return !(await sb.from("cv_documents").update({ design }).eq("id", id)).error;
+}
+export async function setDefaultCv(sb: SupabaseClient, id: string): Promise<void> {
+  ok(await sb.rpc("set_default_cv", { p_id: id }));
 }
 export async function saveCv(sb: SupabaseClient, id: string, input: CvDocumentInput): Promise<CvSaveResult> {
   const bad = checkInput(input);

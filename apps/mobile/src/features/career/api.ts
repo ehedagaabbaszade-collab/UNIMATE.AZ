@@ -1,13 +1,16 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   CvDataSchema,
+  CvDesignSchema,
   CvDocumentInputSchema,
   OPPORTUNITY_PAGE_SIZE,
   mapOpportunityDetail,
   mapOpportunityRow,
   mapTrackingRow,
   parseCvData,
+  parseCvDesign,
   type CvData,
+  type CvDesign,
   type CvDocumentInput,
   type CvLanguage,
   type CvTemplateId,
@@ -18,6 +21,7 @@ import {
   type TrackStatus,
   type TrackedItem,
 } from "@unimate/core";
+import { classifySave, type SaveOutcome } from "./cv-helpers";
 
 /**
  * Data access for CAREER. Everything goes through RLS-protected tables or the RPCs of migration 20260101004310; students
@@ -98,17 +102,19 @@ export interface CvListItem {
   title: string;
   language: CvLanguage;
   template: CvTemplateId;
+  design: CvDesign;
+  isDefault: boolean;
   updatedAt: string;
 }
 export interface CvDoc extends CvListItem {
   data: CvData;
 }
 export async function listCvs(sb: SupabaseClient): Promise<CvListItem[]> {
-  const rows = ok(await sb.from("cv_documents").select("id,title,language,template,updated_at").order("updated_at", { ascending: false })) as Array<Record<string, string>>;
-  return rows.map((r) => ({ id: r.id!, title: r.title!, language: r.language as CvLanguage, template: r.template as CvTemplateId, updatedAt: r.updated_at! }));
+  const rows = ok(await sb.from("cv_documents").select("id,title,language,template,design,is_default,updated_at").order("updated_at", { ascending: false })) as Array<Record<string, unknown>>;
+  return rows.map((r) => ({ id: String(r.id), title: String(r.title), language: r.language as CvLanguage, template: r.template as CvTemplateId, design: parseCvDesign(r.design), isDefault: r.is_default === true, updatedAt: String(r.updated_at) }));
 }
 export async function getCv(sb: SupabaseClient, id: string): Promise<CvDoc | null> {
-  const r = ok(await sb.from("cv_documents").select("id,title,language,template,updated_at,data").eq("id", id).maybeSingle<Record<string, unknown>>());
+  const r = ok(await sb.from("cv_documents").select("id,title,language,template,design,is_default,updated_at,data").eq("id", id).maybeSingle<Record<string, unknown>>());
   if (!r) return null;
   const parsed = parseCvData(r.data);
   return {
@@ -116,29 +122,55 @@ export async function getCv(sb: SupabaseClient, id: string): Promise<CvDoc | nul
     title: String(r.title),
     language: r.language as CvLanguage,
     template: r.template as CvTemplateId,
+    design: parseCvDesign(r.design),
+    isDefault: r.is_default === true,
     updatedAt: String(r.updated_at),
     data: parsed.ok ? parsed.data : CvDataSchema.parse({}),
   };
 }
 export type CvSaveError = "invalid" | "too_large" | "limit" | "failed";
 export type CvSaveResult = { ok: true; id: string } | { ok: false; error: CvSaveError };
-const checkInput = (input: CvDocumentInput): CvSaveError | null => {
+const checkInput = (input: CvDocumentInput, design?: CvDesign): CvSaveError | null => {
   if (!CvDocumentInputSchema.safeParse(input).success) return "invalid";
+  if (design && !CvDesignSchema.safeParse(design).success) return "invalid";
   const size = parseCvData(input.data);
   return size.ok ? null : size.error;
 };
-export async function createCv(sb: SupabaseClient, userId: string, input: CvDocumentInput): Promise<CvSaveResult> {
-  const bad = checkInput(input);
+export async function createCv(sb: SupabaseClient, userId: string, input: CvDocumentInput, design: CvDesign = {}): Promise<CvSaveResult> {
+  const bad = checkInput(input, design);
   if (bad) return { ok: false, error: bad };
-  const res = await sb.from("cv_documents").insert({ user_id: userId, ...input }).select("id").single<{ id: string }>();
+  const res = await sb.from("cv_documents").insert({ user_id: userId, ...input, design }).select("id").single<{ id: string }>();
   if (res.error) return { ok: false, error: res.error.code === "54000" ? "limit" : "failed" };
   return { ok: true, id: res.data.id };
 }
-export async function saveCv(sb: SupabaseClient, id: string, input: CvDocumentInput): Promise<CvSaveResult> {
-  const bad = checkInput(input);
-  if (bad) return { ok: false, error: bad };
-  const res = await sb.from("cv_documents").update(input).eq("id", id);
-  return res.error ? { ok: false, error: "failed" } : { ok: true, id };
+/** Optimistic concurrency: the update only matches while updated_at is still what this device last saw. */
+export async function saveCvGuarded(sb: SupabaseClient, id: string, input: CvDocumentInput, design: CvDesign, expectedUpdatedAt: string): Promise<SaveOutcome | { kind: "invalid"; error: CvSaveError }> {
+  const bad = checkInput(input, design);
+  if (bad) return { kind: "invalid", error: bad };
+  try {
+    const res = await sb.from("cv_documents").update({ ...input, design }).eq("id", id).eq("updated_at", expectedUpdatedAt).select("updated_at");
+    return classifySave(res as { data: Array<{ updated_at: string }> | null; error: { message: string } | null });
+  } catch {
+    return { kind: "offline" };
+  }
+}
+export async function duplicateCv(sb: SupabaseClient, userId: string, id: string, copyLabel: string): Promise<CvSaveResult> {
+  const src = await getCv(sb, id);
+  if (!src) return { ok: false, error: "failed" };
+  return createCv(sb, userId, { title: `${src.title} ${copyLabel}`.slice(0, 120), language: src.language, template: src.template, data: src.data }, src.design);
+}
+export async function renameCv(sb: SupabaseClient, id: string, title: string): Promise<void> {
+  const t = title.trim().slice(0, 120);
+  if (!t) throw new CareerApiError("empty title", undefined);
+  ok(await sb.from("cv_documents").update({ title: t }).eq("id", id));
+}
+export async function setDefaultCv(sb: SupabaseClient, id: string): Promise<void> {
+  ok(await sb.rpc("set_default_cv", { p_id: id }));
+}
+/** Design only (template gallery "use" on an existing CV and the customise sheet go through the editor; this is for list-level changes). */
+export async function saveDesign(sb: SupabaseClient, id: string, design: CvDesign): Promise<void> {
+  if (!CvDesignSchema.safeParse(design).success) throw new CareerApiError("invalid design", undefined);
+  ok(await sb.from("cv_documents").update({ design }).eq("id", id));
 }
 export async function deleteCv(sb: SupabaseClient, id: string): Promise<void> {
   ok(await sb.from("cv_documents").delete().eq("id", id));

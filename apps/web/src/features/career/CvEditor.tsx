@@ -1,329 +1,393 @@
 "use client";
 
-import {
-  CEFR_LEVELS,
-  CV_LANGUAGES,
-  CV_SECTION_ITEMS_MAX,
-  cvCompleteness,
-  cvMissingRequired,
-  type CvDescribeKind,
-  type CvData,
-  type CvDocumentInput,
-  type CvFeedback,
-  type CvLanguage,
-} from "@unimate/core";
-import type { MessageKey } from "@unimate/i18n";
+import { CV_LANGUAGES, cvMissingRequired, resolveCvDesign, type CvData, type CvDesign, type CvLanguage } from "@unimate/core";
 import { useI18n } from "@unimate/i18n/react";
-import { Badge, Button, Card, Dialog, EmptyState, ErrorState, Icon, Input, ProgressRing, Select, Skeleton, Textarea, useToast } from "@unimate/ui";
+import { Button, Card, Dialog, EmptyState, ErrorState, Icon, Input, Skeleton, useToast } from "@unimate/ui";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useUser } from "@/components/user";
-import { EdgeNotice } from "@/components/EdgeNotice";
-import type { EdgeError } from "@/lib/edge";
-import { cvFeedback } from "@/lib/edge-client";
 import { getBrowserClient } from "@/lib/supabase/browser";
 import { useAsync } from "@/lib/use-async";
-import { deleteCv, getCv, myTracking, saveCv } from "./api";
-import { AiWrite, CvPhoto } from "./cv-parts";
+import { getCv, type CvDoc } from "./api";
+import { AssistantPanel } from "./AssistantPanel";
+import { saveCvGuarded, type SaveOutcome } from "./cv-autosave";
+import { initHistory, pushHistory, redo, undo, type History } from "./cv-history";
+import { CvForm } from "./CvForm";
+import { CvPreview, useCvPhotoUrl, type CvZoom } from "./cv-preview";
+import { patchDesign } from "./cv-sections";
+import { CustomisePanel } from "./CustomisePanel";
+import { ImportDialog } from "./ImportDialog";
 import { Chips } from "./parts";
-import { TemplatePicker } from "./TemplatePicker";
+import { TemplateGallery } from "./TemplateGallery";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- CV JSON is schema-less in the editor
-type Obj = Record<string, any>;
-type Kind = "text" | "csv" | "lines" | "bool" | "cefr";
-interface FieldDef {
-  key: string;
-  label: MessageKey;
-  kind?: Kind;
-  multiline?: boolean;
-  /** Hidden for entries where this returns true (CEFR levels of a native language). */
-  hide?: (it: Obj) => boolean;
+interface Snap {
+  data: CvData;
+  design: CvDesign;
+  template: string;
 }
-/** Which entries get a "write with AI" button on their description field, and the non-PII context sent with it. */
-interface AiDef {
-  kind: CvDescribeKind;
-  ctx: (it: Obj) => Record<string, string>;
-}
-const pick = (it: Obj, keys: string[]) => Object.fromEntries(keys.map((k) => [k, String(it[k] ?? "")]));
-const csv = (s: string) => s.split(",").map((x) => x.trim()).filter(Boolean);
-const lines = (s: string) => s.split("\n").map((x) => x.trim()).filter(Boolean);
+type Status = "saved" | "saving" | "unsaved" | "offline" | "error" | "conflict";
+type Side = "content" | "customise" | "assistant";
 
-/** Keeps its own text while typing so separators (commas, newlines) are not eaten by the parse/join round trip. */
-function ListField({ label, value, parse, join, multiline, onChange }: { label: string; value: string[]; parse: (s: string) => string[]; join: string; multiline?: boolean; onChange: (v: string[]) => void }) {
-  const [text, setText] = useState(value.join(join));
-  const update = (s: string) => {
-    setText(s);
-    onChange(parse(s));
-  };
-  return multiline ? <Textarea label={label} rows={3} value={text} onChange={(e) => update(e.target.value)} /> : <Input label={label} value={text} onChange={(e) => update(e.target.value)} />;
+const AUTOSAVE_MS = 1200;
+const COALESCE_MS = 800;
+/** Style keys a template switch resets (section order and hidden sections are the user's structure and stay). */
+const STYLE_KEYS = ["font", "fontSize", "headingScale", "primary", "accent", "background", "spacing", "margins", "columns", "showPhoto", "photoShape", "mode"] as const;
+
+const cleanForSave = (d: CvData): CvData => ({ ...d, skills: d.skills.filter((s) => s.name.trim() !== "") });
+
+function useDebounced<T>(value: T, ms: number): T {
+  const [v, setV] = useState(value);
+  useEffect(() => {
+    const id = setTimeout(() => setV(value), ms);
+    return () => clearTimeout(id);
+  }, [value, ms]);
+  return v;
+}
+function useWide(): boolean {
+  const [wide, setWide] = useState(true);
+  useEffect(() => {
+    const m = window.matchMedia("(min-width: 900px)");
+    const on = () => setWide(m.matches);
+    on();
+    m.addEventListener("change", on);
+    return () => m.removeEventListener("change", on);
+  }, []);
+  return wide;
 }
 
-function Entries({ title, items, fields, make, onChange, rev, ai, language }: { title: string; items: Obj[]; fields: FieldDef[]; make: () => Obj; onChange: (next: Obj[]) => void; rev: number; ai?: AiDef; language: CvLanguage }) {
+function EditorInner({ doc, onReload }: { doc: CvDoc; onReload: () => void }) {
   const { t } = useI18n();
-  const [aiRev, setAiRev] = useState(0);
-  const set = (i: number, k: string, v: unknown) => onChange(items.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
-  return (
-    <Card>
-      <div className="stack">
-        <h2>{title}</h2>
-        {items.map((it, i) => (
-          <fieldset key={`${rev}-${i}`} className="stack" style={{ border: 0, borderTop: i ? "1px solid var(--border)" : 0, paddingTop: i ? 12 : 0, margin: 0, minInlineSize: 0 }}>
-            <legend className="um-sr-only">{`${title} ${i + 1}`}</legend>
-            <div className="grid-auto">
-              {fields.filter((f) => !f.hide?.(it)).map((f) => {
-                const write =
-                  ai && (f.multiline || f.kind === "lines") ? (
-                    <AiWrite
-                      kind={ai.kind}
-                      language={language}
-                      context={ai.ctx(it)}
-                      current={f.kind === "lines" ? (it[f.key] ?? []).join("\n") : String(it[f.key] ?? "")}
-                      onText={(text) => {
-                        set(i, f.key, f.kind === "lines" ? lines(text) : text);
-                        setAiRev((r) => r + 1);
-                      }}
-                    />
-                  ) : null;
-                const field =
-                  f.kind === "bool" ? (
-                    <label className="row" style={{ gap: 8 }}>
-                      <input type="checkbox" checked={!!it[f.key]} onChange={(e) => set(i, f.key, e.target.checked)} />
-                      {t(f.label)}
-                    </label>
-                  ) : f.kind === "cefr" ? (
-                    <Select label={t(f.label)} value={String(it[f.key] ?? "")} onChange={(e) => set(i, f.key, e.target.value)} style={{ width: "100%" }}>
-                      <option value="" />
-                      {CEFR_LEVELS.map((l) => (
-                        <option key={l} value={l}>
-                          {l}
-                        </option>
-                      ))}
-                    </Select>
-                  ) : f.kind === "csv" || f.kind === "lines" ? (
-                    <ListField key={`${rev}-${aiRev}-${i}-${f.key}`} label={t(f.label)} value={it[f.key] ?? []} parse={f.kind === "csv" ? csv : lines} join={f.kind === "csv" ? ", " : "\n"} multiline={f.kind === "lines"} onChange={(v) => set(i, f.key, v)} />
-                  ) : f.multiline ? (
-                    <Textarea key={`${aiRev}`} label={t(f.label)} rows={3} value={String(it[f.key] ?? "")} onChange={(e) => set(i, f.key, e.target.value)} />
-                  ) : (
-                    <Input label={t(f.label)} value={String(it[f.key] ?? "")} onChange={(e) => set(i, f.key, e.target.value)} />
-                  );
-                return (
-                  <div key={f.key} className="stack" style={{ minWidth: 0, gap: 6 }}>
-                    {field}
-                    {write}
-                  </div>
-                );
-              })}
-            </div>
-            <div className="row">
-              <Button size="sm" variant="danger" onClick={() => onChange(items.filter((_, j) => j !== i))}>
-                {t("career.cv.removeEntry")}
-              </Button>
-            </div>
-          </fieldset>
-        ))}
-        <div className="row">
-          <Button size="sm" variant="secondary" disabled={items.length >= CV_SECTION_ITEMS_MAX} onClick={() => onChange([...items, make()])}>
-            <Icon name="add" size="sm" />
-            {t("career.cv.add")}
-          </Button>
-        </div>
+  const router = useRouter();
+  const user = useUser();
+  const { toast } = useToast();
+  const wide = useWide();
+  const sb = useRef(getBrowserClient()).current;
+
+  const [hist, setHist] = useState<History<Snap>>(() => initHistory({ data: doc.data, design: doc.design, template: doc.template }));
+  const [title, setTitle] = useState(doc.title);
+  const [language, setLanguage] = useState<CvLanguage>(doc.language);
+  const [rev, setRev] = useState(0);
+  const [status, setStatus] = useState<Status>("saved");
+  const [side, setSide] = useState<Side>("content");
+  const [mobileTab, setMobileTab] = useState<"edit" | "preview">("edit");
+  const [zoom, setZoom] = useState<CvZoom>("fit");
+  const [gallery, setGallery] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [exportBlocked, setExportBlocked] = useState(false);
+
+  const snap = hist.present;
+  const resolved = resolveCvDesign(snap.template, snap.design);
+
+  // ---- save machinery: everything the async code needs lives in refs
+  const latest = useRef({ snap, title, language });
+  latest.current = { snap, title, language };
+  const version = useRef(0);
+  const savedVersion = useRef(0);
+  const loadedAt = useRef(doc.updatedAt);
+  const inflight = useRef<Promise<boolean> | null>(null);
+  const conflict = useRef(false);
+  const [conflictOpen, setConflictOpen] = useState(false);
+  const lastPush = useRef(0);
+
+  // cv-photos: never delete an object undo could restore while the editor is open; on unmount delete uploads nobody references.
+  const seenPhotos = useRef(new Set<string>(doc.data.personal.photoPath ? [doc.data.personal.photoPath] : []));
+  const savedPhoto = useRef(doc.data.personal.photoPath);
+
+  const flush = useCallback(async (): Promise<boolean> => {
+    for (;;) {
+      if (inflight.current) {
+        await inflight.current;
+        continue;
+      }
+      if (conflict.current) return false;
+      if (version.current === savedVersion.current) return true;
+      const v = version.current;
+      const { snap: s, title: ti, language: lg } = latest.current;
+      setStatus("saving");
+      const run = async (): Promise<boolean> => {
+        const o: SaveOutcome = await saveCvGuarded(sb, doc.id, { title: ti, language: lg, template: s.template as never, data: cleanForSave(s.data), design: s.design }, loadedAt.current);
+        if (o.kind === "saved") {
+          loadedAt.current = o.updatedAt;
+          savedVersion.current = v;
+          savedPhoto.current = s.data.personal.photoPath;
+          setStatus(version.current === v ? "saved" : "unsaved");
+          return true;
+        }
+        if (o.kind === "conflict") {
+          conflict.current = true;
+          setStatus("conflict");
+          setConflictOpen(true);
+        } else if (o.kind === "offline") setStatus("offline");
+        else {
+          setStatus("error");
+          toast(o.kind === "too_large" ? t("career.cv.tooLarge") : o.kind === "invalid" ? t("career.cv.invalid") : t("career.cv.saveFailed"), "error");
+        }
+        return false;
+      };
+      inflight.current = run();
+      const ok = await inflight.current;
+      inflight.current = null;
+      if (!ok) return false;
+    }
+  }, [doc.id, sb, t, toast]);
+  const flushRef = useRef(flush);
+  flushRef.current = flush;
+
+  const markDirty = () => {
+    version.current++;
+    setStatus((s) => (s === "conflict" ? s : "unsaved"));
+  };
+  const commit = (fn: (s: Snap) => Snap, structural = false) => {
+    const now = Date.now();
+    const co = !structural && now - lastPush.current < COALESCE_MS;
+    lastPush.current = structural ? 0 : now;
+    setHist((h) => pushHistory(h, fn(h.present), co));
+    if (structural) setRev((r) => r + 1);
+    markDirty();
+  };
+  const jump = (fn: (h: History<Snap>) => History<Snap>) => {
+    setHist(fn);
+    setRev((r) => r + 1);
+    lastPush.current = 0;
+    markDirty();
+  };
+  const updateData = (fn: (cv: CvData) => CvData, structural = false) => commit((s) => ({ ...s, data: fn(s.data) }), structural);
+  const setDesign = (patch: Partial<Record<keyof CvDesign, unknown>>, structural = false) => commit((s) => ({ ...s, design: patchDesign(s.design, patch) }), structural);
+
+  // debounced autosave; retries while offline
+  useEffect(() => {
+    if (status !== "unsaved" && status !== "offline") return;
+    const id = setTimeout(() => void flushRef.current(), status === "offline" ? 15000 : AUTOSAVE_MS);
+    return () => clearTimeout(id);
+  }, [status, hist, title, language]);
+  useEffect(() => {
+    const online = () => void flushRef.current();
+    const hide = () => document.visibilityState === "hidden" && void flushRef.current();
+    const warn = (e: BeforeUnloadEvent) => {
+      if (version.current !== savedVersion.current) {
+        void flushRef.current();
+        e.preventDefault();
+      }
+    };
+    window.addEventListener("online", online);
+    document.addEventListener("visibilitychange", hide);
+    window.addEventListener("beforeunload", warn);
+    const up = seenPhotos.current;
+    return () => {
+      window.removeEventListener("online", online);
+      document.removeEventListener("visibilitychange", hide);
+      window.removeEventListener("beforeunload", warn);
+      void flushRef.current(); // route change: flush what is pending
+      const keep = new Set([savedPhoto.current, latest.current.snap.data.personal.photoPath]);
+      const orphans = [...up].filter((p) => !keep.has(p));
+      if (orphans.length) void sb.storage.from("cv-photos").remove(orphans);
+    };
+  }, [sb]);
+
+  // Ctrl/Cmd+Z, Shift+Ctrl/Cmd+Z, Ctrl+Y
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+      const k = e.key.toLowerCase();
+      if (k === "z" && !e.shiftKey) jump(undo);
+      else if ((k === "z" && e.shiftKey) || k === "y") jump(redo);
+      else return;
+      e.preventDefault();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- jump only uses stable setters and refs
+  }, []);
+
+  const preview = useDebounced({ data: snap.data, design: snap.design, template: snap.template, language }, 150);
+  const photoSrc = useCvPhotoUrl(preview.data.personal.photoPath, preview.data.personal.photoUrl);
+
+  const missing = cvMissingRequired(snap.data);
+  const exportPdf = async (mode: "designed" | "ats") => {
+    setExportBlocked(missing.length > 0);
+    if (missing.length) return;
+    if (await flush()) router.push(`/career/cv/${doc.id}/print?autoprint=1${mode === "ats" ? "&mode=ats" : ""}`);
+  };
+  const pickTemplate = (id: string) => {
+    setGallery(false);
+    if (id === snap.template) return;
+    commit((s) => ({ ...s, template: id, design: patchDesign(s.design, Object.fromEntries(STYLE_KEYS.map((k) => [k, undefined]))) }), true);
+  };
+  const statusText: Record<Status, string> = {
+    saved: t("cvWeb.editor.saved"),
+    saving: t("cvWeb.editor.saving"),
+    unsaved: t("cvWeb.editor.unsaved"),
+    offline: t("cvWeb.editor.offline"),
+    error: t("cvWeb.editor.failed"),
+    conflict: t("cvWeb.editor.conflictTitle"),
+  };
+  const zoomBy = (d: number) => setZoom((z) => Math.max(0.4, Math.min(2, Math.round(((typeof z === "number" ? z : 0.7) + d) * 10) / 10)));
+
+  const toolbar = (
+    <div className="row" role="toolbar" aria-label={t("cvWeb.editor.toolbar")} style={{ gap: 8, alignItems: "flex-end" }}>
+      <div style={{ flex: "1 1 200px", minWidth: 0 }}>
+        <Input
+          label={t("career.cv.title")}
+          value={title}
+          maxLength={120}
+          onChange={(e) => {
+            setTitle(e.target.value);
+            markDirty();
+          }}
+        />
       </div>
-    </Card>
+      <Button variant="secondary" onClick={() => setGallery(true)}>
+        {t("cvWeb.gallery.change")}
+      </Button>
+      <Button variant="secondary" disabled={hist.past.length === 0} onClick={() => jump(undo)} aria-label={t("cvWeb.editor.undo")}>
+        ↶ {t("cvWeb.editor.undo")}
+      </Button>
+      <Button variant="secondary" disabled={hist.future.length === 0} onClick={() => jump(redo)} aria-label={t("cvWeb.editor.redo")}>
+        ↷ {t("cvWeb.editor.redo")}
+      </Button>
+      <Button onClick={() => void exportPdf("designed")}>
+        <Icon name="download" size="sm" />
+        {t("cvWeb.editor.designed")}
+      </Button>
+      <Button variant="secondary" onClick={() => void exportPdf("ats")}>
+        <Icon name="download" size="sm" />
+        {t("cvWeb.editor.atsExport")}
+      </Button>
+      <span role="status" aria-live="polite" className={status === "offline" || status === "error" || status === "conflict" ? "warn-box" : "um-muted"} style={{ fontSize: "var(--text-sm)" }}>
+        {statusText[status]}
+      </span>
+    </div>
   );
-}
 
-const EDU: FieldDef[] = [
-  { key: "institution", label: "career.cv.field.institution" },
-  { key: "degree", label: "career.cv.field.degree" },
-  { key: "field", label: "career.cv.field.fieldOfStudy" },
-  { key: "start", label: "career.cv.field.start" },
-  { key: "end", label: "career.cv.field.end" },
-  { key: "gpa", label: "career.cv.field.gpa" },
-  { key: "city", label: "career.cv.field.city" },
-  { key: "website", label: "career.cv.field.website" },
-  { key: "eqfLevel", label: "career.cv.field.eqfLevel" },
-  { key: "description", label: "career.cv.field.description", multiline: true },
-];
-const EXP: FieldDef[] = [
-  { key: "role", label: "career.cv.field.role" },
-  { key: "company", label: "career.cv.field.company" },
-  { key: "location", label: "career.cv.field.location" },
-  { key: "start", label: "career.cv.field.start" },
-  { key: "end", label: "career.cv.field.end" },
-  { key: "current", label: "career.cv.field.current", kind: "bool" },
-  { key: "bullets", label: "career.cv.field.bullets", kind: "lines" },
-];
-const LANG: FieldDef[] = [
-  { key: "name", label: "career.cv.field.langName" },
-  { key: "native", label: "career.cv.field.native", kind: "bool" },
-  ...(["listening", "reading", "spokenProduction", "spokenInteraction", "writing"] as const).map((k) => ({ key: k, label: `career.cv.field.${k}` as MessageKey, kind: "cefr" as const, hide: (it: Obj) => !!it.native })),
-];
-const PROJ: FieldDef[] = [
-  { key: "name", label: "career.cv.field.projectName" },
-  { key: "link", label: "career.cv.field.link" },
-  { key: "description", label: "career.cv.field.description", multiline: true },
-  { key: "tech", label: "career.cv.field.tech", kind: "csv" },
-];
-const CERT: FieldDef[] = [
-  { key: "name", label: "career.cv.field.certName" },
-  { key: "issuer", label: "career.cv.field.issuer" },
-  { key: "year", label: "career.cv.field.year" },
-  { key: "date", label: "career.cv.field.date" },
-  { key: "mode", label: "career.cv.field.mode" },
-  { key: "link", label: "career.cv.field.link" },
-  { key: "description", label: "career.cv.field.description", multiline: true },
-];
-const HOBBY: FieldDef[] = [
-  { key: "title", label: "career.cv.field.title" },
-  { key: "description", label: "career.cv.field.description", multiline: true },
-];
-const HONOUR: FieldDef[] = [
-  { key: "title", label: "career.cv.field.title" },
-  { key: "issuer", label: "career.cv.field.issuer" },
-  { key: "date", label: "career.cv.field.date" },
-  { key: "description", label: "career.cv.field.description", multiline: true },
-];
-const ACTIVITY: FieldDef[] = [
-  { key: "title", label: "career.cv.field.title" },
-  { key: "place", label: "career.cv.field.place" },
-  { key: "date", label: "career.cv.field.date" },
-  { key: "description", label: "career.cv.field.description", multiline: true },
-];
-const AI_EDU: AiDef = { kind: "education", ctx: (it) => pick(it, ["institution", "degree", "field"]) };
-const AI_EXP: AiDef = { kind: "experience", ctx: (it) => ({ ...pick(it, ["role", "company", "location"]), dates: `${it.start ?? ""} - ${it.current ? "" : (it.end ?? "")}` }) };
-const AI_PROJ: AiDef = { kind: "project", ctx: (it) => ({ name: String(it.name ?? ""), tech: (it.tech ?? []).join(", ") }) };
-const AI_CERT: AiDef = { kind: "certificate", ctx: (it) => pick(it, ["name", "issuer", "date", "mode"]) };
-const AI_HONOUR: AiDef = { kind: "honour", ctx: (it) => pick(it, ["title", "issuer", "date"]) };
-const AI_HOBBY: AiDef = { kind: "hobby", ctx: (it) => pick(it, ["title"]) };
-const AI_ACT: AiDef = { kind: "activity", ctx: (it) => pick(it, ["title", "place", "date"]) };
-
-function FeedbackPanel({ cvId, language, ensureSaved }: { cvId: string; language: CvLanguage; ensureSaved: () => Promise<boolean> }) {
-  const { t } = useI18n();
-  const tracked = useAsync(() => myTracking(getBrowserClient()), []);
-  const [target, setTarget] = useState("");
-  const [lang, setLang] = useState<CvLanguage>(language);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<EdgeError | null>(null);
-  const [out, setOut] = useState<{ feedback: CvFeedback; cached: boolean } | null>(null);
-  const listings = (tracked.data ?? []).filter((i) => i.listingState === "published" && i.opportunityId);
-  const run = async () => {
-    setBusy(true);
-    setError(null);
-    if (!(await ensureSaved())) return setBusy(false);
-    const r = await cvFeedback(cvId, { ...(target ? { opportunityId: target } : {}), outputLanguage: lang });
-    setBusy(false);
-    if (r.ok) setOut(r.data);
-    else setError(r.error);
-  };
-  return (
-    <Card>
-      <div className="stack">
-        <h2 className="row" style={{ gap: 8 }}>
-          <Icon name="ai-chat" /> {t("career.ai.cvTitle")}
-        </h2>
-        <p className="um-muted">{t("career.ai.cvBody")}</p>
-        {listings.length ? (
-          <Select label={t("career.ai.target")} value={target} onChange={(e) => setTarget(e.target.value)}>
-            <option value="">{t("career.ai.targetNone")}</option>
-            {listings.map((l) => (
-              <option key={l.id} value={l.opportunityId!}>
-                {`${l.title} · ${l.organization}`}
-              </option>
-            ))}
-          </Select>
-        ) : null}
-        <Chips label={t("career.ai.language")} value={lang} onChange={setLang} options={CV_LANGUAGES.map((l) => ({ value: l, label: t(`career.lang.${l}`) }))} />
-        <div className="row">
-          <Button loading={busy} onClick={() => void run()}>
-            {busy ? t("career.ai.working") : t("career.ai.action")}
-          </Button>
-        </div>
-        {error ? <EdgeNotice error={error} /> : null}
-        {out ? (
-          <div className="stack" role="status">
-            {out.cached ? <p className="um-muted">{t("career.ai.cached")}</p> : null}
-            <h3>{t("career.ai.overall")}</h3>
-            <p>{out.feedback.overall}</p>
-            <h3>{t("career.ai.strengths")}</h3>
-            <ul>
-              {out.feedback.strengths.map((s, i) => (
-                <li key={i}>{s}</li>
-              ))}
-            </ul>
-            <h3>{t("career.ai.improvements")}</h3>
-            <ul style={{ listStyle: "none", padding: 0 }} className="stack">
-              {out.feedback.improvements.map((s, i) => (
-                <li key={i} className="stack">
-                  <Badge tone="info">{s.section === "general" ? t("career.ai.sectionGeneral") : t(`career.cv.section.${s.section}`)}</Badge>
-                  <span>{s.suggestion}</span>
-                </li>
-              ))}
-            </ul>
-            {out.feedback.missingKeywords.length ? (
-              <>
-                <h3>{t("career.ai.keywords")}</h3>
-                <div className="row">
-                  {out.feedback.missingKeywords.map((k) => (
-                    <Badge key={k} tone="warning">
-                      {k}
-                    </Badge>
-                  ))}
-                </div>
-              </>
-            ) : null}
-            {out.feedback.rewrittenSummary ? (
-              <>
-                <h3>{t("career.ai.summary")}</h3>
-                <p className="um-muted">{out.feedback.rewrittenSummary}</p>
-              </>
-            ) : null}
-            <p className="um-muted" style={{ fontSize: "var(--text-sm)" }}>
-              {t("career.ai.disclaimer")}
-            </p>
+  const editPane = (
+    <div className="stack" style={{ minWidth: 0 }}>
+      <Chips
+        label={t("career.cv.language")}
+        value={language}
+        onChange={(v) => {
+          setLanguage(v);
+          markDirty();
+        }}
+        options={CV_LANGUAGES.map((l) => ({ value: l, label: t(`career.lang.${l}`) }))}
+      />
+      <Chips
+        label={t("cvWeb.editor.sections")}
+        value={side}
+        onChange={setSide}
+        options={[
+          { value: "content" as const, label: t("cvWeb.editor.sections") },
+          { value: "customise" as const, label: t("cvWeb.editor.customise") },
+          { value: "assistant" as const, label: t("cvWeb.editor.assistant") },
+        ]}
+      />
+      {side === "content" ? (
+        <>
+          <div className="row">
+            <Button size="sm" variant="secondary" onClick={() => setImporting(true)}>
+              {t("cvWeb.imp.open")}
+            </Button>
           </div>
-        ) : null}
+          {exportBlocked && missing.length ? (
+            <p className="err-box" role="alert">
+              {`${missing.map((k) => t(`career.cv.field.${k}`)).join(", ")}: ${t("career.cv.required")}`}
+            </p>
+          ) : null}
+          <CvForm
+            cv={snap.data}
+            language={language}
+            uid={user.id}
+            rev={rev}
+            order={resolved.sectionOrder}
+            hidden={resolved.hidden}
+            exportBlocked={exportBlocked}
+            update={updateData}
+            setOrder={(order) => setDesign({ sectionOrder: order }, true)}
+            setHidden={(hidden) => setDesign({ hidden }, true)}
+            onPhotoUploaded={(p) => seenPhotos.current.add(p)}
+          />
+        </>
+      ) : null}
+      {side === "customise" ? (
+        <Card>
+          <CustomisePanel resolved={resolved} onChange={(patch) => setDesign(patch)} onReset={() => commit((s) => ({ ...s, design: patchDesign({}, { sectionOrder: s.design.sectionOrder, hidden: s.design.hidden }) }), true)} />
+        </Card>
+      ) : null}
+      {side === "assistant" ? (
+        <Card>
+          <AssistantPanel cvId={doc.id} cv={snap.data} language={language} ensureSaved={flush} onApplySummary={(text) => updateData((c) => ({ ...c, summary: text.slice(0, 1500) }), true)} />
+        </Card>
+      ) : null}
+    </div>
+  );
+
+  const previewPane = (
+    <div className="stack" style={{ minWidth: 0 }}>
+      <div className="row" role="group" aria-label={t("cvWeb.editor.live")} style={{ gap: 6 }}>
+        <Button size="sm" variant="secondary" onClick={() => zoomBy(-0.1)} aria-label={t("cvWeb.editor.zoomOut")}>
+          −
+        </Button>
+        <Button size="sm" variant="secondary" onClick={() => zoomBy(0.1)} aria-label={t("cvWeb.editor.zoomIn")}>
+          +
+        </Button>
+        <Button size="sm" variant={zoom === "fit" ? "primary" : "secondary"} aria-pressed={zoom === "fit"} onClick={() => setZoom("fit")}>
+          {t("cvWeb.editor.fit")}
+        </Button>
+        {typeof zoom === "number" ? <span className="um-muted">{`${Math.round(zoom * 100)}%`}</span> : null}
       </div>
-    </Card>
+      <p className="um-muted" style={{ fontSize: "var(--text-xs)" }}>
+        {t("cvWeb.editor.pageNote")}
+      </p>
+      <CvPreview cv={preview.data} template={preview.template} design={preview.design} language={preview.language} photoSrc={photoSrc} zoom={zoom} />
+    </div>
+  );
+
+  return (
+    <div className="stack-lg">
+      <p>
+        <Link href="/career">← {t("cvWeb.editor.back")}</Link>
+      </p>
+      {toolbar}
+      {wide ? (
+        <div style={{ display: "grid", gap: 20, gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", alignItems: "start" }}>
+          <div style={{ minWidth: 0 }}>{editPane}</div>
+          <div style={{ position: "sticky", top: 8, maxHeight: "calc(100dvh - 16px)", overflow: "auto", minWidth: 0 }}>{previewPane}</div>
+        </div>
+      ) : (
+        <>
+          <Chips label={t("cvWeb.editor.tabs")} value={mobileTab} onChange={setMobileTab} options={[{ value: "edit" as const, label: t("cvWeb.editor.tabEdit") }, { value: "preview" as const, label: t("cvWeb.editor.tabPreview") }]} />
+          {mobileTab === "edit" ? editPane : previewPane}
+        </>
+      )}
+
+      <Dialog open={gallery} title={t("cvWeb.gallery.title")} onClose={() => setGallery(false)} actions={<Button variant="secondary" onClick={() => setGallery(false)}>{t("common.cancel")}</Button>}>
+        <div className="cv-wide">
+          <TemplateGallery value={resolved ? snap.template : undefined} language={language} onPick={pickTemplate} />
+        </div>
+      </Dialog>
+      <ImportDialog open={importing} cv={snap.data} onClose={() => setImporting(false)} onApply={(next) => updateData(() => next, true)} />
+      <Dialog
+        open={conflictOpen}
+        title={t("cvWeb.editor.conflictTitle")}
+        onClose={() => setConflictOpen(false)}
+        actions={
+          <>
+            <Button variant="secondary" onClick={() => setConflictOpen(false)}>
+              {t("common.close")}
+            </Button>
+            <Button onClick={onReload}>{t("cvWeb.editor.reload")}</Button>
+          </>
+        }
+      >
+        <p>{t("cvWeb.editor.conflictBody")}</p>
+      </Dialog>
+    </div>
   );
 }
 
 export function CvEditor({ id }: { id: string }) {
   const { t } = useI18n();
-  const router = useRouter();
-  const user = useUser();
-  const { toast } = useToast();
-  const [exportBlocked, setExportBlocked] = useState(false);
-  const [summaryRev, setSummaryRev] = useState(0);
   const doc = useAsync(() => getCv(getBrowserClient(), id), [id]);
-  const [draft, setDraft] = useState<CvDocumentInput | null>(null);
-  const [dirty, setDirty] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [rev, setRev] = useState(0);
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  // cv-photos objects: replaced/removed ones are deleted only after a successful save; never-saved uploads are deleted on leave.
-  const savedPhoto = useRef("");
-  const uploadedPhotos = useRef(new Set<string>());
-  const sbRef = useRef(getBrowserClient());
-  useEffect(() => {
-    const up = uploadedPhotos.current;
-    const client = sbRef.current;
-    return () => {
-      const orphans = [...up].filter((x) => x !== savedPhoto.current);
-      if (orphans.length) void client.storage.from("cv-photos").remove(orphans);
-    };
-  }, []);
-  useEffect(() => {
-    if (doc.data && !draft) savedPhoto.current = doc.data.data.personal.photoPath;
-    if (doc.data && !draft) setDraft({ title: doc.data.title, language: doc.data.language, template: doc.data.template, data: doc.data.data });
-  }, [doc.data, draft]);
-  useEffect(() => {
-    if (!dirty) return;
-    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [dirty]);
-
   const back = (
     <p>
       <Link href="/career">← {t("career.title")}</Link>
@@ -337,7 +401,7 @@ export function CvEditor({ id }: { id: string }) {
       </div>
     );
   }
-  if (doc.error) {
+  if (doc.error && !doc.data) {
     return (
       <div className="stack-lg">
         {back}
@@ -345,7 +409,7 @@ export function CvEditor({ id }: { id: string }) {
       </div>
     );
   }
-  if (!doc.data || !draft) {
+  if (!doc.data) {
     return (
       <div className="stack-lg">
         {back}
@@ -353,212 +417,5 @@ export function CvEditor({ id }: { id: string }) {
       </div>
     );
   }
-
-  const cv = draft.data;
-  const score = cvCompleteness(cv);
-  const edit = (fn: (d: CvDocumentInput) => CvDocumentInput) => {
-    setDraft((d) => (d ? fn(d) : d));
-    setDirty(true);
-  };
-  const setData = <K extends keyof CvData>(k: K, v: CvData[K]) => edit((d) => ({ ...d, data: { ...d.data, [k]: v } }));
-  const setPersonal = (k: Exclude<keyof CvData["personal"], "socials">, v: string) => setData("personal", { ...cv.personal, [k]: v });
-  const setSocials = (v: CvData["personal"]["socials"]) => setData("personal", { ...cv.personal, socials: v });
-  const sectionList = <K extends "education" | "experience" | "languages" | "projects" | "certificates" | "hobbies" | "honours" | "activities">(k: K) => (next: Obj[]) => {
-    if (next.length < cv[k].length) setRev((r) => r + 1);
-    setData(k, next as CvData[K]);
-  };
-  const save = async (): Promise<boolean> => {
-    if (!dirty) return true;
-    setSaving(true);
-    const r = await saveCv(getBrowserClient(), id, draft);
-    setSaving(false);
-    if (r.ok) {
-      setDirty(false);
-      toast(t("career.cv.saved"), "success");
-      const cur = draft.data.personal.photoPath;
-      const stale = [savedPhoto.current, ...uploadedPhotos.current].filter((x) => x && x !== cur);
-      savedPhoto.current = cur;
-      uploadedPhotos.current.clear();
-      if (stale.length) void sbRef.current.storage.from("cv-photos").remove(stale); // best effort
-
-      return true;
-    }
-    toast(r.error === "too_large" ? t("career.cv.tooLarge") : r.error === "invalid" ? t("career.cv.invalid") : t("career.cv.saveFailed"), "error");
-    return false;
-  };
-  const missing = cvMissingRequired(cv);
-  const exportPdf = async () => {
-    setExportBlocked(missing.length > 0);
-    if (missing.length) return;
-    if (await save()) router.push(`/career/cv/${id}/print`);
-  };
-  const remove = async () => {
-    setConfirmDelete(false);
-    try {
-      await deleteCv(getBrowserClient(), id);
-      router.push("/career");
-    } catch {
-      toast(t("career.cv.saveFailed"), "error");
-    }
-  };
-
-  return (
-    <div className="stack-lg">
-      {back}
-      <div className="page-head">
-        <h1>{draft.title}</h1>
-      </div>
-      <Card>
-        <div className="row" style={{ gap: 20 }}>
-          <ProgressRing value={score.score} label={t("career.cv.score")}>{`${score.score}%`}</ProgressRing>
-          <div className="stack" style={{ flex: 1, minWidth: 220 }}>
-            <h2>{t("career.cv.scoreValue", { n: score.score })}</h2>
-            {score.missing.length ? <strong>{t("career.cv.improve")}</strong> : null}
-            <ul>
-              {score.missing.filter((k): k is Exclude<typeof k, "hobbies" | "honours" | "activities"> => k !== "hobbies" && k !== "honours" && k !== "activities").slice(0, 3).map((k) => (
-                <li key={k} className="um-muted">
-                  {t(`career.cv.tip.${k}`)}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </Card>
-
-      <Card>
-        <div className="stack">
-          <Input label={t("career.cv.title")} value={draft.title} maxLength={120} onChange={(e) => edit((d) => ({ ...d, title: e.target.value }))} />
-          <Chips label={t("career.cv.language")} value={draft.language} onChange={(v) => edit((d) => ({ ...d, language: v }))} options={CV_LANGUAGES.map((l) => ({ value: l, label: t(`career.lang.${l}`) }))} />
-          <TemplatePicker value={draft.template} onChange={(v) => edit((d) => ({ ...d, template: v }))} />
-        </div>
-      </Card>
-
-      <Card>
-        <div className="stack">
-          <h2>{t("career.cv.section.personal")}</h2>
-          <div className="grid-auto">
-            {(["fullName", "headline", "email", "phone", "city", "address", "idNumber", "birthDate", "nationality", "gender", "linkedin", "website"] as const).map((k) => {
-              const req = (["fullName", "email", "phone"] as string[]).includes(k);
-              return (
-                <Input
-                  key={k}
-                  label={req ? `${t(`career.cv.field.${k}`)} *` : t(`career.cv.field.${k}`)}
-                  value={cv.personal[k]}
-                  type={k === "email" ? "email" : k === "phone" ? "tel" : "text"}
-                  required={req}
-                  hint={req && exportBlocked && !cv.personal[k].trim() ? t("career.cv.required") : undefined}
-                  onChange={(e) => setPersonal(k, e.target.value)}
-                />
-              );
-            })}
-          </div>
-          <CvPhoto uid={user.id} url={cv.personal.photoUrl} path={cv.personal.photoPath} onChange={(p) => {
-            if (p.photoPath) uploadedPhotos.current.add(p.photoPath);
-            setData("personal", { ...cv.personal, ...p });
-          }} />
-          <fieldset className="stack" style={{ border: 0, padding: 0, margin: 0, minInlineSize: 0 }}>
-            <legend>{t("career.cv.field.socials")}</legend>
-            {cv.personal.socials.map((so, i) => (
-              <div key={i} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr)", gap: 8 }}>
-                <div className="grid-auto">
-                  <Input label={t("career.cv.field.platform")} list="cv-social-platforms" value={so.platform} onChange={(e) => setSocials(cv.personal.socials.map((x, j) => (j === i ? { ...x, platform: e.target.value } : x)))} />
-                  <Input label={t("career.cv.field.socialValue")} value={so.value} onChange={(e) => setSocials(cv.personal.socials.map((x, j) => (j === i ? { ...x, value: e.target.value } : x)))} />
-                </div>
-                <div className="row">
-                  <Button size="sm" variant="danger" onClick={() => setSocials(cv.personal.socials.filter((_, j) => j !== i))}>
-                    {t("career.cv.removeEntry")}
-                  </Button>
-                </div>
-              </div>
-            ))}
-            <datalist id="cv-social-platforms">
-              {["LinkedIn", "Instagram", "WhatsApp", "Facebook", "GitHub", "Telegram"].map((p) => (
-                <option key={p} value={p} />
-              ))}
-            </datalist>
-            <div className="row">
-              <Button size="sm" variant="secondary" disabled={cv.personal.socials.length >= 10} onClick={() => setSocials([...cv.personal.socials, { platform: "", value: "" }])}>
-                <Icon name="add" size="sm" />
-                {t("career.cv.add")}
-              </Button>
-            </div>
-          </fieldset>
-        </div>
-      </Card>
-      <Card>
-        <div className="stack">
-          <h2>{t("career.cv.section.summary")}</h2>
-          <Textarea key={summaryRev} label={t("career.cv.field.summary")} rows={4} maxLength={1500} value={cv.summary} onChange={(e) => setData("summary", e.target.value)} />
-          <AiWrite
-            kind="summary"
-            language={draft.language}
-            context={{ title: cv.personal.headline, skills: cv.skills.map((s) => s.name).join(", ") }}
-            current={cv.summary}
-            onText={(text) => {
-              setData("summary", text);
-              setSummaryRev((r) => r + 1);
-            }}
-          />
-        </div>
-      </Card>
-      <Entries title={t("career.cv.section.education")} items={cv.education} fields={EDU} rev={rev} ai={AI_EDU} language={draft.language} make={() => ({ institution: "", degree: "", field: "", start: "", end: "", gpa: "", description: "", city: "", website: "", eqfLevel: "" })} onChange={sectionList("education")} />
-      <Entries title={t("career.cv.section.experience")} items={cv.experience} fields={EXP} rev={rev} ai={AI_EXP} language={draft.language} make={() => ({ company: "", role: "", location: "", start: "", end: "", current: false, bullets: [] })} onChange={sectionList("experience")} />
-      <Card>
-        <div className="stack">
-          <h2>{t("career.cv.section.skills")}</h2>
-          <ListField label={t("career.cv.field.skills")} value={cv.skills.map((s) => s.name)} parse={csv} join=", " onChange={(v) => setData("skills", v.slice(0, CV_SECTION_ITEMS_MAX).map((s) => s.slice(0, 50)).map((name) => ({ ...cv.skills.find((x) => x.name === name), name })))} />
-        </div>
-      </Card>
-      <Entries title={t("career.cv.section.languages")} items={cv.languages} fields={LANG} rev={rev} language={draft.language} make={() => ({ name: "", level: "", native: false, listening: "", reading: "", spokenProduction: "", spokenInteraction: "", writing: "" })} onChange={sectionList("languages")} />
-      <Entries title={t("career.cv.section.projects")} items={cv.projects} fields={PROJ} rev={rev} ai={AI_PROJ} language={draft.language} make={() => ({ name: "", link: "", description: "", tech: [] })} onChange={sectionList("projects")} />
-      <Entries title={t("career.cv.section.certificates")} items={cv.certificates} fields={CERT} rev={rev} ai={AI_CERT} language={draft.language} make={() => ({ name: "", issuer: "", year: "", link: "", date: "", mode: "", description: "" })} onChange={sectionList("certificates")} />
-      <Entries title={t("career.cv.section.hobbies")} items={cv.hobbies} fields={HOBBY} rev={rev} ai={AI_HOBBY} language={draft.language} make={() => ({ title: "", description: "" })} onChange={sectionList("hobbies")} />
-      <Entries title={t("career.cv.section.honours")} items={cv.honours} fields={HONOUR} rev={rev} ai={AI_HONOUR} language={draft.language} make={() => ({ title: "", issuer: "", date: "", description: "" })} onChange={sectionList("honours")} />
-      <Entries title={t("career.cv.section.activities")} items={cv.activities} fields={ACTIVITY} rev={rev} ai={AI_ACT} language={draft.language} make={() => ({ title: "", place: "", date: "", description: "" })} onChange={sectionList("activities")} />
-
-      <div className="row">
-        <Button loading={saving} disabled={!dirty} onClick={() => void save()}>
-          {t("career.cv.save")}
-        </Button>
-        {dirty ? <span className="um-muted">{t("career.cv.unsaved")}</span> : null}
-        <Button variant="secondary" onClick={() => void exportPdf()}>
-          <Icon name="download" size="sm" />
-          {t("career.cv.export")}
-        </Button>
-      </div>
-      {exportBlocked && missing.length ? (
-        <p className="err-box" role="alert">
-          {`${missing.map((k) => t(`career.cv.field.${k}`)).join(", ")}: ${t("career.cv.required")}`}
-        </p>
-      ) : null}
-      <p className="um-muted" style={{ fontSize: "var(--text-sm)" }}>
-        {t("career.cv.exportHintWeb")}
-      </p>
-
-      <FeedbackPanel cvId={id} language={draft.language} ensureSaved={save} />
-
-      <div className="row">
-        <Button variant="danger" onClick={() => setConfirmDelete(true)}>
-          {t("career.cv.delete")}
-        </Button>
-      </div>
-      <Dialog
-        open={confirmDelete}
-        title={t("career.cv.delete")}
-        onClose={() => setConfirmDelete(false)}
-        actions={
-          <>
-            <Button variant="secondary" onClick={() => setConfirmDelete(false)}>
-              {t("common.cancel")}
-            </Button>
-            <Button variant="danger" onClick={() => void remove()}>
-              {t("common.delete")}
-            </Button>
-          </>
-        }
-      >
-        <p>{t("career.cv.deleteConfirm")}</p>
-      </Dialog>
-    </div>
-  );
+  return <EditorInner key={doc.data.updatedAt} doc={doc.data} onReload={doc.reload} />;
 }

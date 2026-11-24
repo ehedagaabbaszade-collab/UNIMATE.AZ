@@ -4,14 +4,28 @@ import type { CvDescribeKind, CvLanguage } from "@unimate/core";
 import { useI18n } from "@unimate/i18n/react";
 import { Button, Icon, useToast } from "@unimate/ui";
 import { useEffect, useRef, useState } from "react";
+import { EdgeNotice } from "@/components/EdgeNotice";
+import type { EdgeError } from "@/lib/edge";
 import { cvDescribe } from "@/lib/edge-client";
 import { getBrowserClient } from "@/lib/supabase/browser";
 
-/** "Write with AI" for one description field. Never overwrites on failure; the result replaces the field only on success. */
-export function AiWrite({ kind, language, context, current, onText }: { kind: CvDescribeKind; language: CvLanguage; context: Record<string, string>; current: string; onText: (text: string) => void }) {
+/** Splits AI text into experience bullets: one per line, bullet markers stripped, max 8 x 300 characters. */
+export const toBullets = (text: string): string[] =>
+  text
+    .split("\n")
+    .map((x) => x.replace(/^\s*[-*•]\s*/, "").trim().slice(0, 300))
+    .filter(Boolean)
+    .slice(0, 8);
+
+/**
+ * "Write with AI" for one description field. The result is shown as a PREVIEW; the field only changes when the user accepts.
+ * `lines` fields (bullets) are split into at most 8 bullets of 300 characters.
+ */
+export function AiWrite({ kind, language, context, current, lines, onText }: { kind: CvDescribeKind; language: CvLanguage; context: Record<string, string>; current: string; lines?: boolean; onText: (text: string) => void }) {
   const { t } = useI18n();
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<EdgeError | string | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
   const run = async () => {
     const ctx = Object.fromEntries(Object.entries(context).map(([k, v]) => [k, v.trim().slice(0, 200)]).filter(([, v]) => v));
     // the server refuses to write from nothing (no invented facts); say so instead of a generic failure
@@ -20,9 +34,10 @@ export function AiWrite({ kind, language, context, current, onText }: { kind: Cv
     setError(null);
     const r = await cvDescribe({ kind, language, context: ctx, ...(current.trim() ? { current: current.trim().slice(0, 1500) } : {}) });
     setBusy(false);
-    if (r.ok) onText(r.data.text);
-    else setError(r.error.kind === "provider_not_configured" || r.error.kind === "function_missing" ? t("career.cv.ai.notConfigured") : t("career.cv.ai.failed"));
+    if (r.ok) setPreview(r.data.text);
+    else setError(r.error);
   };
+  const shown = preview === null ? "" : lines ? toBullets(preview).join("\n") : preview;
   return (
     <div className="stack" style={{ minWidth: 0, gap: 4 }}>
       <div className="row">
@@ -31,11 +46,30 @@ export function AiWrite({ kind, language, context, current, onText }: { kind: Cv
           {busy ? t("career.cv.ai.working") : current.trim() ? t("career.cv.ai.improve") : t("career.cv.ai.write")}
         </Button>
       </div>
-      {error ? (
-        <p className="err-box" role="alert">
-          {error}
-        </p>
+      {preview !== null ? (
+        <div className="stack" role="group" aria-label={t("cvWeb.ai.preview")} style={{ gap: 6, padding: 10, border: "1px dashed var(--primary)", borderRadius: "var(--radius-md)" }}>
+          <strong style={{ fontSize: "var(--text-sm)" }}>{t("cvWeb.ai.preview")}</strong>
+          <p className="ds" style={{ whiteSpace: "pre-line", overflowWrap: "anywhere" }}>{shown}</p>
+          <span className="um-muted" style={{ fontSize: "var(--text-xs)" }}>
+            {lines ? t("cvWeb.ai.bulletsHint") : t("cvWeb.ai.previewHint")}
+          </span>
+          <div className="row">
+            <Button
+              size="sm"
+              onClick={() => {
+                onText(shown);
+                setPreview(null);
+              }}
+            >
+              {t("cvWeb.ai.accept")}
+            </Button>
+            <Button size="sm" variant="secondary" onClick={() => setPreview(null)}>
+              {t("cvWeb.ai.discard")}
+            </Button>
+          </div>
+        </div>
       ) : null}
+      {error ? typeof error === "string" ? <p className="err-box" role="alert">{error}</p> : <EdgeNotice error={error} /> : null}
     </div>
   );
 }

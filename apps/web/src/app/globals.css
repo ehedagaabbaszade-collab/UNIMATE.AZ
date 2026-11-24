@@ -312,8 +312,9 @@
   body:has(.cv-print-area) * { visibility: hidden !important; }
   .cv-print-area, .cv-print-area * { visibility: visible !important; }
   .cv-print-area { position: absolute; inset: 0 auto auto 0; width: 100%; background: #fff; color: #000; }
-  @page { margin: 16mm; }
 }
+/* CV builder: wide dialogs (template preview/compare/gallery) */
+.um-dialog:has(.cv-wide) { width: min(96vw, 1200px); max-width: 96vw; max-height: 94dvh; overflow: auto; }
 
 /* Theme tokens for the public site (.lp), auth (.auth) and portal (.shell): light is the base, dark mirrors packages/ui (system preference or data-theme="dark"). */
 .lp, .auth, .shell { color-scheme: light; --text: #11152b; --text-muted: #5b6280; --bg: #f1f2fd; --surface: #fff; --surface-2: #f1f2fd; --surface-3: #e4e6f8; --border: rgba(17, 21, 43, 0.08); --border-strong: rgba(17, 21, 43, 0.28); --focus: #6366f1; --primary: #4338ca; --primary-hover: #3730a3; --primary-soft: rgba(67, 56, 202, 0.1); --on-primary: #fff;

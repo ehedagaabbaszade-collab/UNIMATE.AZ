@@ -1,35 +1,27 @@
 "use client";
 
 import {
-  CV_DEFAULT_TEMPLATE,
-  CV_LANGUAGES,
-  CV_MAX_DOCUMENTS,
   OPPORTUNITY_KINDS,
   OPPORTUNITY_PAGE_SIZE,
   OPPORTUNITY_SORTS,
   TRACK_STATUSES,
-  emptyCv,
   groupByStatus,
   safeExternalUrl,
   skillGap,
   todayInBaku,
-  type CvLanguage,
-  type CvTemplate,
   type OpportunityListItem,
   type TrackStatus,
   type TrackedItem,
 } from "@unimate/core";
 import { useI18n } from "@unimate/i18n/react";
-import { Badge, Button, Card, Dialog, EmptyState, ErrorState, Icon, Input, Skeleton, Tabs, useOnlineStatus, useToast } from "@unimate/ui";
+import { Badge, Button, Card, EmptyState, ErrorState, Icon, Input, Skeleton, Tabs, useOnlineStatus, useToast } from "@unimate/ui";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useUser } from "@/components/user";
 import { getBrowserClient } from "@/lib/supabase/browser";
 import { useAsync } from "@/lib/use-async";
-import { TemplatePicker } from "./TemplatePicker";
+import { CvList } from "./CvList";
 import { InterviewPanel } from "./InterviewPanel";
-import { DEFAULT_FILTERS, createCv, deleteCv, listCvs, myCvSkills, myTracking, removeTracking, searchOpportunities, updateTracking, type OpportunityFilters } from "./api";
+import { DEFAULT_FILTERS, myCvSkills, myTracking, removeTracking, searchOpportunities, updateTracking, type OpportunityFilters } from "./api";
 import { Chips, DeadlineLabel, KIND_ICON, OpportunityCard, STATUS_TONE } from "./parts";
 
 /** Feed with debounced search; keeps the last result visible when offline or on error. */
@@ -247,109 +239,6 @@ function Tracker() {
             </section>
           ))
       )}
-    </div>
-  );
-}
-
-function CvList() {
-  const { t, date, locale } = useI18n();
-  const router = useRouter();
-  const { toast } = useToast();
-  const user = useUser();
-  const cvs = useAsync(() => listCvs(getBrowserClient()), []);
-  const [busy, setBusy] = useState(false);
-  const [picking, setPicking] = useState(false);
-  const [del, setDel] = useState<{ id: string; title: string } | null>(null);
-  const doDelete = async () => {
-    const d = del;
-    setDel(null);
-    if (!d) return;
-    try {
-      await deleteCv(getBrowserClient(), d.id);
-      toast(t("career.cv.deleted"), "success");
-      cvs.reload();
-    } catch {
-      toast(t("career.cv.saveFailed"), "error");
-    }
-  };
-  const [tpl, setTpl] = useState<CvTemplate>(CV_DEFAULT_TEMPLATE);
-  const create = async () => {
-    setBusy(true);
-    const lang: CvLanguage = (CV_LANGUAGES as readonly string[]).includes(locale) ? (locale as CvLanguage) : "az";
-    const r = await createCv(getBrowserClient(), user.id, { title: t("career.cv.untitled"), language: lang, template: tpl, data: emptyCv() });
-    setBusy(false);
-    if (r.ok) router.push(`/career/cv/${r.id}`);
-    else toast(r.error === "limit" ? t("career.cv.limit") : t("career.cv.saveFailed"), "error");
-  };
-  if (cvs.loading && !cvs.data) return <Skeleton height={100} />;
-  if (cvs.error && !cvs.data) return <ErrorState title={t("career.loadFailed")} description={cvs.error} action={<Button onClick={cvs.reload}>{t("common.retry")}</Button>} />;
-  const list = cvs.data ?? [];
-  return (
-    <div className="stack-lg">
-      <div className="row">
-        <Button loading={busy} disabled={list.length >= CV_MAX_DOCUMENTS} onClick={() => setPicking(true)}>
-          <Icon name="add" size="sm" />
-          {t("career.cv.create")}
-        </Button>
-        {list.length >= CV_MAX_DOCUMENTS ? <span className="um-muted">{t("career.cv.limit")}</span> : null}
-      </div>
-      {picking ? (
-        <Card>
-          <div className="stack">
-            <h3>{t("career.cv.pickTemplate")}</h3>
-            <TemplatePicker value={tpl} onChange={setTpl} />
-            <div className="row">
-              <Button loading={busy} onClick={() => void create()}>
-                {t("career.cv.createWithTemplate")}
-              </Button>
-              <Button variant="secondary" disabled={busy} onClick={() => setPicking(false)}>
-                {t("common.cancel")}
-              </Button>
-            </div>
-          </div>
-        </Card>
-      ) : null}
-      {list.length === 0 ? (
-        <EmptyState title={t("career.empty.cvs")} description={t("career.empty.cvsBody")} />
-      ) : (
-        <div className="grid-auto">
-          {list.map((c) => (
-            <Card key={c.id} className="doc-card">
-              <div className="row">
-                <Icon name="cv" size="sm" />
-                <Badge tone="info">{t(`career.lang.${c.language}`)}</Badge>
-                <Badge>{t(`career.cv.templates.${c.template}`)}</Badge>
-              </div>
-              <h3>
-                <Link href={`/career/cv/${c.id}`}>{c.title}</Link>
-              </h3>
-              <p className="um-muted" style={{ fontSize: "var(--text-xs)" }}>
-                {date(c.updatedAt)}
-              </p>
-              <Button variant="danger" aria-label={`${t("career.cv.delete")}: ${c.title}`} onClick={() => setDel({ id: c.id, title: c.title })}>
-                {t("common.delete")}
-              </Button>
-            </Card>
-          ))}
-        </div>
-      )}
-      <Dialog
-        open={del !== null}
-        title={t("career.cv.delete")}
-        onClose={() => setDel(null)}
-        actions={
-          <>
-            <Button variant="secondary" onClick={() => setDel(null)}>
-              {t("common.cancel")}
-            </Button>
-            <Button variant="danger" onClick={() => void doDelete()}>
-              {t("common.delete")}
-            </Button>
-          </>
-        }
-      >
-        <p>{t("career.cv.deleteConfirm")}</p>
-      </Dialog>
     </div>
   );
 }
